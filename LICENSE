@@ -1,0 +1,20 @@
+
+QIz.jl - Quantum-inspired Laplace / z-transform with tensor networks.
+
+This work is provided under the Creative Commons Attribution-NonCommercial 4.0
+International License (CC BY-NC 4.0).
+
+You are free to:
+- Share — copy and redistribute the material in any medium or format.
+- Adapt — remix, transform, and build upon the material.
+
+Under the following terms:
+- Attribution — You must give appropriate credit to the authors of QIz.jl.
+- NonCommercial — You may not use the material for commercial purposes
+  without prior written permission from the authors.
+
+For commercial licensing inquiries, please contact:
+dario_poletti@sutd.edu.sg
+
+The full license text is available at:
+https://creativecommons.org/licenses/by-nc/4.0/
