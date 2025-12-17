@@ -1,0 +1,18 @@
+name = "QIz"
+uuid = "62ad503f-14a8-4749-be6f-41098d8db53a"
+license = "CC-BY-NC-4.0"
+authors = ["Gauthameshwar S.", "Noufal Jaseem"]
+version = "0.1.0"
+
+[deps]
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+ITensors = "9136182c-28ba-11e9-034c-db9fb085ebd5"
+LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
+
+[compat]
+Random = "1.11.0"
+Revise = "3.12.3"
