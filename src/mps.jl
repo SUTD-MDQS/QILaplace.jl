@@ -455,6 +455,7 @@ function update_bond!(ψ::zTMPS, old_bond_index::I, new_bond_index::I) where {I<
         replaceinds!(ψ.data[j].Amain, old_bond_index => new_bond_index)
         replaceinds!(ψ.data[j].Acopy, old_bond_index => new_bond_index)
         ψ.bonds_copy[j] = new_bond_index
+        ψ.data[j].c = new_bond_index
         return ψ
     end
 
