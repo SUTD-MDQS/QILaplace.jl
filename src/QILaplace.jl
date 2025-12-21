@@ -1,5 +1,5 @@
-# src/QIz.jl
-module QIz
+# src/QILaplace.jl
+module QILaplace
 __precompile__(true)
 
 using ITensors, Random, Printf
@@ -22,10 +22,8 @@ export SingleSiteMPO, PairedSiteMPO
 
 # signals/Signals.jl
 include("signals/Signals.jl")
-using .Signals: generate_signal, signal_mps
-export generate_signal, signal_mps
-
-# signals/SignalMPS.jl
+using .Signals: generate_signal
+export generate_signal
 
 # Circuits.jl
 
@@ -35,4 +33,4 @@ export generate_signal, signal_mps
 
 # Precompile
 __init__() = nothing
-end # module QIz
+end # module QILaplace

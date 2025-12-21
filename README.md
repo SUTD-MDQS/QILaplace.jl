@@ -1,3 +1,5 @@
-# QIz.jl
+# QILaplace.jl - Quantum-inspired Laplace / Fourier transform with tensor networks. 
 
-QIz (pronounced Quu-Aii-Zee) is a library written in Julia to perform Quantum-Inspired Z-transform and Quantum Fourier Transform using tensor networks (ITensors.jl). This is an early-stage README file. It may change as we develop the library.
+QILaplace is a library written in Julia to perform the discrete Laplace transform and Quantum Fourier Transform using Quantum-Inspired algorithms. Quantum algorithms involve constructing a quantum circuit that handles data encoded in qubits and gates that act on it to give you the transformed output. Quantum-Inspired algorithms allow you to define the circuit gates and the quantum state in the form of Matrix Product States (MPS) and Matrix Product Operators (MPO), thus making them possible to run on a classical computer within the tensor network framework. Here we use ITensors.jl to develop the majority of this package and provide the users the option to do both the Laplce transform and the Fourier transform that can effortlessly deal huge data sizes. The runtime is an exponential speedup compared to the conventional algorithms such as FFT and chirp z-Transform that is the SOAA for these algorithms now.  
+
+This is an early-stage README file. It may change as we develop the library.
