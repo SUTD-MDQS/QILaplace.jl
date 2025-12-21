@@ -34,7 +34,20 @@ include("signals/SignalConverters.jl")
 using .SignalConverters: signal_mps, signal_ztmps
 export signal_mps, signal_ztmps
 
-# Circuits.jl
+# circuits/qft_gates.jl
+include("circuits/qft_gates.jl")
+using .QFTGates
+export QFTGates
+
+# circuits/dt_gates.jl
+include("circuits/dt_gates.jl")
+using .DTGates
+export DTGates
+
+# circuits/zt_gates.jl
+include("circuits/zt_gates.jl")
+using .ZTGates
+export ZTGates
 
 # Transforms.jl
 
