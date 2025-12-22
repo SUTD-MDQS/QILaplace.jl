@@ -20,6 +20,10 @@ include("Mpo.jl")
 using .Mpo: SingleSiteMPO, PairedSiteMPO
 export SingleSiteMPO, PairedSiteMPO
 
+# linalg/apply.jl
+include("linalg/apply.jl")
+using .ApplyMPO: apply
+
 # signals/Signals.jl
 include("signals/Signals.jl")
 using .Signals: generate_signal
@@ -37,17 +41,14 @@ export signal_mps, signal_ztmps
 # circuits/qft_gates.jl
 include("circuits/qft_gates.jl")
 using .QFTGates
-export QFTGates
 
 # circuits/dt_gates.jl
 include("circuits/dt_gates.jl")
 using .DTGates
-export DTGates
 
 # circuits/zt_gates.jl
 include("circuits/zt_gates.jl")
 using .ZTGates
-export ZTGates
 
 # Transforms.jl
 
@@ -55,4 +56,5 @@ export ZTGates
 
 # Precompile
 __init__() = nothing
+
 end # module QILaplace
