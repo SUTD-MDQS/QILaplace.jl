@@ -85,7 +85,7 @@ function control_damping_mpo(n::Int, k::Int, ωr::Real, sites::Vector{IType}) wh
                       R(R_factor, sites_main[l]) * onehot(bonds_main[l - 1], 2, bonds_copy[l], 2))
             end
         end
-
+3
         # copy site tensor: identity gate
         data[2l] = (I(sites_copy[l]) * onehot(bonds_copy[l], 1, bonds_main[l], 1) + 
                     I(sites_copy[l]) * onehot(bonds_copy[l], 2, bonds_main[l], 2))
@@ -104,15 +104,11 @@ function control_damping_mpo(n::Int, k::Int, ωr::Real, sites::Vector{IType}) wh
     data[2k-1] = ((Π0 * Hdamped * onehot(bonds_main[k-1], 1, bonds_copy[k], 1) + 
                     Π1 * Hdamped * onehot(bonds_main[k-1], 2, bonds_copy[k], 2)))
 
-    data[2k] = begin
-        if k == n
-            (I(sites_copy[k])  * onehot(bonds_copy[k], 1) +
-            I(sites_copy[k])  * onehot(bonds_copy[k], 2))
-        else
-            (I(sites_copy[k]) * onehot(bonds_main[k], 1, bonds_copy[k], 1) +
-            I(sites_copy[k]) * onehot(bonds_main[k], 2, bonds_copy[k], 2))
-        end
-    end
+    # Last site: copy gate
+    # This is the end of the block, so no right bonds (bonds_main[k] does not exist)
+    data[2k] = (I(sites_copy[k])  * onehot(bonds_copy[k], 1) +
+                I(sites_copy[k])  * onehot(bonds_copy[k], 2))
+
     return PairedSiteMPO(data, sites_main, sites_copy, bonds_main, bonds_copy)
 end
 
@@ -161,7 +157,7 @@ function control_damping_copy_mpo(n::Int, k::Int, ωr::Real, sites::Vector{IType
     # Control Logic: |0X0| -> Bond 1, |1X1| -> Bond 2
     data[2] = (Π(0, sites_copy[1]) * onehot(bonds_copy[1], 1, bonds_main[1], 1) +
                Π(1, sites_copy[1]) * onehot(bonds_copy[1], 1, bonds_main[1], 2))
-               
+    
     # Blocks 2 to L-1 (Global k+1 to n-1)
     for j in 2:(L-1)
         # R-factor for target j (Global k+j-1)
@@ -171,7 +167,6 @@ function control_damping_copy_mpo(n::Int, k::Int, ωr::Real, sites::Vector{IType
         # main[j]: Controlled R
         data[2j-1] = (I(sites_main[j]) * onehot(bonds_main[j-1], 1, bonds_copy[j], 1) +
                       R(R_factor, sites_main[j]) * onehot(bonds_main[j-1], 2, bonds_copy[j], 2))
-                      
         # copy[j]: Identity
         data[2j] = (I(sites_copy[j]) * onehot(bonds_copy[j], 1, bonds_main[j], 1) +
                     I(sites_copy[j]) * onehot(bonds_copy[j], 2, bonds_main[j], 2))
