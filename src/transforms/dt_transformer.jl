@@ -21,14 +21,6 @@ function zip_to_combine_mpos(mpo1::PairedSiteMPO, mpo2::PairedSiteMPO, oc::Int)
     L1 = length(mpo1.sites_main)
     L2 = length(mpo2.sites_main)
 
-    # We assume mpo1 is the accumulator (longer) and mpo2 is the new block (shorter)
-    # And we compute mpo2 * mpo1 (mpo1 applied first, then mpo2)
-    # This matches the order in build_dt_mpo: accumulator (mpo1) then new block (mpo2)
-    # Wait, in build_dt_mpo we do: mpo_part1 = zip_to_combine_mpos(mpo_part1, block_k)
-    # mpo_part1 is U_{n-1}...U_{k+1}. block_k is U_k.
-    # We want U_k * U_{n-1}...
-    # So mpo2 * mpo1.
-    
     @assert L1 >= L2 "zip_to_combine_mpos: mpo1 must be longer than mpo2. Found length(mpo1)=$L1, length(mpo2)=$L2"
 
     new_data = copy(mpo1.data)
@@ -80,7 +72,7 @@ function zip_to_combine_mpos(mpo1::PairedSiteMPO, mpo2::PairedSiteMPO, oc::Int)
                 append!(left_inds, common_bonds)
             end
              
-            U, S, V = svd(core, left_inds; cutoff=1e-14, maxdim=1000)
+            U, S, V = svd(core, left_inds...; cutoff=1e-14, maxdim=1000)
             
             new_data[idx1] = U
             T = S * V
@@ -140,7 +132,7 @@ function zip_to_combine_mpos(mpo1::PairedSiteMPO, mpo2::PairedSiteMPO, oc::Int)
             # Factorize core -> T * V (T is remainder to left, V is site tensor)
             # We want V to have right_inds.
             rem_inds = uniqueinds(core, right_inds)
-            U, S, V = svd(core, rem_inds; cutoff=1e-14, maxdim=1000)
+            U, S, V = svd(core, rem_inds...; cutoff=1e-14, maxdim=1000)
             
             new_data[idx1] = V
             T = U * S
@@ -190,7 +182,7 @@ function zip_to_compress_mpo(mpo::PairedSiteMPO, oc::Int, direction::String; cut
             # SVD
             # Left indices: unique indices of i (excluding bond to i+1)
             left_inds = uniqueinds(new_data[i], new_data[i+1])
-            U, S, V = svd(core, left_inds; cutoff=cutoff, maxdim=maxdim)
+            U, S, V = svd(core, left_inds...; cutoff=cutoff, maxdim=maxdim)
             
             new_data[i] = U
             new_data[i+1] = S * V
@@ -221,7 +213,7 @@ function zip_to_compress_mpo(mpo::PairedSiteMPO, oc::Int, direction::String; cut
             # SVD
             # Right indices: unique indices of i (excluding bond to i-1)
             right_inds = uniqueinds(new_data[i], new_data[i-1])
-            U, S, V = svd(core, right_inds; cutoff=cutoff, maxdim=maxdim)
+            U, S, V = svd(core, right_inds...; cutoff=cutoff, maxdim=maxdim)
             
             new_data[i] = U
             new_data[i-1] = S * V
@@ -265,9 +257,9 @@ Returns a PairedSiteMPO acting on 2n sites (n main + n copy).
 """
 function build_dt_mpo(n::Int, ωr::Real, sites_main::Vector{I}, sites_copy::Vector{I}; 
                       cutoff=1e-14, maxdim=1000) where {I<:Index}
-    n >= 1 || throw(ArgumentError("build_dt_mpo: n must be >= 1. Found n=$n"))
-    length(sites_main) == n || throw(ArgumentError("build_dt_mpo: sites_main must have n elements"))
-    length(sites_copy) == n || throw(ArgumentError("build_dt_mpo: sites_copy must have n elements"))
+    n >= 1 || throw(ArgumentError("build_dt_mpo: n must be ≥ 1. Found n=$n"))
+    length(sites_main) == n || throw(ArgumentError("build_dt_mpo: sites_main must have $n elements. Got $(length(sites_main))"))
+    length(sites_copy) == n || throw(ArgumentError("build_dt_mpo: sites_copy must have $n elements. Got $(length(sites_copy))"))
     
     # Interleave sites: [main[1], copy[1], main[2], copy[2], ...]
     all_sites = Vector{I}(undef, 2n)
@@ -282,7 +274,7 @@ function build_dt_mpo(n::Int, ωr::Real, sites_main::Vector{I}, sites_copy::Vect
     end
     
     # =====================================================
-    # Part 1: Build tensor train from k = 1 down to k for k = 1 to n
+    # Part 1: Build damping tensor train from l = 1 to k for k = 1 to n
     # =====================================================
     
     mpo_part1 = control_damping_mpo(n, 1, ωr, all_sites[1:2])
@@ -330,12 +322,12 @@ function build_dt_mpo(n::Int, ωr::Real, sites_main::Vector{I}, sites_copy::Vect
     end
     
     # =====================================================
-    # Part 2: Build tensor train for k = n-1 down to 1
+    # Part 2: Build copy tensor train from ℓ = k+1 to n for k = 1 to n-1
     # =====================================================
-    # Zip-combine blocks from k = n-1 down to 1
+    # Zip-combine blocks from k = 1 to n-1
     for k in 1:(n-1)
         # Block for control on copy[k], acts on sites 2k-1:2n
-        L = n - k + 1
+        L = n - k
         block_k = control_damping_copy_mpo(n, k, ωr, all_sites[2k-1:2n])
         
         # Combine with current MPO (zip-up since they share last sites)

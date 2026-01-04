@@ -149,6 +149,11 @@ end
 # Convenience checker 
 check_singlesitempo(W::SingleSiteMPO) = check_singlesitempo(W.data, W.sites, W.bonds)
 
+# Length and iteration protocol for SingleSiteMPO
+Base.length(W::SingleSiteMPO) = length(W.data)
+Base.iterate(W::SingleSiteMPO) = iterate(W.data)
+Base.iterate(W::SingleSiteMPO, s) = iterate(W.data, s)
+
 function check_pairedsitempo(data::Vector{ITensor}, sites_main::Vector{<:Index}, sites_copy::Vector{<:Index}, bonds_main::Vector{<:Index}, bonds_copy::Vector{<:Index})
     n = length(sites_main)
     length(data) == 2n || throw(ArgumentError("PairedSiteMPO: Data length must equal twice the number of sites. Got $n sites for $(length(data)) tensors."))

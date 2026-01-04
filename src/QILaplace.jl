@@ -50,7 +50,15 @@ using .DTGates
 include("circuits/zt_gates.jl")
 using .ZTGates
 
-# Transforms.jl
+# transforms/qft_transformer.jl
+include("transforms/qft_transformer.jl")
+using .QFTTransform: build_qft_mpo
+export build_qft_mpo
+
+# transforms/dt_transformer.jl
+include("transforms/dt_transformer.jl")
+using .DTTransform: build_dt_mpo
+export build_dt_mpo
 
 # Algorithms.jl
 

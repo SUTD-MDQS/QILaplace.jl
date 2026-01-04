@@ -170,6 +170,11 @@ end
 
 check_mps(ψ::SignalMPS) = check_mps(ψ.data, ψ.sites, ψ.bonds)
 
+# Length and iteration protocol for SignalMPS
+Base.length(ψ::SignalMPS) = length(ψ.data)
+Base.iterate(ψ::SignalMPS) = iterate(ψ.data)
+Base.iterate(ψ::SignalMPS, s) = iterate(ψ.data, s)
+
 function check_ztmps(data::Vector{PairCore},
                      bonds_main::Vector{I},
                      bonds_copy::Vector{I},
