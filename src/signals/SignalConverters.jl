@@ -38,6 +38,7 @@ function _array_to_tensor(x::AbstractVector; sites = undef)
 
         x_tensor = reshape(x, ntuple(_ -> 2, n)...)
         ψ = ITensor(x_tensor, reverse(sites)...)
+        ψ = permute(ψ, sites...) # first index in inds(ψ) corresponds to site-1 and so on...
         return ψ, normalisation_const
     finally
         ITensors.reset_warn_order()
@@ -126,47 +127,47 @@ function _tensor_to_mps_rsvd(ψ::ITensor; cutoff::Real = 1e-15, maxdim::Int = ty
         right_bond_N = Index(1, "dummy-bond-$N")
         T0 = ψ * ITensor(1.0, left_bond_0) * ITensor(1.0, right_bond_N)
 
-    # Recursive compress function (inlined divide-and-conquer)
-    function compress_tt!(T_chunk::ITensor, first_site_idx::Int, last_site_idx::Int, left_bond::Index, right_bond::Index)
-        if first_site_idx == last_site_idx
-            core = T_chunk
-            if inds(core) != IndexSet(left_bond, sites[first_site_idx], right_bond)
-                core = permute(core, left_bond, sites[first_site_idx], right_bond)
+        # Recursive compress function (inlined divide-and-conquer)
+        function compress_tt!(T_chunk::ITensor, first_site_idx::Int, last_site_idx::Int, left_bond::Index, right_bond::Index)
+            if first_site_idx == last_site_idx
+                core = T_chunk
+                if inds(core) != IndexSet(left_bond, sites[first_site_idx], right_bond)
+                    core = permute(core, left_bond, sites[first_site_idx], right_bond)
+                end
+                data[first_site_idx] = core
+                return
             end
-            data[first_site_idx] = core
+
+            mid = (first_site_idx + last_site_idx - 1) ÷ 2
+            left_inds = (left_bond, sites[first_site_idx:mid]...)
+
+            # RSVD: Tseg ≈ U * S * V, where U has (lb, left sites..., uind)
+            # and S*V has (uind, right sites..., rb).
+            U, S, V = rsvd(T_chunk, left_inds...; kwargs...)
+            T_left = U
+            T_right = S * V
+
+            # Record the link dimension between mid and mid+1.
+            old_bond = commonind(T_left, T_right)
+            @assert !isnothing(old_bond) || error("_tensor_to_mps_rsvd: missing internal bond between sites $mid and $(mid + 1)")
+            new_bond = Index(dim(old_bond); tags=@sprintf("bond-%d", mid))
+            bonds[mid] = new_bond
+
+            replaceind!(T_left, old_bond, new_bond)
+            replaceind!(T_right, old_bond, new_bond)
+
+            compress_tt!(T_left, first_site_idx, mid, left_bond, new_bond)
+            compress_tt!(T_right, mid + 1, last_site_idx, new_bond, right_bond)
             return
         end
 
-        mid = (first_site_idx + last_site_idx - 1) ÷ 2
-        left_inds = (left_bond, sites[first_site_idx:mid]...)
+        compress_tt!(T0, 1, N, left_bond_0, right_bond_N)
 
-        # RSVD: Tseg ≈ U * S * V, where U has (lb, left sites..., uind)
-        # and S*V has (uind, right sites..., rb).
-        U, S, V = rsvd(T_chunk, left_inds...; kwargs...)
-        T_left = U
-        T_right = S * V
+        # Strip boundary links so edge cores match the usual convention.
+        data[1] = (data[1] * ITensor(1.0, left_bond_0))
+        data[N] = (data[N] * ITensor(1.0, right_bond_N))
 
-        # Record the link dimension between mid and mid+1.
-        old_bond = commonind(T_left, T_right)
-        @assert !isnothing(old_bond) || error("_tensor_to_mps_rsvd: missing internal bond between sites $mid and $(mid + 1)")
-        new_bond = Index(dim(old_bond); tags=@sprintf("bond-%d", mid))
-        bonds[mid] = new_bond
-
-        replaceind!(T_left, old_bond, new_bond)
-        replaceind!(T_right, old_bond, new_bond)
-
-        compress_tt!(T_left, first_site_idx, mid, left_bond, new_bond)
-        compress_tt!(T_right, mid + 1, last_site_idx, new_bond, right_bond)
-        return
-    end
-
-    compress_tt!(T0, 1, N, left_bond_0, right_bond_N)
-
-    # Strip boundary links so edge cores match the usual convention.
-    data[1] = (data[1] * ITensor(1.0, left_bond_0))
-    data[N] = (data[N] * ITensor(1.0, right_bond_N))
-
-    return SignalMPS(data, sites, bonds)
+        return SignalMPS(data, sites, bonds)
     finally
         ITensors.reset_warn_order()
     end
