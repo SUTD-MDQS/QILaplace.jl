@@ -44,43 +44,53 @@ function control_Hphase_ztmps_mpo(k::Int, sites::Vector{IType}) where {IType<:In
     bonds_main = [Index(2, tags=@sprintf("zqft-bond-main-%d", i)) for i in 1:(k-1)]
     bonds_copy = [Index(2, tags=@sprintf("zqft-bond-copy-%d", i)) for i in 1:k]
 
-    # Block 1 (copy[1] is Control)
-    # main[1]: Identity
-    data[1] = I(sites_main[1]) * onehot(bonds_copy[1], 1)
-    
-    # copy[1]: H + Projector.
-    # Input: bonds_copy[1] (dummy 1).
-    # Output: bonds_main[1] (Control State).
-    site_tmp = sim(sites_copy[1])
-    Hcontrol = replaceind!(H(sites_copy[1]), sites_copy[1], site_tmp)
-    Π0 = replaceind!(Π(0, sites_copy[1]), sites_copy[1]', site_tmp)
-    Π1 = replaceind!(Π(1, sites_copy[1]), sites_copy[1]', site_tmp)
-    
-    data[2] = (Hcontrol * Π0 * onehot(bonds_copy[1], 1, bonds_main[1], 1) +
-               Hcontrol * Π1 * onehot(bonds_copy[1], 1, bonds_main[1], 2))
+    # 1. Main 1 (Site 1)
+    # Connects to bonds_copy[1]. Sums the branches: I * ( <1| + <2| )
+    data[1] = I(sites_main[1]) * onehot(bonds_copy[1], 1) + 
+              I(sites_main[1]) * onehot(bonds_copy[1], 2)
 
-    # Intermediate sites: main = identity (pass-through), copy = controlled phase gate (reads main bond)
-    for l in 2:(k-1)
-        θ = 2π / 2.0^l
-        # main[l]: Identity, pass signal
-        data[2l-1] = (I(sites_main[l]) * onehot(bonds_main[l-1], 1, bonds_copy[l], 1) +
-                      I(sites_main[l]) * onehot(bonds_main[l-1], 2, bonds_copy[l], 2))
-        # copy[l]: Phase, pass signal
-        data[2l] = (I(sites_copy[l]) * onehot(bonds_copy[l], 1, bonds_main[l], 1) +
-                    P(θ, sites_copy[l]) * onehot(bonds_copy[l], 2, bonds_main[l], 2))
+    # 2. Copy 1 (Site 2)
+    # Connects bonds_copy[1] (Left) and bonds_main[1] (Right)
+    # Phase if bond=2
+    # Note: We use negative angle to implement exp(-i * 2π * ...) for Z-transform/DFT
+    θ = -2π / 2.0^(k)
+    data[2] = I(sites_copy[1]) * onehot(bonds_copy[1], 1, bonds_main[1], 1) +
+              P(θ, sites_copy[1]) * onehot(bonds_copy[1], 2, bonds_main[1], 2)
+
+    # 3. Intermediate sites
+    for j in 2:(k-1)
+        # Main j (Site 2j-1)
+        # Connects bonds_main[j-1] (Left) and bonds_copy[j] (Right)
+        # Pass through
+        data[2j-1] = I(sites_main[j]) * onehot(bonds_main[j-1], 1, bonds_copy[j], 1) +
+                     I(sites_main[j]) * onehot(bonds_main[j-1], 2, bonds_copy[j], 2)
+                     
+        # Copy j (Site 2j)
+        # Connects bonds_copy[j] (Left) and bonds_main[j] (Right)
+        # Phase if bond=2
+        θ = -2π / 2.0^(k-j+1)
+        data[2j] = I(sites_copy[j]) * onehot(bonds_copy[j], 1, bonds_main[j], 1) +
+                   P(θ, sites_copy[j]) * onehot(bonds_copy[j], 2, bonds_main[j], 2)
     end
 
-    # Last site: control gate on copy site and identity on main site
-    l = k
-    θ = 2π / 2.0^k
+    # 4. Main k (Site 2k-1)
+    # Connects bonds_main[k-1] (Left) and bonds_copy[k] (Right)
+    # Pass through
+    data[2k-1] = I(sites_main[k]) * onehot(bonds_main[k-1], 1, bonds_copy[k], 1) +
+                 I(sites_main[k]) * onehot(bonds_main[k-1], 2, bonds_copy[k], 2)
+
+    # 5. Copy k (Site 2k)
+    # Connects bonds_copy[k] (Left)
+    # Source of control: H then Project
+    # If result 0 -> bond 1
+    # If result 1 -> bond 2
+    site_tmp = sim(sites_copy[k])
+    H_op = replaceind!(H(sites_copy[k]), sites_copy[k]', site_tmp) # s -> tmp
+    Π0_op = replaceind!(Π(0, sites_copy[k]), sites_copy[k], site_tmp) # tmp -> s'
+    Π1_op = replaceind!(Π(1, sites_copy[k]), sites_copy[k], site_tmp) # tmp -> s'
     
-    # main[k]: Identity, pass signal
-    data[2k-1] = (I(sites_main[k]) * onehot(bonds_main[k-1], 1, bonds_copy[k], 1) + 
-                  I(sites_main[k]) * onehot(bonds_main[k-1], 2, bonds_copy[k], 2))
-    
-    # copy[k]: Phase, end
-    data[2k] = (I(sites_copy[k]) * onehot(bonds_copy[k], 1) +
-                P(θ, sites_copy[k]) * onehot(bonds_copy[k], 2))
+    data[2k] = (Π0_op * H_op) * onehot(bonds_copy[k], 1) +
+               (Π1_op * H_op) * onehot(bonds_copy[k], 2)
 
     return PairedSiteMPO(data, sites_main, sites_copy, bonds_main, bonds_copy)
 end

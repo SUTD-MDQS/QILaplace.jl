@@ -60,6 +60,11 @@ include("transforms/dt_transformer.jl")
 using .DTTransform: build_dt_mpo
 export build_dt_mpo
 
+# transforms/zt_transformer.jl
+include("transforms/zt_transformer.jl")
+using .ZTTransformer: build_zt_mpo
+export build_zt_mpo
+
 # Algorithms.jl
 
 # Precompile
