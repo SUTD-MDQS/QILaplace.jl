@@ -1,7 +1,34 @@
-# QILaplace.jl
+<h1 align="center">
+  <br>
+  <img src="logo.svg" alt="QILaplace.jl" width="200">
+  <br>
+  QILaplace.jl
+  <br>
+</h1>
 
-<img src="logo.svg" alt="QILaplace logo" align="left" width="230"/>
+<h4 align="center">Quantum-inspired signal transforms via tensor network representations.</h4>
 
+<p align="center">
+  <a href="https://github.com/SUTD-MDQS/QILaplace.jl/actions/workflows/CI.yml">
+    <img src="https://github.com/SUTD-MDQS/QILaplace.jl/actions/workflows/CI.yml/badge.svg?branch=master" alt="CI">
+  </a>
+  <a href="https://julialang.org">
+    <img src="https://img.shields.io/badge/Julia-1.6%2B-blue" alt="Julia Version">
+  </a>
+  <a href="https://SUTD-MDQS.github.io/QILaplace.jl/dev">
+    <img src="https://img.shields.io/badge/docs-dev-blue.svg" alt="Docs">
+  </a>
+  <a href="https://codecov.io/gh/SUTD-MDQS/QILaplace.jl">
+    <img src="https://codecov.io/gh/SUTD-MDQS/QILaplace.jl/branch/master/graph/badge.svg" alt="Coverage">
+  </a>
+</p>
+
+<p align="center">
+  <a href="#why-tensor-network-transforms">Why Tensor Networks?</a> •
+  <a href="#core-features">Core Features</a> •
+  <a href="#performance-and-scaling">Performance</a> •
+  <a href="#license">License</a>
+</p>
 
 QILaplace.jl is a Julia library for implementing **quantum-inspired signal transforms**—most notably the **Quantum Fourier Transform (QFT)** and **Discrete Laplace (aka z-Transform)** variants—using **tensor-network representations**. The package is built on **Matrix Product States** (MPS) and **Matrix Product Operators** (MPOs) and runs entirely on classical hardware via ITensors.jl.
 

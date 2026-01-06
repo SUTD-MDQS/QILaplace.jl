@@ -1,6 +1,6 @@
 name = "QILaplace"
 uuid = "62ad503f-14a8-4749-be6f-41098d8db53a"
-license = "CC-BY-NC-4.0"
+license = "MIT"
 authors = ["Gauthameshwar S.", "Noufal Jaseem"]
 version = "0.1.0"
 

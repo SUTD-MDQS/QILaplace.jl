@@ -5,7 +5,7 @@ __precompile__(true)
 using ITensors, Random, Printf
 
 # Mps.jl
-include("Mps.jl")
+include("mps.jl")
 using .Mps: SignalMPS, zTMPS,
             nsite, siteindices, bondindices,
             canonicalize!, compress!,
@@ -16,7 +16,7 @@ export SignalMPS, zTMPS,
         update_site!, update_bond!
 
 # Mpo.jl
-include("Mpo.jl")
+include("mpo.jl")
 using .Mpo: SingleSiteMPO, PairedSiteMPO
 export SingleSiteMPO, PairedSiteMPO
 
