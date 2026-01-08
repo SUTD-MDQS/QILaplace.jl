@@ -1,4 +1,3 @@
-using Test, QILaplace, ITensors, Printf
 using LinearAlgebra
 
 import QILaplace.Mps: _as_signal_2n, _writeback_signal_2n, canonicalize!, compress!, norm

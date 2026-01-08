@@ -48,7 +48,7 @@ function SingleSiteMPO(n::Int)
     sites = [Index(2, @sprintf("site-%d", i)) for i in 1:n]
     bonds = [Index(1, @sprintf("bond-%d", i)) for i in 1:(n - 1)]
     if n == 1
-        return SingleSiteMPO(delta(sites[1], sites[1]'), sites, eltype(sites)[])
+        return SingleSiteMPO([delta(sites[1], sites[1]')], sites, eltype(sites)[])
     end
     data = Vector{ITensor}(undef, n)
     for i in eachindex(data)
