@@ -1,8 +1,8 @@
 name = "QILaplace"
 uuid = "62ad503f-14a8-4749-be6f-41098d8db53a"
 license = "MIT"
-authors = ["Gauthameshwar S.", "Noufal Jaseem"]
 version = "0.1.0"
+authors = ["Gauthameshwar S.", "Noufal Jaseem"]
 
 [deps]
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
@@ -15,6 +15,7 @@ Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [compat]
+ITensors = "0.9"
 Random = "1.11.0"
 Revise = "3.12.3"
 Test = "1.11.0"
