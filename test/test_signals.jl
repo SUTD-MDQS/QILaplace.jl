@@ -1,5 +1,3 @@
-using Test
-using QILaplace
 using QILaplace.Signals
 
 @testset "Signals.jl: basic functionality" begin

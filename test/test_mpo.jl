@@ -1,4 +1,3 @@
-using Test, QILaplace, ITensors, Printf
 import QILaplace.Mpo: SingleSiteMPO, PairedSiteMPO, check_singlesitempo, check_pairedsitempo
 import QILaplace.Mps: PairCore
 
