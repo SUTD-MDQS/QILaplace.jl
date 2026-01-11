@@ -3,10 +3,11 @@
 module Mps
 
 using ITensors, Printf
+import Base: getindex
 
 export SignalMPS, zTMPS,
        nsite, siteindices, bondindices, update_site!, update_bond!,
-       canonicalize!, compress!
+    canonicalize!, compress!, coefficient
 
 ##################################### MPS TYPES #########################################
 
@@ -466,6 +467,73 @@ function update_bond!(ψ::zTMPS, old_bond_index::I, new_bond_index::I) where {I<
 
     throw(ArgumentError("update_bond!: old bond index not found in zTMPS"))
 end
+
+##################################### COEFFICIENT ACCESSORS #########################################
+
+@inline function _site_projector(site::Index, raw::Integer)
+    d = dim(site)
+    val = Int(raw)
+    (0 ≤ val < d) || throw(ArgumentError("coefficient: bit value $raw outside [0,$(d-1)]"))
+    return setelt(dag(site) => (val + 1))
+end
+
+function _parse_config_string(spec::AbstractString)
+    stripped = strip(spec)
+    stripped = strip(stripped, ['[', ']', '(', ')', '{', '}'])
+    isempty(stripped) && throw(ArgumentError("coefficient: configuration string is empty"))
+    if occursin(r"[,\s]", stripped)
+        tokens = split(stripped, r"[,\s]+"; keepempty=false)
+        isempty(tokens) && throw(ArgumentError("coefficient: configuration string did not contain any entries"))
+        return parse.(Int, tokens)
+    else
+        all(c -> c in ('0','1'), stripped) || throw(ArgumentError("coefficient: bit strings may contain only '0' or '1'"))
+        return [c == '1' ? 1 : 0 for c in stripped]
+    end
+end
+
+function _bits_from_integer(value::Integer, n::Int)
+    value ≥ 0 || throw(ArgumentError("coefficient: integer configuration must be non-negative"))
+    bits = Vector{Int}(undef, n)
+    tmp = value
+    for i in n:-1:1
+        bits[i] = Int(tmp & 0x1)
+        tmp >>= 1
+    end
+    tmp == 0 || throw(ArgumentError("coefficient: integer $value requires more than $n bits"))
+    return bits
+end
+
+"""
+    coefficient(ψ::SignalMPS, config)
+
+Return the amplitude associated with the zero-based bit configuration `config`.
+Accepts vectors/tuples of integers (each entry in `[0, dim(site)-1]`), bit strings
+such as `"1010"` or `"[1,0,1,0]"`, and non-negative integers interpreted as an
+`N`-bit big-endian pattern (`N = length(ψ)`). The length of `config` must match
+the number of sites.
+"""
+function coefficient(ψ::SignalMPS, config::AbstractVector{<:Integer})
+    N = length(ψ.data)
+    length(config) == N || throw(ArgumentError("coefficient: expected $N entries, got $(length(config))"))
+    amp = ψ.data[1] * _site_projector(ψ.sites[1], config[1])
+    @inbounds for i in 2:N
+        amp = (amp * ψ.data[i]) * _site_projector(ψ.sites[i], config[i])
+    end
+    return scalar(amp)
+end
+
+coefficient(ψ::SignalMPS, config::Tuple{Vararg{Integer}}) = coefficient(ψ, collect(config))
+coefficient(ψ::SignalMPS, config::Vararg{Integer}) = coefficient(ψ, collect(config))
+coefficient(ψ::SignalMPS, spec::AbstractString) = coefficient(ψ, _parse_config_string(spec))
+coefficient(ψ::SignalMPS, value::Integer) = coefficient(ψ, _bits_from_integer(value, length(ψ.data)))
+
+function coefficient(ψ::zTMPS, config)
+    ψ_2n = _as_signal_2n(ψ)
+    return coefficient(ψ_2n, config)
+end
+
+getindex(ψ::SignalMPS, config::Vararg{Integer}) = coefficient(ψ, collect(config))
+getindex(ψ::zTMPS, config::Vararg{Integer}) = coefficient(ψ, collect(config))
 
 ##################################### NORM FUNCTIONS #########################################
 

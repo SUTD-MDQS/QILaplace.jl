@@ -9,11 +9,13 @@ include("mps.jl")
 using .Mps: SignalMPS, zTMPS,
             nsite, siteindices, bondindices,
             canonicalize!, compress!,
-            update_site!, update_bond!
+            update_site!, update_bond!,
+            coefficient
 export SignalMPS, zTMPS,
         nsite, siteindices, bondindices,
         canonicalize!, compress!,
-        update_site!, update_bond!
+        update_site!, update_bond!,
+        coefficient
 
 # Mpo.jl
 include("mpo.jl")

@@ -369,3 +369,41 @@ end
     bad2.sites[1], bad2.sites[2] = bad2.sites[2], bad2.sites[1]
     @test_throws ArgumentError _writeback_signal_2n(bad2)
 end
+
+@testset "mps.jl: coefficient extraction" begin
+    sites = [Index(2, "coeff-s$k") for k in 1:3]
+    bonds = [Index(1, "coeff-b1"), Index(1, "coeff-b2")]
+    A1 = zeros(Float64, 2, 1); A1[2, 1] = 1.0
+    A2 = zeros(Float64, 1, 2, 1); A2[1, 1, 1] = 1.0
+    A3 = zeros(Float64, 1, 2); A3[1, 2] = 0.5
+    data = [ITensor(A1, sites[1], bonds[1]),
+            ITensor(A2, bonds[1], sites[2], bonds[2]),
+            ITensor(A3, bonds[2], sites[3])]
+    ψ = QILaplace.Mps.SignalMPS(data, sites, bonds)
+
+    target = [1, 0, 1]
+    amp = QILaplace.Mps.coefficient(ψ, target)
+    @test isapprox(amp, 0.5; rtol=1e-12)
+    @test isapprox(QILaplace.Mps.coefficient(ψ, (1, 0, 1)), amp; rtol=1e-12)
+    @test isapprox(QILaplace.Mps.coefficient(ψ, "[1,0,1]"), amp; rtol=1e-12)
+    @test isapprox(QILaplace.Mps.coefficient(ψ, "101"), amp; rtol=1e-12)
+    @test isapprox(QILaplace.Mps.coefficient(ψ, 0b101), amp; rtol=1e-12)
+    @test isapprox(ψ[1, 0, 1], amp; rtol=1e-12)
+
+    @test_throws ArgumentError QILaplace.Mps.coefficient(ψ, [1, 0])
+    @test_throws ArgumentError QILaplace.Mps.coefficient(ψ, [2, 0, 1])
+    @test_throws ArgumentError QILaplace.Mps.coefficient(ψ, "[1, 2, 1]")
+    @test_throws ArgumentError QILaplace.Mps.coefficient(ψ, 0b1000)
+
+    ψz = QILaplace.Mps.zTMPS(2)
+    for i in 1:2
+        ψz.data[i].Amain .= random_itensor(inds(ψz.data[i].Amain)...)
+        ψz.data[i].Acopy .= random_itensor(inds(ψz.data[i].Acopy)...)
+    end
+    cfg = [1, 0, 1, 0]
+    coeff_pair = QILaplace.Mps.coefficient(ψz, cfg)
+    coeff_signal = QILaplace.Mps.coefficient(_as_signal_2n(ψz), cfg)
+    @test isapprox(coeff_pair, coeff_signal; rtol=1e-12)
+    @test isapprox(ψz[cfg...], coeff_pair; rtol=1e-12)
+    @test_throws ArgumentError QILaplace.Mps.coefficient(ψz, [1, 0, 1])
+end
