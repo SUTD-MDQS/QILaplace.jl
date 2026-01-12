@@ -4,11 +4,52 @@
 module ApplyMPO
 
 using ITensors, Printf
+import Base: *
 using ..Mps
 using ..Mps: SignalMPS, zTMPS
 using ..Mpo: SingleSiteMPO, PairedSiteMPO
 
 export apply
+
+function _as_single_site_mpo(W::PairedSiteMPO)
+    n = length(W.sites_main)
+    sites = Vector{eltype(W.sites_main)}(undef, 2n)
+    bonds = Vector{eltype(W.bonds_main)}(undef, 2n - 1)
+    
+    for i in 1:n
+        sites[2i-1] = W.sites_main[i]
+        sites[2i] = W.sites_copy[i]
+        
+        bonds[2i-1] = W.bonds_copy[i]
+        if i < n
+            bonds[2i] = W.bonds_main[i]
+        end
+    end
+    
+    return SingleSiteMPO(W.data, sites, bonds)
+end
+
+function _paired_from_single(W::SingleSiteMPO)
+    iseven(length(W)) || throw(ArgumentError("_paired_from_single: length must be even to split into PairedSiteMPO."))
+    n = length(W) ÷ 2
+
+    sites_main = Vector{eltype(W.sites)}(undef, n)
+    sites_copy = Vector{eltype(W.sites)}(undef, n)
+    bonds_main = Vector{eltype(W.bonds)}(undef, max(n - 1, 0))
+    bonds_copy = Vector{eltype(W.bonds)}(undef, n)
+
+    for i in 1:n
+        sites_main[i] = W.sites[2i - 1]
+        sites_copy[i] = W.sites[2i]
+        bonds_copy[i] = W.bonds[2i - 1]
+        if i < n
+            bonds_main[i] = W.bonds[2i]
+        end
+    end
+
+    new_data = [copy(t) for t in W.data]
+    return PairedSiteMPO(new_data, sites_main, sites_copy, bonds_main, bonds_copy)
+end
 
 # Function to apply an MPO to an MPS
 function apply(W::SingleSiteMPO, ψ::SignalMPS; kwargs...)
@@ -52,22 +93,80 @@ function apply(W::SingleSiteMPO, ψ::SignalMPS; kwargs...)
     return SignalMPS(new_data, ψ.sites, new_bonds)
 end
 
-function _as_single_site_mpo(W::PairedSiteMPO)
-    n = length(W.sites_main)
-    sites = Vector{eltype(W.sites_main)}(undef, 2n)
-    bonds = Vector{eltype(W.bonds_main)}(undef, 2n - 1)
+function apply(W1::SingleSiteMPO, W2::SingleSiteMPO; kwargs...)
+    n1 = length(W1)
+    n2 = length(W2)
     
-    for i in 1:n
-        sites[2i-1] = W.sites_main[i]
-        sites[2i] = W.sites_copy[i]
-        
-        bonds[2i-1] = W.bonds_copy[i]
-        if i < n
-            bonds[2i] = W.bonds_main[i]
-        end
+    # 1. Inspect window
+    start1 = findfirst(s -> s in W2.sites, W1.sites)
+    start1 === nothing && throw(ArgumentError("apply: No matching sites found"))
+    start2 = findfirst(s -> s == W1.sites[start1], W2.sites)
+    
+    match_len = 0
+    while start1 + match_len <= n1 && start2 + match_len <= n2 &&
+          W1.sites[start1 + match_len] == W2.sites[start2 + match_len]
+        match_len += 1
     end
     
-    return SingleSiteMPO(W.data, sites, bonds)
+    # 2. Determine base MPO (longer or W1 if equal)
+    if n1 >= n2
+        W_base, W_other = W1, W2
+        base_start, other_start = start1, start2
+    else
+        W_base, W_other = W2, W1
+        base_start, other_start = start2, start1
+    end
+    
+    # 3. Initialize result from base MPO (preserves non-overlapping regions)
+    n_out = length(W_base)
+    new_data = copy(W_base.data)
+    new_sites = copy(W_base.sites)
+    new_bonds = copy(W_base.bonds)
+    
+    # 4. Process matching window
+    prev_comb = nothing
+    
+    for i in 0:(match_len - 1)
+        idx1 = start1 + i
+        idx2 = start2 + i
+        base_idx = base_start + i
+        
+        # Contract tensors: W1 site output (unprimed) -> W2 site input (primed)
+        site_tmp = sim(W1.sites[idx1])
+        T1 = copy(W1.data[idx1])
+        T2 = copy(W2.data[idx2])
+        
+        replaceind!(T1, W1.sites[idx1], site_tmp)
+        replaceind!(T2, W2.sites[idx2]', site_tmp)
+        
+        T = T1 * T2
+        
+        # Apply previous combiner (left side of T)
+        if prev_comb !== nothing
+            T = T * dag(prev_comb)
+        end
+        
+        # Create/Apply current combiner (right side of T) - if not last in window
+        if i < match_len - 1
+            b1 = W1.bonds[idx1]
+            b2 = W2.bonds[idx2]
+            
+            comb = combiner(b1, b2)
+            cind = combinedind(comb)
+            new_bond = sim(cind, tags=@sprintf("bond-%d", base_idx))
+            replaceind!(comb, cind, new_bond)
+            
+            T = T * comb
+            new_bonds[base_idx] = new_bond
+            prev_comb = comb
+        else
+            prev_comb = nothing
+        end
+        
+        new_data[base_idx] = T
+    end
+    
+    return SingleSiteMPO(new_data, new_sites, new_bonds)
 end
 
 function apply(W::PairedSiteMPO, ψ::zTMPS; kwargs...)
@@ -86,152 +185,22 @@ function apply(W::PairedSiteMPO, ψ::zTMPS; kwargs...)
     return Mps._writeback_signal_2n(ψ_out_2n)
 end
 
-"""
-Apply MPO to MPO (contract matching sites, combine bonds).
-Equivalent to mpo1 * mpo2 for PairedSiteMPOs. This function:
- - aligns MPOs based on site indices (using `id` to match)
- - contracts tensors where sites match
- - combines bonds where both MPOs have bonds
- - propagates single bonds where only one MPO is present
-"""
-function apply(mpo1::PairedSiteMPO, mpo2::PairedSiteMPO)
-    # Map site ID to index in MPO
-    map1 = Dict(id(s) => i for (i, s) in enumerate(mpo1.sites_main))
-    map2 = Dict(id(s) => i for (i, s) in enumerate(mpo2.sites_main))
+function apply(mpo1::PairedSiteMPO, mpo2::PairedSiteMPO; kwargs...)
+    # Convert to SingleSiteMPO representation (2n-site form)
+    mpo1_single = _as_single_site_mpo(mpo1)
+    mpo2_single = _as_single_site_mpo(mpo2)
+
+    # Apply using SingleSiteMPO logic (handles unequal lengths)
+    combined_single = apply(mpo1_single, mpo2_single; kwargs...)
     
-    # Determine union of sites, preserving order from mpo1 then mpo2
-    all_sites = Vector{eltype(mpo1.sites_main)}()
-    seen_ids = Set{ITensors.IDType}()
-    
-    for s in mpo1.sites_main
-        push!(all_sites, s)
-        push!(seen_ids, id(s))
-    end
-    
-    for s in mpo2.sites_main
-        if !(id(s) in seen_ids)
-            push!(all_sites, s)
-            push!(seen_ids, id(s))
-        end
-    end
-    
-    N = length(all_sites)
-    new_data = Vector{ITensor}(undef, 2N)
-    new_sites_main = all_sites
-    new_sites_copy = Vector{eltype(mpo1.sites_copy)}(undef, N)
-    
-    # Populate new_sites_copy
-    for (i, s) in enumerate(all_sites)
-        if haskey(map1, id(s))
-            new_sites_copy[i] = mpo1.sites_copy[map1[id(s)]]
-        elseif haskey(map2, id(s))
-            new_sites_copy[i] = mpo2.sites_copy[map2[id(s)]]
-        else
-            error("Site not found in either MPO")
-        end
-    end
-    
-    new_bonds_main = Vector{eltype(mpo1.sites_main)}(undef, N-1)
-    new_bonds_copy = Vector{eltype(mpo1.sites_main)}(undef, N)
-    
-    C_main_prev = nothing # Combiner from previous block (main bond)
-    
-    for i in 1:N
-        s = all_sites[i]
-        idx1 = get(map1, id(s), nothing)
-        idx2 = get(map2, id(s), nothing)
-        
-        # --- MAIN TENSOR ---
-        M1 = (idx1 !== nothing) ? copy(mpo1.data[2*idx1-1]) : nothing
-        M2 = (idx2 !== nothing) ? copy(mpo2.data[2*idx2-1]) : nothing
-        
-        if M1 !== nothing && M2 !== nothing
-            s_tmp = sim(s)
-            replaceind!(M1, s, s_tmp)
-            replaceind!(M2, s', s_tmp)
-            M_new = M1 * M2
-        elseif M1 !== nothing
-            M_new = M1
-        elseif M2 !== nothing
-            M_new = M2
-        else
-            error("Site not found in either MPO")
-        end
-        
-        if C_main_prev !== nothing
-            M_new = M_new * C_main_prev
-        end
-        
-        # Combine internal copy bonds
-        b_c1 = (idx1 !== nothing) ? mpo1.bonds_copy[idx1] : nothing
-        b_c2 = (idx2 !== nothing) ? mpo2.bonds_copy[idx2] : nothing
-        
-        C_copy = nothing
-        if b_c1 !== nothing && b_c2 !== nothing
-            C_copy = combiner(b_c1, b_c2; tags = "bond-copy-$(i)")
-            M_new = M_new * C_copy
-            new_bonds_copy[i] = combinedind(C_copy)
-        elseif b_c1 !== nothing
-            new_bonds_copy[i] = b_c1
-        elseif b_c2 !== nothing
-            new_bonds_copy[i] = b_c2
-        else
-             error("Missing copy bond at site $i")
-        end
-        
-        new_data[2i-1] = M_new
-        
-        # --- COPY TENSOR ---
-        C1 = (idx1 !== nothing) ? copy(mpo1.data[2*idx1]) : nothing
-        C2 = (idx2 !== nothing) ? copy(mpo2.data[2*idx2]) : nothing
-        
-        s_c = new_sites_copy[i]
-        if C1 !== nothing && C2 !== nothing
-            s_tmp = sim(s_c)
-            replaceind!(C1, s_c, s_tmp)
-            replaceind!(C2, s_c', s_tmp)
-            C_new = C1 * C2
-        elseif C1 !== nothing
-            C_new = C1
-        elseif C2 !== nothing
-            C_new = C2
-        else
-            error("Copy site tensor missing")
-        end
-        
-        if C_copy !== nothing
-            C_new = C_new * dag(C_copy)
-        end
-        
-        # Combine main bonds (to next block)
-        if i < N
-            b_m1 = (idx1 !== nothing && idx1 < length(mpo1.sites_main)) ? mpo1.bonds_main[idx1] : nothing
-            b_m2 = (idx2 !== nothing && idx2 < length(mpo2.sites_main)) ? mpo2.bonds_main[idx2] : nothing
-            
-            if b_m1 !== nothing && b_m2 !== nothing
-                C_main_prev = combiner(b_m1, b_m2; tags = "bond-main-$(i)")
-                C_new = C_new * C_main_prev
-                new_bonds_main[i] = combinedind(C_main_prev)
-            elseif b_m1 !== nothing
-                new_bonds_main[i] = b_m1
-                C_main_prev = nothing
-            elseif b_m2 !== nothing
-                new_bonds_main[i] = b_m2
-                C_main_prev = nothing
-            else
-                # Disconnected chain or gap?
-                # If we are here, i < N, so there is a next site.
-                # If neither has a bond, we can't connect.
-                error("Disconnected MPO chain at site $i")
-            end
-        else
-            C_main_prev = nothing
-        end
-        
-        new_data[2i] = C_new
-    end
-    
-    return PairedSiteMPO(new_data, new_sites_main, new_sites_copy, new_bonds_main, new_bonds_copy)
+    # Convert back to PairedSiteMPO
+    return _paired_from_single(combined_single)
 end
+
+# Convenience operator overloads
+*(W::SingleSiteMPO, ψ::SignalMPS) = apply(W, ψ)
+*(W1::SingleSiteMPO, W2::SingleSiteMPO) = apply(W1, W2)
+*(W::PairedSiteMPO, ψ::zTMPS) = apply(W, ψ)
+*(W1::PairedSiteMPO, W2::PairedSiteMPO) = apply(W1, W2)
 
 end # module ApplyMPO
