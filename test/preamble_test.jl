@@ -130,3 +130,8 @@ function embed_mpo(W::SingleSiteMPO, target_sites::Vector{<:Index})
 
     return SingleSiteMPO(new_data, target_sites, new_bonds)
 end
+
+################### QFT GATES TEST HELPERS ###################
+
+_int_to_bit(b::Int, n::Int) = reverse(digits(b, base=2, pad=n))
+
