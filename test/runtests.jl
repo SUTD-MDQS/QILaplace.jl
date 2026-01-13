@@ -16,3 +16,9 @@ include("test_apply.jl")
 
 # circuits/qft_gates.jl
 include("test_qft_gates.jl")
+
+# circuits/dt_gates.jl
+include("test_dt_gates.jl")
+
+# circuits/zt_gates.jl
+include("test_zt_gates.jl")

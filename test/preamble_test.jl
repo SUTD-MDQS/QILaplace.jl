@@ -135,3 +135,14 @@ end
 
 _int_to_bit(b::Int, n::Int) = reverse(digits(b, base=2, pad=n))
 
+
+################################# ZT GATES TEST HELPERS #####################################
+
+# Convert zTMPS to a dense tensor on 2n sites and extract as flat vector
+function to_dense_ztmps_vector(ψ::zTMPS)
+    ψ2n = _as_signal_2n(ψ)
+    T = prod(ψ2n.data)
+    # Note: sites in ψ2n are interleaved [main[1], copy[1], main[2], copy[2], ...]
+    A = Array(T, ψ2n.sites...)
+    return ComplexF64.(vec(A))
+end
