@@ -1,5 +1,5 @@
-using Test, QILaplace
-using ITensors, LinearAlgebra, Printf
+using Test, QILaplace, ITensors
+using Random, LinearAlgebra, Printf
 
 
 # ------------------------ helper functions ------------------------

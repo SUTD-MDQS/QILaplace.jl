@@ -8,6 +8,9 @@ include("test_mpo.jl")
 # signals/Signals.jl
 include("test_signals.jl")
 
+# linalg/rsvd.jl
+include("test_rsvd.jl")
+
 # signals/SignalConverters.jl
 include("test_signal_converters.jl")
 
