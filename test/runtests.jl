@@ -28,3 +28,6 @@ include("test_zt_gates.jl")
 
 # transforms/qft_transformer.jl
 include("test_qft_transformer.jl")
+
+# transforms/dt_transformer.jl
+include("test_dt_transformer.jl")
