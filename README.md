@@ -24,15 +24,16 @@
 </p>
 
 <p align="center">
+  <a href="#quickstart-tour">Quickstart</a> •
+  <a href="#when-to-use-qilaplace">When to Use</a> •
   <a href="#why-tensor-network-transforms">Why Tensor Networks?</a> •
   <a href="#core-features">Core Features</a> •
-  <a href="#performance-and-scaling">Performance</a> •
-  <a href="#license">License</a>
+  <a href="#performance-and-runtime">Performance</a>
 </p>
 
 QILaplace.jl is a Julia library for implementing **quantum-inspired signal transforms**—most notably the **Quantum Fourier Transform (QFT)** and **Discrete Laplace (aka z-Transform)** variants—using **tensor-network representations**. The package is built on **Matrix Product States** (MPS) and **Matrix Product Operators** (MPOs) and runs entirely on classical hardware via ITensors.jl.
 
-The central idea is to leverage the representability of certain quantum circuits as MPOs and realize their action through efficient tensor-network contractions. This allows us to study, prototype, and apply QFT-like transforms at problem sizes far beyond what dense representations would permit—**without requiring a quantum computer**.
+The central idea is to leverage the representability of certain quantum circuits as MPOs and realize their action through efficient tensor-network contractions. This allows us to study, prototype, and apply QFT-like transforms at problem sizes far beyond what dense representations would permit—**without requiring a quantum computer**. For compressible signals, this reaches performance better than—classical algorithms like FFT and Chirp-z, while handling problem sizes (input size $\approx 2^{30}$, output size $\approx 2^{60}$) that would be infeasible in dense form.
 
 ## Why tensor-network transforms?
 
@@ -45,7 +46,7 @@ For discrete signal transforms, classical algorithms are extremely effective—b
   Requires storing and processing all $N$ samples explicitly.
 
 - **Discrete Laplace / z-transform**\
-  Naive implementations scale as **$O(N^2)$** and can suffer from [numerical instability](https://www.researchgate.net/publication/373077088_Fast_discrete_Laplace_transforms) at large $N$. However, several *fast classical alternatives* exist for specific evaluation settings:
+  Naive implementations scale as **$O(N^2)$** and can suffer from [numerical instability](https://arxiv.org/abs/2512.17980) at large $N$. However, several *fast classical alternatives* exist for specific evaluation settings:
 
   - **Fast evaluation on the positive real axis:** using specialized schemes, evaluation along the real axis can be performed in **effectively linear or near-linear time** with cost **$O(N + M)$**.
   - **Chirp-z transform (CZT):** reduces evaluation along specific contours in the complex plane to FFT-like convolutions, with cost **$O((N + M)\ \log(N + M))$**.
@@ -76,7 +77,7 @@ QILaplace.jl implements three quantum-inspired discrete transforms:
   A tensor-network formulation of the classical z-transform, enabling pole–zero analysis directly from tensor states.
 
 
-## Performance and scaling
+## Performance
 
 The transform operators in QILaplace.jl correspond to **logarithmic-depth quantum circuits** represented as MPOs. Prior work of [Chen, Stoudenmire, and White](https://journals.aps.org/prxquantum/abstract/10.1103/PRXQuantum.4.040318) has shown that QFT circuits admit an MPO representation with a **finite bond dimension** that does **not scale with system size** for fixed accuracy. We have observed the same behavior in the case of the discrete Laplace transform as well. 
 
@@ -103,7 +104,7 @@ For fixed circuit accuracy, the effective runtime is **$O(\chi_s^2 \log(N))$**.
 
 † Idealized quantum circuit, ignoring state preparation, readout, and noise overheads.
 
-In other words, **when the signal is compressible**, transform costs scale logarithmically with signal length. In this regime, tensor-network implementations can be competitive with—and in practice outperform—both dense classical algorithms and idealized quantum-circuit implementations for large data sizes, while running entirely on classical hardware. As usual, the bond dimension keeps score.
+In other words, **when the signal is compressible**, transform costs scale logarithmically with signal length. In this regime, tensor-network implementations can be competitive with—and in practice outperform—both dense classical algorithms and idealized quantum-circuit implementations for large data sizes, while running entirely on classical hardware.
 
 
 ## Core features
@@ -127,13 +128,67 @@ In other words, **when the signal is compressible**, transform costs scale logar
 
 ### Transform application
 
-- Generic interface: `transform(::AbstractMPS, ::AbstractMPO)`
+- Generic interface: `*(::AbstractMPO, ::AbstractMPS)`
 - Outputs are produced in **bit-reversed order**, matching the natural QFT circuit layout
 
 ### Post-processing and analysis
 
-- Pole and zero extraction directly from transformed tensor states
-- Parameter estimation and spectral analysis tools (ongoing and planned)
+- Pole and zero extraction directly from transformed tensor states (yet to implement)
+- Parameter estimation and spectral analysis tools (planned)
+
+## When to use QILaplace
+
+**Ideal for:**
+- ✅ Structured or compressible signals (oscillatory, damped, low-rank)
+- ✅ Large signal lengths ($N \geq 2^{20}$) where dense FFT/Laplace become memory-intensive
+
+**Not ideal for:**
+- ❌ Fully random or high-entropy signals (minimal compression; overhead outweighs gains)
+
+## Quickstart tour
+
+### Signal → MPS → QFT frequency bins
+The most common workflow is: synthesize a structured signal, compress it into an MPS, build the desired MPO, and contract. The example below produces a damped multi-tone waveform, applies the QFT circuit, and probes any frequency bin directly from the resulting tensor state without materializing a dense vector.
+
+```julia
+using QILaplace
+
+n = 10                                            # log2 signal length → 1024 samples
+signal = generate_signal(n; kind=:sin_decay,
+                         freq=[1.0, 2.5], decay_rate=[0.08, 0.03])
+
+ψ, norm = signal_mps(signal; method=:rsvd, cutoff=1e-9, maxdim=64)
+compress!(ψ; maxdim=64)
+
+Wqft = build_qft_mpo(ψ; cutoff=1e-12, maxdim=128)
+spectrum = Wqft * ψ                                # Apply MPO to MPS
+
+# Extract amplitude at frequency bin (bit-reversed order)
+amplitude = coefficient(spectrum, "0101010110") * norm
+```
+
+### Damped signals and z-Transform pipeline
+When working with Laplace/zT analyses you need the doubled register representation (`zTMPS`) so that both main and copy wires stay entangled. The snippet below chains the damping transform and the full z-transform MPOs and inspects an amplitude in the z-space directly from the contracted tensor.
+
+```julia
+using QILaplace
+
+n = 10
+signal = generate_signal(n; kind=:sin_decay, freq=1.0, decay_rate=0.05)
+
+ψzt, norm = signal_ztmps(signal; method=:svd, cutoff=1e-12)
+
+Wdt = build_dt_mpo(ψzt, 0.3; maxdim=64)
+damped = Wdt * ψzt                               # Apply damping transform
+
+Wzt = build_zt_mpo(ψzt, 0.3; maxdim=128)
+response = Wzt * damped                          # Apply full z-transform
+
+amplitude = coefficient(response, "1010101010") * norm  # Extract & denormalize
+```
+
+### Performance highlight
+**We have computed the z-Transform** of signals with $N \approx 2^{30}$ (≈1 billion data points) and stored the result in an MPS with $M \approx 2^{60}$ (≈1 million-trillion transform evaluations)—a regime completely inaccessible to dense classical methods!
 
 
 ## Authorship and maintenance
@@ -148,15 +203,6 @@ This repository supports the work reported in an upcoming arXiv manuscript.
 
 - **Project supervision:** **Dario Poletti**\
   Provided scientific supervision and guidance for the project.
-
-
-## Contributing
-
-Yes—please don’t hesitate to contribute and help further develop this project.
-
-This repository is maintained by a sleep-deprived PhD student who learned open-source development by starring popular Julia packages, reading forum threads, and watching YouTube tutorials. If parts of the codebase seem unpolished or unclear, please feel free to help me out.
-
-Pull requests for refactors, documentation, performance improvements, or new ideas are very welcome. If you make the project better, you are a contributor 🫰🏻.
 
 
 ## Citation
