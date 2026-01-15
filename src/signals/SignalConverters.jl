@@ -107,13 +107,14 @@ function _tensor_to_mps_rsvd(ψ::ITensor; cutoff::Real = 1e-15, maxdim::Int = ty
         N = length(inds(ψ))
         N ≥ 1 || throw(ArgumentError("_tensor_to_mps_rsvd: Need at least one site in the tensor to convert to MPS. Found $N sites."))
         all(dims(inds(ψ)) .== 2) || throw(ArgumentError("_tensor_to_mps_rsvd: All indices of the input tensor must be of dimension 2 (qubit indices). Found dims: $(dims(inds(ψ)))"))
-        # Trivial case: single site MPS
-        if N == 1
-            return SignalMPS([ψ], collect(inds(ψ)), Vector{Index}(undef, 0))
-        end
-
+        
         sites = collect(inds(ψ))
         I = eltype(sites)
+        
+        # Trivial case: single site MPS
+        if N == 1
+            return SignalMPS([ψ], sites, Vector{I}(undef, 0))
+        end
 
         # Forward cutoff/maxdim via kwargs so rsvd gets them; they can be overridden by explicit kwargs
         kwargs = merge(values(kwargs), (; cutoff=cutoff, maxdim=maxdim))

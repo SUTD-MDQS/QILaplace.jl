@@ -13,7 +13,7 @@
     <img src="https://github.com/SUTD-MDQS/QILaplace.jl/actions/workflows/CI.yml/badge.svg?branch=master" alt="CI">
   </a>
   <a href="https://julialang.org">
-    <img src="https://img.shields.io/badge/Julia-1.6%2B-blue" alt="Julia Version">
+    <img src="https://img.shields.io/badge/Julia-1.10%2B-blue" alt="Julia Version">
   </a>
   <a href="https://SUTD-MDQS.github.io/QILaplace.jl/dev">
     <img src="https://img.shields.io/badge/docs-dev-blue.svg" alt="Docs">

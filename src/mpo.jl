@@ -2,6 +2,8 @@
 # This module contains the structures and functions related to Matrix Product Operators (MPO) that will be used in the other modules involving constructing the transform MPO and applying them to MPS.
 module Mpo
 
+# Extend the generic interface functions for MPS/MPO index updates
+import ..Mps: update_site!, update_bond!
 using ITensors, Random, Printf
 
 export SingleSiteMPO, PairedSiteMPO,
@@ -48,7 +50,7 @@ function SingleSiteMPO(n::Int)
     sites = [Index(2, @sprintf("site-%d", i)) for i in 1:n]
     bonds = [Index(1, @sprintf("bond-%d", i)) for i in 1:(n - 1)]
     if n == 1
-        return SingleSiteMPO(delta(sites[1], sites[1]'), sites, eltype(sites)[])
+        return SingleSiteMPO([delta(sites[1], sites[1]')], sites, eltype(sites)[])
     end
     data = Vector{ITensor}(undef, n)
     for i in eachindex(data)
