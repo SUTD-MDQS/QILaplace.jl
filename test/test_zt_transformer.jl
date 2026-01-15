@@ -1,9 +1,4 @@
 # Tests for the full Z-Transform (ZT) transformer
-# 
-# NOTE: The current ZT implementation has a limitation - the QFT blocks in
-# control_Hphase_ztmps_mpo always apply Hadamard to copy[1], not copy[k].
-# This means the full 2D z-transform grid is not produced. Until this is fixed,
-# we test n=1 case which works correctly, and verify basic properties for n>1.
 
 ITensors.disable_warn_order()
 
@@ -47,27 +42,6 @@ end
 # ----------------------------
 # Helper Functions
 # ----------------------------
-
-# """Return an MSB-first bit vector for the integer value with k bits."""
-# function int_to_bits(val::Int, k::Int)
-#     bits = Vector{Int}(undef, k)
-#     tmp = val
-#     for idx in k:-1:1
-#         bits[idx] = tmp & 1
-#         tmp >>= 1
-#     end
-#     return bits
-# end
-
-# """Create a computational-basis ket vector for the given bits."""
-# function basis_state_vector(bits::Vector{Int})
-#     n = length(bits)
-#     N = 2^n
-#     vec = zeros(N)
-#     index = sum(bits[i] * 2^(n - i) for i in 1:n) + 1
-#     vec[index] = 1.0
-#     return vec
-# end
 
 """
     extract_zt_output(ψ_out::zTMPS) -> Matrix{ComplexF64}

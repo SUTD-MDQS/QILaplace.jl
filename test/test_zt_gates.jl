@@ -28,10 +28,10 @@ import QILaplace.Mps: _as_signal_2n
             
             # Apply MPO and extract dense output vector
             ψ_out = apply(W, ψ_in)
-            v_out = to_dense_ztmps_vector(ψ_out)
+            v_out = mps_to_vector(ψ_out)
             
             # Analytical expected output            
-            bits = _int_to_bit(b, k)  # bits[1] is MSB (qubit 1), bits[k] is LSB (qubit k)
+            bits = int_to_bits(b, k)  # bits[1] is MSB (qubit 1), bits[k] is LSB (qubit k)
             
             # The control is at copy qubit k (LSB)
             #   control output |0⟩ → bond 1 → I gates on copy targets (no phase)

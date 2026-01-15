@@ -6,6 +6,52 @@ using FFTW
 
 ################# SIGNAL CONVERTERS TEST HELPERS #################
 
+"""
+Convert an integer to a bit vector of length n.
+order=:msb -> [bit_n, ..., bit_1] (MSB first)
+order=:lsb -> [bit_1, ..., bit_n] (LSB first)
+"""
+function int_to_bits(val::Int, n::Int; order::Symbol=:msb)
+    if order == :msb
+        return reverse(digits(val, base=2, pad=n))
+    elseif order == :lsb
+        return digits(val, base=2, pad=n)
+    else
+        throw(ArgumentError("order must be :msb or :lsb"))
+    end
+end
+
+"""Convert a bit vector back to an integer."""
+function bits_to_int(bits::AbstractVector{<:Integer}; order::Symbol=:msb)
+    val = 0
+    if order == :msb
+        for b in bits
+            val = (val << 1) | (b & 1)
+        end
+    elseif order == :lsb
+        for (i, b) in enumerate(bits)
+            val |= (b & 1) << (i - 1)
+        end
+    else
+        throw(ArgumentError("order must be :msb or :lsb"))
+    end
+    return val
+end
+
+"""
+Convert integer to interleaved main/copy bits for 2n-site representation.
+Matches the interleaved ordering [main[1], copy[1], main[2], copy[2], ...].
+"""
+function int_to_paired_bits(val::Int, n::Int; order::Symbol=:msb)
+    bits = int_to_bits(val, n; order=order)
+    paired = Vector{Int}(undef, 2n)
+    for i in 1:n
+        paired[2i-1] = bits[i]
+        paired[2i] = bits[i]
+    end
+    return paired
+end
+
 function contract_chain(data::Vector{ITensor})
     T = ITensor(1)
     for A in data
@@ -131,62 +177,28 @@ function embed_mpo(W::SingleSiteMPO, target_sites::Vector{<:Index})
     return SingleSiteMPO(new_data, target_sites, new_bonds)
 end
 
-################### QFT GATES TEST HELPERS ###################
+############################### VECTOR EXTRACTION HELPERS ###############################
 
-_int_to_bit(b::Int, n::Int) = reverse(digits(b, base=2, pad=n))
-
-
-################################# ZT GATES TEST HELPERS #####################################
-
-# Convert zTMPS to a dense tensor on 2n sites and extract as flat vector
-function to_dense_ztmps_vector(ψ::zTMPS)
-    ψ2n = _as_signal_2n(ψ)
-    T = prod(ψ2n.data)
-    # Note: sites in ψ2n are interleaved [main[1], copy[1], main[2], copy[2], ...]
-    A = Array(T, ψ2n.sites...)
-    return ComplexF64.(vec(A))
+"""Create a computational-basis ket vector for the given bits."""
+function basis_state_vector(bits::Vector{Int})
+    n = length(bits)
+    N = 2^n
+    vec = zeros(N)
+    index = sum(bits[i] * 2^(n - i) for i in 1:n) + 1
+    vec[index] = 1.0
+    return vec
 end
 
-############################### QFT TRANSFORMER TEST HELPERS ###############################
-
-# Bit reversal of an integer i with n bits
-function bit_reverse(i::Int, n::Int)
-    r = 0
-    val = i
-    for _ in 1:n
-        r = (r << 1) | (val & 1)
-        val >>= 1
-    end
-    return r
-end
-
-# Helper for bit reversal of a vector
-function bit_reverse_vector(v::Vector)
-    N = length(v)
-    n = Int(log2(N))
-    v_out = similar(v)
-    for i in 0:N-1
-        r = bit_reverse(i, n)
-        v_out[r + 1] = v[i + 1]
-    end
-    return v_out
-end
-
-# Create basis state MPS for computational basis |i> where i is 0-indexed
-function basis_state_mps(i::Int, sites::Vector{<:Index})
-    n = length(sites)
+"""Create a computational-basis ket vector for integer index i (0-indexed)."""
+function basis_state_vector(i::Int, n::Int)
     N = 2^n
     @assert 0 <= i < N "Basis state index out of range"
-    
-    # Create signal vector with 1.0 at position i+1 (Julia 1-indexed)
-    sig = zeros(Float64, N)
-    sig[i+1] = 1.0
-    
-    psi, _ = signal_mps(sig)
-    return psi
+    vec = zeros(Float64, N)
+    vec[i+1] = 1.0
+    return vec
 end
 
-# Extract state vector from MPS
+"""Extract state vector from SignalMPS (MSB-first bit ordering)."""
 function mps_to_vector(ψ::SignalMPS)
     n = length(ψ.sites)
     N = 2^n
@@ -196,8 +208,18 @@ function mps_to_vector(ψ::SignalMPS)
         T *= ψ.data[i]
     end
     
-    # Extract as array with proper ordering
+    # Extract as array with proper ordering (MSB-first: reverse sites)
     arr = Array(T, reverse(ψ.sites)...)
     vec = reshape(arr, N)
     return vec
+end
+
+"""Extract state vector from zTMPS (flattens 2n-site representation)."""
+function mps_to_vector(ψ::zTMPS)
+    ψ2n = _as_signal_2n(ψ)
+    T = prod(ψ2n.data)
+    # Note: sites in ψ2n are interleaved [main[1], copy[1], main[2], copy[2], ...]
+    # Extract as flat vector (LSB-first: site[1] is fastest-varying)
+    A = Array(T, ψ2n.sites...)
+    return ComplexF64.(vec(A))
 end

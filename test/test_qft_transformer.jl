@@ -24,7 +24,7 @@ function qn_matrix(n::Int)
     N = 2^n
     M = zeros(ComplexF64, N, N)
     for j in 0:N-1
-        j_rev = bit_reverse(j, n)
+        j_rev = bits_to_int(int_to_bits(j, n; order=:lsb); order=:msb)
         for k in 0:N-1
             angle = 2 * π * j_rev * k / N
             M[j+1, k+1] = exp(im * angle) / sqrt(N)
@@ -270,7 +270,7 @@ end
         sites = [Index(2, "site-$i") for i in 1:n]
         
         # Create a basis state first
-        psi_test = basis_state_mps(3, sites)
+        psi_test, _ = signal_mps(basis_state_vector(3, n))
         
         # Now create MPOs with the MPS sites to ensure they match from the start
         mps_sites = psi_test.sites
@@ -339,7 +339,7 @@ end
             qft_mpo = build_qft_mpo(n, sites; cutoff=1e-14, maxdim=1000)
             
             # Create basis state |j> (this will have its own new sites)
-            psi_j = basis_state_mps(j, sites)
+            psi_j, _ = signal_mps(basis_state_vector(j, n))
             
             # Update qft_mpo sites to match psi_j sites using update_site!
             for i in 1:n
@@ -384,7 +384,7 @@ end
             qft_mpo = build_qft_mpo(n, sites; cutoff=1e-14, maxdim=1000)
             
             # Create basis state |j> (this will have its own new sites)
-            psi_j = basis_state_mps(j, sites)
+            psi_j, _ = signal_mps(basis_state_vector(j, n))
             
             # Update qft_mpo sites to match psi_j sites using update_site!
             for i in 1:n
@@ -400,7 +400,13 @@ end
             qn_vec = mps_to_vector(psi_qn)
             
             # Apply bit-reversal to get Fn|j>
-            fn_vec = bit_reverse_vector(qn_vec)
+            N_vec = length(qn_vec)
+            n_vec = Int(log2(N_vec))
+            fn_vec = similar(qn_vec)
+            for i in 0:N_vec-1
+                r = bits_to_int(int_to_bits(i, n_vec; order=:lsb); order=:msb)
+                fn_vec[r + 1] = qn_vec[i + 1]
+            end
             
             # Expected dft vector
             sig = [i == j ? 1.0 : 0.0 for i in 0:(N-1)]
@@ -438,7 +444,13 @@ end
         qn_result = mps_to_vector(psi_qn) * norm_c
         
         # Apply bit-reversal to get full DFT
-        fn_result = bit_reverse_vector(qn_result)
+        N_res = length(qn_result)
+        n_res = Int(log2(N_res))
+        fn_result = similar(qn_result)
+        for i in 0:N_res-1
+            r = bits_to_int(int_to_bits(i, n_res; order=:lsb); order=:msb)
+            fn_result[r + 1] = qn_result[i + 1]
+        end
         
         # Compare with FFTW (bfft uses +2πi convention like our QFT)
         result_fftw = bfft(sig) / sqrt(N)

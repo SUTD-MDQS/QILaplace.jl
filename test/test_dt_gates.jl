@@ -24,20 +24,6 @@ end
 
 ################################# HELPER FUNCTIONS #####################################
 
-"""
-Convert an integer b to 2n-site bit vector for paired qubits.
-For a k-qubit system with 2k sites, the integer b encodes the state as:
-  b = Σ (main_bit[i] * 2^(2*(n-i)+1) + copy_bit[i] * 2^(2*(n-i)))
-This matches the interleaved site ordering [main[1], copy[1], main[2], copy[2], ...].
-"""
-function _int_to_paired_bits(b::Int, n::Int)
-    bits = zeros(Int, 2n)
-    for i in 1:2n
-        bits[2n - i + 1] = (b >> (i - 1)) & 1
-    end
-    return bits  # [main[1], copy[1], main[2], copy[2], ...] with signal_mps bit ordering
-end
-
 """Extract main and copy bits from interleaved bit vector."""
 function split_main_copy_bits(bits_2n::Vector{Int})
     n = length(bits_2n) ÷ 2
@@ -86,10 +72,10 @@ import QILaplace.ApplyMPO: apply, _as_single_site_mpo
             
             # Apply MPO and extract dense output vector
             ψ_out = apply(W, ψ_in)
-            v_out = to_dense_ztmps_vector(ψ_out)
+            v_out = mps_to_vector(ψ_out)
             
             # Analytical expected output                
-            bits = _int_to_bit(b, k)  # bits[1] is MSB (qubit 1), bits[k] is LSB (qubit k)
+            bits = int_to_bits(b, k)  # bits[1] is MSB (qubit 1), bits[k] is LSB (qubit k)
             
             # The control is at qubit k (LSB)
             # The dampedH gate at site k creates a superposition:
@@ -198,13 +184,13 @@ end
                     
                     # Apply MPO and extract dense output vector
                     ψ_out = apply(W, ψ_in)
-                    v_out = to_dense_ztmps_vector(ψ_out)
+                    v_out = mps_to_vector(ψ_out)
                     
                     # Analytical expected output
                     # This is a DIAGONAL gate, so input basis state → scalar × same basis state
                     # Control is copy[1], targets are main[2..L]
                     
-                    bits = _int_to_bit(b, L)  # bit[1] is MSB, bit[L] is LSB
+                    bits = int_to_bits(b, L)  # bit[1] is MSB, bit[L] is LSB
                     
                     # Input state is |bits⟩_main ⊗ |bits⟩_copy
                     # copy[1] corresponds to bit[1] (same as main[1] in input)

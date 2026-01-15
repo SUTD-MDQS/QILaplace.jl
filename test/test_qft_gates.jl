@@ -58,7 +58,7 @@ end
             v_out = ComplexF64.(vec(A_out))
 
             # Analytical expected output
-            site_bits_input = _int_to_bit(b, n)
+            site_bits_input = int_to_bits(b, n)
             
             # Compute total phase for the |site[1]=1⟩ component
             phase_for_1 = 1.0 + 0.0im
