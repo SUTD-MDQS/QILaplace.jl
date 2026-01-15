@@ -4,13 +4,11 @@
 module DTGates
 using ITensors, Printf
 using ..Mpo: PairedSiteMPO
+using ..QFTGates: I, Π
 
 export control_damping_mpo, control_damping_copy_mpo
 
 ################################ ELEMENTARY DT GATES #####################################
-# The identity operation on a qubit
-I(site_index::IType) where {IType<:Index} = delta(site_index', site_index)
-
 # Damped Hadamard gate on a qubit
 dampedH(ωr::Real, site_index::IType) where {IType<:Index} = begin
     dampedHmat = 1/√2 * [1  1;
@@ -22,14 +20,6 @@ R(ωr::Real, site_index::IType) where {IType<:Index} = begin
     Rmat = [1 0;
             0 exp(-ωr)]
     ITensor(Rmat, site_index', site_index)
-end
-
-Π(i::Int, site_index::IType) where {IType<:Index} = begin
-    i < dim(site_index) || throw(ArgumentError("Π: Index dimension is less than or equal to i. Got i=$i, dim=$(dim(site_index))"))
-    Projector = ITensor(site_index', site_index)
-    i_idx = i + 1 # ITensors are 1-indexed
-    Projector[i_idx, i_idx] = 1.0
-    return Projector
 end
 
 ################################# CONTROLLED DAMPING GATE MPO #####################################

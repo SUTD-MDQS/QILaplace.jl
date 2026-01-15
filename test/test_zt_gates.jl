@@ -1,8 +1,5 @@
-include(joinpath(@__DIR__, "preamble_test.jl"))
-import QILaplace.SignalConverters: signal_mps, signal_ztmps
 import QILaplace.ZTGates: control_Hphase_ztmps_mpo
 import QILaplace.QFTGates: H, P, I, Π
-import QILaplace.ApplyMPO: apply
 import QILaplace.Mps: _as_signal_2n
 
 ################################# CONTROL_HPHASE_ZTMPS_MPO TESTS #####################################

@@ -2,6 +2,8 @@
 # This module contains the structures and functions related to Matrix Product Operators (MPO) that will be used in the other modules involving constructing the transform MPO and applying them to MPS.
 module Mpo
 
+# Extend the generic interface functions for MPS/MPO index updates
+import ..Mps: update_site!, update_bond!
 using ITensors, Random, Printf
 
 export SingleSiteMPO, PairedSiteMPO,

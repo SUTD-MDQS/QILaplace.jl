@@ -1,18 +1,10 @@
-import QILaplace.SignalConverters: signal_mps, signal_ztmps
 import QILaplace.DTGates: I, dampedH, R, Π, control_damping_mpo, control_damping_copy_mpo
-import QILaplace.ApplyMPO: apply
 import QILaplace.Mps: _as_signal_2n
 
 # Elementary circuit gates testing
 @testset "dt_gates.jl: Elementary non-unitary circuit gates correctness" begin
     # Test element-by-element correctness of I, dampedH, R, Π gates
     site = Index(2, "site")
-
-    I_gate = I(site)
-    for (i, j) in Iterators.product(1:2, 1:2)
-        expected = i == j ? 1.0 : 0.0
-        @test isapprox(I_gate[i, j], expected; atol=1e-12, rtol=1e-12)
-    end
 
     ωrs = [0.0, 0.25, 0.5, 1.0, 1.1]
     for ωr in ωrs
@@ -28,26 +20,9 @@ import QILaplace.Mps: _as_signal_2n
             @test isapprox(R_gate[i, j], R_expected[i, j]; atol=1e-12, rtol=1e-12)
         end
     end
-
-    for i in 0:1
-        Π_gate = Π(i, site)
-        for (m, n) in Iterators.product(1:2, 1:2)
-            expected = (m == n && m == (i + 1)) ? 1.0 : 0.0
-            @test isapprox(Π_gate[m, n], expected; atol=1e-12, rtol=1e-12)
-        end
-    end
 end
 
 ################################# HELPER FUNCTIONS #####################################
-
-"""Convert zTMPS to a dense tensor on 2n sites and extract as flat vector."""
-function to_dense_ztmps_vector(ψ::zTMPS)
-    ψ2n = _as_signal_2n(ψ)
-    T = prod(ψ2n.data)
-    # Note: sites in ψ2n are interleaved [main[1], copy[1], main[2], copy[2], ...]
-    A = Array(T, ψ2n.sites...)
-    return ComplexF64.(vec(A))
-end
 
 """
 Convert an integer b to 2n-site bit vector for paired qubits.
@@ -85,7 +60,7 @@ end
 import QILaplace.ApplyMPO: apply, _as_single_site_mpo
 
 @testset "dt_gates.jl: control_damping_mpo matches analytical basis action" begin
-    ωrs = [0.0, 0.25, 1.0, 1.1] # damping rates
+    ωrs = [0.0, 0.5, 1.0, 2.0, 5.0] # damping rates
     ks = [1, 2, 3]  # number of qubits in the controlled window
     
     for (ωr, k) in Iterators.product(ωrs, ks)
@@ -194,7 +169,7 @@ end
 # - No superposition is created (unlike control_damping_mpo with dampedH)
 
 @testset "dt_gates.jl: control_damping_copy_mpo matches analytical basis action" begin
-    ωrs = [0.0, 0.25, 1.0]
+    ωrs = [0.0, 0.5, 1.0, 2.0, 5.0]
     
     for ωr in ωrs
         for n in 2:4

@@ -1,5 +1,3 @@
-import QILaplace.SignalConverters: signal_mps
-import QILaplace.ApplyMPO: apply
 import QILaplace.QFTGates: I, H, P, Π, control_Hphase_mpo
 
 # Elementary circuit gates testing
