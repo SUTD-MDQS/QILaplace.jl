@@ -31,3 +31,6 @@ include("test_qft_transformer.jl")
 
 # transforms/dt_transformer.jl
 include("test_dt_transformer.jl")
+
+# transforms/zt_transformer.jl
+include("test_zt_transformer.jl")
