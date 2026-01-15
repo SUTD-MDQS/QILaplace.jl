@@ -1,6 +1,6 @@
 using Test, QILaplace, ITensors
 using Random, LinearAlgebra, Printf
-
+using FFTW
 
 # ------------------------ helper functions ------------------------
 
@@ -145,4 +145,59 @@ function to_dense_ztmps_vector(ψ::zTMPS)
     # Note: sites in ψ2n are interleaved [main[1], copy[1], main[2], copy[2], ...]
     A = Array(T, ψ2n.sites...)
     return ComplexF64.(vec(A))
+end
+
+############################### QFT TRANSFORMER TEST HELPERS ###############################
+
+# Bit reversal of an integer i with n bits
+function bit_reverse(i::Int, n::Int)
+    r = 0
+    val = i
+    for _ in 1:n
+        r = (r << 1) | (val & 1)
+        val >>= 1
+    end
+    return r
+end
+
+# Helper for bit reversal of a vector
+function bit_reverse_vector(v::Vector)
+    N = length(v)
+    n = Int(log2(N))
+    v_out = similar(v)
+    for i in 0:N-1
+        r = bit_reverse(i, n)
+        v_out[r + 1] = v[i + 1]
+    end
+    return v_out
+end
+
+# Create basis state MPS for computational basis |i> where i is 0-indexed
+function basis_state_mps(i::Int, sites::Vector{<:Index})
+    n = length(sites)
+    N = 2^n
+    @assert 0 <= i < N "Basis state index out of range"
+    
+    # Create signal vector with 1.0 at position i+1 (Julia 1-indexed)
+    sig = zeros(Float64, N)
+    sig[i+1] = 1.0
+    
+    psi, _ = signal_mps(sig)
+    return psi
+end
+
+# Extract state vector from MPS
+function mps_to_vector(ψ::SignalMPS)
+    n = length(ψ.sites)
+    N = 2^n
+    
+    T = ψ.data[1]
+    for i in 2:n
+        T *= ψ.data[i]
+    end
+    
+    # Extract as array with proper ordering
+    arr = Array(T, reverse(ψ.sites)...)
+    vec = reshape(arr, N)
+    return vec
 end
