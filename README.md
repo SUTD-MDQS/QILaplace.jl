@@ -15,8 +15,8 @@
   <a href="https://julialang.org">
     <img src="https://img.shields.io/badge/Julia-1.10%2B-blue" alt="Julia Version">
   </a>
-  <a href="https://SUTD-MDQS.github.io/QILaplace.jl/dev">
-    <img src="https://img.shields.io/badge/docs-dev-blue.svg" alt="Docs">
+  <a href="https://arxiv.org/abs/2601.17724">
+    <img src="https://img.shields.io/badge/arXiv-2601.17724-b31b1b.svg" alt="arXiv">
   </a>
   <a href="https://codecov.io/gh/SUTD-MDQS/QILaplace.jl">
     <img src="https://codecov.io/gh/SUTD-MDQS/QILaplace.jl/branch/master/graph/badge.svg" alt="Coverage">
@@ -28,7 +28,7 @@
   <a href="#when-to-use-qilaplace">When to Use</a> •
   <a href="#why-tensor-network-transforms">Why Tensor Networks?</a> •
   <a href="#core-features">Core Features</a> •
-  <a href="#performance-and-runtime">Performance</a>
+  <a href="#performance">Performance</a>
 </p>
 
 QILaplace.jl is a Julia library for implementing **quantum-inspired signal transforms**—most notably the **Quantum Fourier Transform (QFT)** and **Discrete Laplace (aka z-Transform)** variants—using **tensor-network representations**. The package is built on **Matrix Product States** (MPS) and **Matrix Product Operators** (MPOs) and runs entirely on classical hardware via ITensors.jl.
@@ -46,7 +46,7 @@ For discrete signal transforms, classical algorithms are extremely effective—b
   Requires storing and processing all $N$ samples explicitly.
 
 - **Discrete Laplace / z-transform**\
-  Naive implementations scale as **$O(N^2)$** and can suffer from [numerical instability](https://arxiv.org/abs/2512.17980) at large $N$. However, several *fast classical alternatives* exist for specific evaluation settings:
+  Naive implementations scale as **$O(N^2)$** and can suffer from numerical instability at large $N$. However, several *fast classical alternatives* exist for specific evaluation settings:
 
   - **Fast evaluation on the positive real axis:** using specialized schemes, evaluation along the real axis can be performed in **effectively linear or near-linear time** with cost **$O(N + M)$**.
   - **Chirp-z transform (CZT):** reduces evaluation along specific contours in the complex plane to FFT-like convolutions, with cost **$O((N + M)\ \log(N + M))$**.
@@ -96,8 +96,7 @@ For fixed circuit accuracy, the effective runtime is **$O(\chi_s^2 \log(N))$**.
 | Transform                  | Best-known algorithm                        | Best-known classical runtime   | QILaplace runtime\* |
 | -------------------------- | ------------------------------------------- | ------------------------------ | ------------------- |
 | Discrete Fourier Transform | FFT (Cooley–Tukey)                          | $O(N \log(N))$                 | $O(\chi_s^2 \log(N))$        |
-| Discrete Laplace (real)    | Chirp-z transform (CZT) / fast real-axis zT | $O(N + M)$ (best case)         | $O(\chi_s^2 \log(N))$        |
-| z-Transform (complex)      | Chirp-z transform (CZT) on 2D grids         | $O(NM)$                        | $O(\chi_s^2 \log(N))$        |
+| z-Transform (complex)      | Chirp-z transform (CZT)                     | $O((N+M)\ \log(N + M))$        | $O(\chi_s^2 \log(N))$        |
 | QFT (quantum circuit)      | Quantum QFT circuit                         | $O(\log^2(N))$†                | $O(\chi_s^2 \log(N))$        |
 
 \* For signals admitting bounded MPS bond dimension.
@@ -207,7 +206,7 @@ This repository supports the work reported in an upcoming arXiv manuscript.
 
 ## Citation
 
-If you use QILaplace.jl in published work, please cite the repository and the associated arXiv paper (link forthcoming).
+If you use QILaplace.jl in published work, please cite the repository and the associated arXiv paper [here](https://arxiv.org/abs/2601.17724).
 
 Made with ❤️ using Julia, ITensors, and a healthy respect for bond-dimension growth.
 
