@@ -21,6 +21,9 @@
   <a href="https://codecov.io/gh/SUTD-MDQS/QILaplace.jl">
     <img src="https://codecov.io/gh/SUTD-MDQS/QILaplace.jl/branch/master/graph/badge.svg" alt="Coverage">
   </a>
+  <a href="https://github.com/JuliaTesting/Aqua.jl">
+    <img src="https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg" alt="Aqua QA">
+  </a>
 </p>
 
 <p align="center">
