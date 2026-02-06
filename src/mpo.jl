@@ -6,8 +6,7 @@ module Mpo
 import ..Mps: update_site!, update_bond!
 using ITensors, Random, Printf
 
-export SingleSiteMPO, PairedSiteMPO,
-       check_singlesitempo, check_pairedsitempo
+export SingleSiteMPO, PairedSiteMPO, check_singlesitempo, check_pairedsitempo
 
 ##################################### MPO TYPES #########################################
 
@@ -18,8 +17,10 @@ mutable struct SingleSiteMPO{I<:Index} <: AbstractMPO
     data::Vector{ITensor}
     sites::Vector{I}
     bonds::Vector{I}
-    function SingleSiteMPO(data::Vector{ITensor}, sites::Vector{I}, bonds::Vector{I}) where I<:Index
-        try 
+    function SingleSiteMPO(
+        data::Vector{ITensor}, sites::Vector{I}, bonds::Vector{I}
+    ) where {I<:Index}
+        try
             check_singlesitempo(data, sites, bonds)
         catch e
             rethrow(e)
@@ -29,13 +30,19 @@ mutable struct SingleSiteMPO{I<:Index} <: AbstractMPO
 end
 
 # PairedSiteMPO can contain the z-transform and Exponential Decay Transform as an MPO in a 2n-qubit system
-mutable struct PairedSiteMPO{I<:Index} <:AbstractMPO
+mutable struct PairedSiteMPO{I<:Index} <: AbstractMPO
     data::Vector{ITensor}
     sites_main::Vector{I}
     sites_copy::Vector{I}
     bonds_main::Vector{I}
     bonds_copy::Vector{I}
-    function PairedSiteMPO(data::Vector{ITensor}, sites_main::Vector{I}, sites_copy::Vector{I}, bonds_main::Vector{I}, bonds_copy::Vector{I}) where I<:Index
+    function PairedSiteMPO(
+        data::Vector{ITensor},
+        sites_main::Vector{I},
+        sites_copy::Vector{I},
+        bonds_main::Vector{I},
+        bonds_copy::Vector{I},
+    ) where {I<:Index}
         try
             check_pairedsitempo(data, sites_main, sites_copy, bonds_main, bonds_copy)
         catch e
@@ -59,7 +66,10 @@ function SingleSiteMPO(n::Int)
         elseif i == n
             data[i] = delta(sites[i], sites[i]') * ITensor([1], bonds[i - 1])
         else
-            data[i] = delta(sites[i], sites[i]') * ITensor([1], bonds[i - 1]) * ITensor([1], bonds[i])
+            data[i] =
+                delta(sites[i], sites[i]') *
+                ITensor([1], bonds[i - 1]) *
+                ITensor([1], bonds[i])
         end
     end
     return SingleSiteMPO(data, sites, bonds)
@@ -116,36 +126,72 @@ function PairedSiteMPO(n::Int)
 end
 
 ####################################### MPO VALIDATION #########################################
-function check_singlesitempo(data::Vector{ITensor}, sites::Vector{<:Index}, bonds::Vector{<:Index})
+function check_singlesitempo(
+    data::Vector{ITensor}, sites::Vector{<:Index}, bonds::Vector{<:Index}
+)
     n = length(sites)
-    length(data) == n || throw(ArgumentError("SingleSiteMPO: Data length must equal number of sites. Got $n sites for $(length(data)) tensors."))
-    length(bonds) == n - 1 || throw(ArgumentError("SingleSiteMPO: Number of bonds must be one less than number of sites. Got $(length(bonds)) bonds for $n sites."))
-    
+    length(data) == n || throw(
+        ArgumentError(
+            "SingleSiteMPO: Data length must equal number of sites. Got $n sites for $(length(data)) tensors.",
+        ),
+    )
+    length(bonds) == n - 1 || throw(
+        ArgumentError(
+            "SingleSiteMPO: Number of bonds must be one less than number of sites. Got $(length(bonds)) bonds for $n sites.",
+        ),
+    )
+
     if n == 1
-        length(inds(data[1])) == 2 || throw(ArgumentError("SingleSiteMPO: Data tensor at site 1 must have exactly 2 indices. Found $(length(inds(data[1])))"))
-        (sites[1] in inds(data[1])) || throw(ArgumentError("SingleSiteMPO: Site index missing in single-site tensor"))
+        length(inds(data[1])) == 2 || throw(
+            ArgumentError(
+                "SingleSiteMPO: Data tensor at site 1 must have exactly 2 indices. Found $(length(inds(data[1])))",
+            ),
+        )
+        (sites[1] in inds(data[1])) ||
+            throw(ArgumentError("SingleSiteMPO: Site index missing in single-site tensor"))
         return nothing
     end
 
     # Edge ranks = 3, bulk ranks = 4
-    (length(inds(data[1])) == 3) || throw(ArgumentError("SingleSiteMPO: Edge tesors must have exactly 3 indices. Found $(length(inds(data[1]))) at site 1"))
-    (length(inds(data[n])) == 3) || throw(ArgumentError("SingleSiteMPO: Edge tesors must have exactly 3 indices. Found $(length(inds(data[n]))) at site $n"))
+    (length(inds(data[1])) == 3) || throw(
+        ArgumentError(
+            "SingleSiteMPO: Edge tesors must have exactly 3 indices. Found $(length(inds(data[1]))) at site 1",
+        ),
+    )
+    (length(inds(data[n])) == 3) || throw(
+        ArgumentError(
+            "SingleSiteMPO: Edge tesors must have exactly 3 indices. Found $(length(inds(data[n]))) at site $n",
+        ),
+    )
     for i in 2:(n - 1)
-        (length(inds(data[i])) == 4) || throw(ArgumentError("SingleSiteMPO: Bulk tesors must have exactly 4 indices. Found $(length(inds(data[i]))) at site $i"))
+        (length(inds(data[i])) == 4) || throw(
+            ArgumentError(
+                "SingleSiteMPO: Bulk tesors must have exactly 4 indices. Found $(length(inds(data[i]))) at site $i",
+            ),
+        )
     end
 
     # Site and its prime presence and uniqueness
     for i in 1:n
-        (sites[i] in inds(data[i]) && sites[i]' in inds(data[i])) || throw(ArgumentError("SingleSiteMPO: Site index or its prime missing in tensor at site $i. Got indices: $(inds(data[i]))"))
+        (sites[i] in inds(data[i]) && sites[i]' in inds(data[i])) || throw(
+            ArgumentError(
+                "SingleSiteMPO: Site index or its prime missing in tensor at site $i. Got indices: $(inds(data[i]))",
+            ),
+        )
     end
-    length(unique(sites)) == n || throw(ArgumentError("SingleSiteMPO: Site indices must be unique"))
+    length(unique(sites)) == n ||
+        throw(ArgumentError("SingleSiteMPO: Site indices must be unique"))
 
     # Bond presence and uniqueness
     for i in 1:(n - 1)
-        (bonds[i] in inds(data[i])) || throw(ArgumentError("SingleSiteMPO: Bond index missing in tensor at site $i"))
-        (bonds[i] === commonind(data[i], data[i + 1])) || throw(ArgumentError("SingleSiteMPO: Bond mismatch between core at $i and $(i + 1)"))
+        (bonds[i] in inds(data[i])) ||
+            throw(ArgumentError("SingleSiteMPO: Bond index missing in tensor at site $i"))
+        (bonds[i] === commonind(data[i], data[i + 1])) || throw(
+            ArgumentError("SingleSiteMPO: Bond mismatch between core at $i and $(i + 1)"),
+        )
     end
-    length(unique(bonds)) == n - 1 || throw(ArgumentError("SingleSiteMPO: Bond indices must be unique"))
+    length(unique(bonds)) == n - 1 ||
+        throw(ArgumentError("SingleSiteMPO: Bond indices must be unique"))
     return nothing
 end
 # Convenience checker 
@@ -156,33 +202,87 @@ Base.length(W::SingleSiteMPO) = length(W.data)
 Base.iterate(W::SingleSiteMPO) = iterate(W.data)
 Base.iterate(W::SingleSiteMPO, s) = iterate(W.data, s)
 
-function check_pairedsitempo(data::Vector{ITensor}, sites_main::Vector{<:Index}, sites_copy::Vector{<:Index}, bonds_main::Vector{<:Index}, bonds_copy::Vector{<:Index})
+function check_pairedsitempo(
+    data::Vector{ITensor},
+    sites_main::Vector{<:Index},
+    sites_copy::Vector{<:Index},
+    bonds_main::Vector{<:Index},
+    bonds_copy::Vector{<:Index},
+)
     n = length(sites_main)
-    length(data) == 2n || throw(ArgumentError("PairedSiteMPO: Data length must equal twice the number of sites. Got $n sites for $(length(data)) tensors."))
-    length(bonds_main) == n - 1 || throw(ArgumentError("PairedSiteMPO: Number of main bonds must be n-1. Got $(length(bonds_main)) bonds for $n sites."))
-    length(bonds_copy) == n || throw(ArgumentError("PairedSiteMPO: Number of copy bonds must be n. Got $(length(bonds_copy)) bonds for $n sites."))
+    length(data) == 2n || throw(
+        ArgumentError(
+            "PairedSiteMPO: Data length must equal twice the number of sites. Got $n sites for $(length(data)) tensors.",
+        ),
+    )
+    length(bonds_main) == n - 1 || throw(
+        ArgumentError(
+            "PairedSiteMPO: Number of main bonds must be n-1. Got $(length(bonds_main)) bonds for $n sites.",
+        ),
+    )
+    length(bonds_copy) == n || throw(
+        ArgumentError(
+            "PairedSiteMPO: Number of copy bonds must be n. Got $(length(bonds_copy)) bonds for $n sites.",
+        ),
+    )
 
     # Check if the main and copy sites/bonds are unique and dont have overlap between them
     commoninds = intersect(sites_main, sites_copy)
-    length(commoninds) == 0 || throw(ArgumentError("PairedSiteMPO: sites_main and sites_copy must be disjoint sets. Found common indices: $commoninds"))
+    length(commoninds) == 0 || throw(
+        ArgumentError(
+            "PairedSiteMPO: sites_main and sites_copy must be disjoint sets. Found common indices: $commoninds",
+        ),
+    )
     commoninds = intersect(bonds_main, bonds_copy)
-    length(commoninds) == 0 || throw(ArgumentError("PairedSiteMPO: bonds_main and bonds_copy must be disjoint sets. Found common indices: $commoninds"))
-    
+    length(commoninds) == 0 || throw(
+        ArgumentError(
+            "PairedSiteMPO: bonds_main and bonds_copy must be disjoint sets. Found common indices: $commoninds",
+        ),
+    )
+
     if n == 1
-        length(inds(data[1])) == 3 || throw(ArgumentError("PairedSiteMPO: Main data tensor at site 1 must have exactly 3 indices. Found $(length(inds(data[1])))"))
-        (sites_main[1] in inds(data[1]) && sites_main[1]' in inds(data[1])) || throw(ArgumentError("PairedSiteMPO: Main site index or its prime missing in single-site tensor"))
-        length(inds(data[2])) == 3 || throw(ArgumentError("PairedSiteMPO: Copy data tensor at site 1 must have exactly 3 indices. Found $(length(inds(data[2])))"))
-        (sites_copy[1] in inds(data[2]) && sites_copy[1]' in inds(data[2])) || throw(ArgumentError("PairedSiteMPO: Copy site index or its prime missing in single-site tensor"))
-        commonind(data[1], data[2]) === bonds_copy[1] || throw(ArgumentError("PairedSiteMPO: Copy bond mismatch between main and copy tensor at site 1. Got $(commonind(data[1], data[2])) but expected $(bonds_copy[1])"))
+        length(inds(data[1])) == 3 || throw(
+            ArgumentError(
+                "PairedSiteMPO: Main data tensor at site 1 must have exactly 3 indices. Found $(length(inds(data[1])))",
+            ),
+        )
+        (sites_main[1] in inds(data[1]) && sites_main[1]' in inds(data[1])) || throw(
+            ArgumentError(
+                "PairedSiteMPO: Main site index or its prime missing in single-site tensor",
+            ),
+        )
+        length(inds(data[2])) == 3 || throw(
+            ArgumentError(
+                "PairedSiteMPO: Copy data tensor at site 1 must have exactly 3 indices. Found $(length(inds(data[2])))",
+            ),
+        )
+        (sites_copy[1] in inds(data[2]) && sites_copy[1]' in inds(data[2])) || throw(
+            ArgumentError(
+                "PairedSiteMPO: Copy site index or its prime missing in single-site tensor",
+            ),
+        )
+        commonind(data[1], data[2]) === bonds_copy[1] || throw(
+            ArgumentError(
+                "PairedSiteMPO: Copy bond mismatch between main and copy tensor at site 1. Got $(commonind(data[1], data[2])) but expected $(bonds_copy[1])",
+            ),
+        )
         return nothing
     end
 
     # Edge ranks = 3, bulk ranks = 4
     for i in 1:2n
         if i == 1 || i == 2n
-            (length(inds(data[i])) == 3) || throw(ArgumentError("PairedSiteMPO: Edge tesors must have exactly 3 indices. Found $(length(inds(data[i]))) at site $i"))
+            (length(inds(data[i])) == 3) || throw(
+                ArgumentError(
+                    "PairedSiteMPO: Edge tesors must have exactly 3 indices. Found $(length(inds(data[i]))) at site $i",
+                ),
+            )
         else
-            (length(inds(data[i])) == 4) || throw(ArgumentError("PairedSiteMPO: Bulk tesors must have exactly 4 indices. Found $(length(inds(data[i]))) at site $i"))
+            (length(inds(data[i])) == 4) || throw(
+                ArgumentError(
+                    "PairedSiteMPO: Bulk tesors must have exactly 4 indices. Found $(length(inds(data[i]))) at site $i",
+                ),
+            )
         end
     end
 
@@ -190,35 +290,69 @@ function check_pairedsitempo(data::Vector{ITensor}, sites_main::Vector{<:Index},
     for i in 1:2n
         if isodd(i) # odd are main sites
             site_idx = div(i + 1, 2)
-            (sites_main[site_idx] in inds(data[i]) && sites_main[site_idx]' in inds(data[i])) || throw(ArgumentError("PairedSiteMPO: Site index or its prime missing in tensor at site $i. Got indices: $(inds(data[i]))"))
+            (
+                sites_main[site_idx] in inds(data[i]) &&
+                sites_main[site_idx]' in inds(data[i])
+            ) || throw(
+                ArgumentError(
+                    "PairedSiteMPO: Site index or its prime missing in tensor at site $i. Got indices: $(inds(data[i]))",
+                ),
+            )
         else # even are copy sites
             site_idx = div(i, 2)
-            (sites_copy[site_idx] in inds(data[i]) && sites_copy[site_idx]' in inds(data[i])) || throw(ArgumentError("PairedSiteMPO: Site index or its prime missing in tensor at site $i. Got indices: $(inds(data[i]))"))
+            (
+                sites_copy[site_idx] in inds(data[i]) &&
+                sites_copy[site_idx]' in inds(data[i])
+            ) || throw(
+                ArgumentError(
+                    "PairedSiteMPO: Site index or its prime missing in tensor at site $i. Got indices: $(inds(data[i]))",
+                ),
+            )
         end
     end
-    length(unique(sites_main)) == n || throw(ArgumentError("PairedSiteMPO: Site indices must be unique in sites_main"))
-    length(unique(sites_copy)) == n || throw(ArgumentError("PairedSiteMPO: Site indices must be unique in sites_copy"))
-
+    length(unique(sites_main)) == n ||
+        throw(ArgumentError("PairedSiteMPO: Site indices must be unique in sites_main"))
+    length(unique(sites_copy)) == n ||
+        throw(ArgumentError("PairedSiteMPO: Site indices must be unique in sites_copy"))
 
     # Bond presence and uniqueness
     for i in 1:(2n - 1)
         if isodd(i) # odd bonds are copy bonds between main(i) and copy(i)
             bond_idx = div(i + 1, 2)
-            (bonds_copy[bond_idx] in inds(data[i])) || throw(ArgumentError("PairedSiteMPO: Copy bond index missing in tensor at site $i"))
-            (bonds_copy[bond_idx] === commonind(data[i], data[i + 1])) || throw(ArgumentError("PairedSiteMPO: Copy bond mismatch between core at $i and $(i + 1)"))
+            (bonds_copy[bond_idx] in inds(data[i])) || throw(
+                ArgumentError(
+                    "PairedSiteMPO: Copy bond index missing in tensor at site $i"
+                ),
+            )
+            (bonds_copy[bond_idx] === commonind(data[i], data[i + 1])) || throw(
+                ArgumentError(
+                    "PairedSiteMPO: Copy bond mismatch between core at $i and $(i + 1)"
+                ),
+            )
         else # even bonds are main bonds between copy(i) and main(i+1)
             bond_idx = div(i, 2)
-            (bonds_main[bond_idx] in inds(data[i])) || throw(ArgumentError("PairedSiteMPO: Main bond index missing in tensor at site $i"))
-            (bonds_main[bond_idx] === commonind(data[i], data[i + 1])) || throw(ArgumentError("PairedSiteMPO: Main bond mismatch between core at $i and $(i + 1)"))
+            (bonds_main[bond_idx] in inds(data[i])) || throw(
+                ArgumentError(
+                    "PairedSiteMPO: Main bond index missing in tensor at site $i"
+                ),
+            )
+            (bonds_main[bond_idx] === commonind(data[i], data[i + 1])) || throw(
+                ArgumentError(
+                    "PairedSiteMPO: Main bond mismatch between core at $i and $(i + 1)"
+                ),
+            )
         end
     end
-    length(unique(bonds_main)) == n - 1 || throw(ArgumentError("PairedSiteMPO: Bond indices must be unique in bonds_main"))
-    length(unique(bonds_copy)) == n || throw(ArgumentError("PairedSiteMPO: Bond indices must be unique in bonds_copy"))
+    length(unique(bonds_main)) == n - 1 ||
+        throw(ArgumentError("PairedSiteMPO: Bond indices must be unique in bonds_main"))
+    length(unique(bonds_copy)) == n ||
+        throw(ArgumentError("PairedSiteMPO: Bond indices must be unique in bonds_copy"))
     return nothing
 end
 # Convenience checker
-check_pairedsitempo(W::PairedSiteMPO) = check_pairedsitempo(W.data, W.sites_main, W.sites_copy, W.bonds_main, W.bonds_copy)
-
+function check_pairedsitempo(W::PairedSiteMPO)
+    check_pairedsitempo(W.data, W.sites_main, W.sites_copy, W.bonds_main, W.bonds_copy)
+end
 
 ###################################### DISPLAY UTILS #########################################
 function Base.show(io::IO, W::SingleSiteMPO)
@@ -230,7 +364,13 @@ function Base.show(io::IO, W::SingleSiteMPO)
         parts = String[]
         for I in idxs
             d = dim(I)
-            tg = try s = string(tags(I)); isempty(s) ? nothing : s catch; nothing end
+            tg = try
+                s = string(tags(I));
+                isempty(s) ? nothing : s
+            catch
+                ;
+                nothing
+            end
             push!(parts, tg === nothing ? "dim=$d" : "dim=$d, tags=$tg")
         end
         println(io, "  Site $i: ", join(parts, " | "))
@@ -247,18 +387,30 @@ function Base.show(io::IO, W::PairedSiteMPO)
         parts_main = String[]
         for I in idxs_main
             d = dim(I)
-            tg = try s = string(tags(I)); isempty(s) ? nothing : s catch; nothing end
+            tg = try
+                s = string(tags(I));
+                isempty(s) ? nothing : s
+            catch
+                ;
+                nothing
+            end
             push!(parts_main, tg === nothing ? "dim=$d" : "dim=$d, tags=$tg")
         end
         println(io, "  Site $i (main): ", join(parts_main, " | "))
-        
+
         # Copy site tensor (even index in data)
         t_copy = W.data[2i]
         idxs_copy = collect(inds(t_copy))
         parts_copy = String[]
         for I in idxs_copy
             d = dim(I)
-            tg = try s = string(tags(I)); isempty(s) ? nothing : s catch; nothing end
+            tg = try
+                s = string(tags(I));
+                isempty(s) ? nothing : s
+            catch
+                ;
+                nothing
+            end
             push!(parts_copy, tg === nothing ? "dim=$d" : "dim=$d, tags=$tg")
         end
         println(io, "  Site $i (copy): ", join(parts_copy, " | "))
@@ -273,13 +425,22 @@ function update_site!(W::SingleSiteMPO, old_site_index::Index, new_site_index::I
     i = findfirst(x -> x == old_site_index, W.sites)
     if i === nothing
         # fallback: search data tensors for either old or its prime
-        i = findfirst(k -> (old_site_index in inds(W.data[k]) || prime(old_site_index) in inds(W.data[k])), 1:length(W.data))
-        i === nothing && throw(ArgumentError("update_site!: old site index not found in SingleSiteMPO"))
+        i = findfirst(
+            k -> (
+                old_site_index in inds(W.data[k]) ||
+                prime(old_site_index) in inds(W.data[k])
+            ),
+            1:length(W.data),
+        )
+        i === nothing &&
+            throw(ArgumentError("update_site!: old site index not found in SingleSiteMPO"))
     end
 
     E = typeof(W.sites[i])
-    (new_site_index isa E) || throw(ArgumentError("update_site!: new site index must be of type $E"))
-    dim(old_site_index) == dim(new_site_index) || throw(ArgumentError("update_site!: Site index dimension mismatch at site $i"))
+    (new_site_index isa E) ||
+        throw(ArgumentError("update_site!: new site index must be of type $E"))
+    dim(old_site_index) == dim(new_site_index) ||
+        throw(ArgumentError("update_site!: Site index dimension mismatch at site $i"))
 
     # replace unprimed and primed occurrences
     replaceinds!(W.data[i], old_site_index => new_site_index)
@@ -291,10 +452,13 @@ end
 # Update a bond by specifying old and new Index values for SingleSiteMPO
 function update_bond!(W::SingleSiteMPO, old_bond_index::Index, new_bond_index::Index)
     j = findfirst(x -> x == old_bond_index, W.bonds)
-    j === nothing && throw(ArgumentError("update_bond!: old bond index not found in SingleSiteMPO"))
+    j === nothing &&
+        throw(ArgumentError("update_bond!: old bond index not found in SingleSiteMPO"))
     B = typeof(W.bonds[j])
-    (new_bond_index isa B) || throw(ArgumentError("update_bond!: new bond index must be of type $B"))
-    dim(old_bond_index) == dim(new_bond_index) || throw(ArgumentError("update_bond!: Bond index dimension mismatch at bond $j"))
+    (new_bond_index isa B) ||
+        throw(ArgumentError("update_bond!: new bond index must be of type $B"))
+    dim(old_bond_index) == dim(new_bond_index) ||
+        throw(ArgumentError("update_bond!: Bond index dimension mismatch at bond $j"))
 
     replaceinds!(W.data[j], old_bond_index => new_bond_index)
     replaceinds!(W.data[j + 1], old_bond_index => new_bond_index)
@@ -307,8 +471,11 @@ function update_site!(W::PairedSiteMPO, old_site_index::Index, new_site_index::I
     m = findfirst(x -> x == old_site_index, W.sites_main)
     if m !== nothing
         E = typeof(W.sites_main[m])
-        (new_site_index isa E) || throw(ArgumentError("update_site!: new main site index must be of type $E"))
-        dim(old_site_index) == dim(new_site_index) || throw(ArgumentError("update_site!: Main site index dimension mismatch at site $m"))
+        (new_site_index isa E) ||
+            throw(ArgumentError("update_site!: new main site index must be of type $E"))
+        dim(old_site_index) == dim(new_site_index) || throw(
+            ArgumentError("update_site!: Main site index dimension mismatch at site $m")
+        )
         replaceinds!(W.data[2m - 1], old_site_index => new_site_index)
         replaceinds!(W.data[2m - 1], prime(old_site_index) => prime(new_site_index))
         W.sites_main[m] = new_site_index
@@ -318,8 +485,11 @@ function update_site!(W::PairedSiteMPO, old_site_index::Index, new_site_index::I
     c = findfirst(x -> x == old_site_index, W.sites_copy)
     if c !== nothing
         E = typeof(W.sites_copy[c])
-        (new_site_index isa E) || throw(ArgumentError("update_site!: new copy site index must be of type $E"))
-        dim(old_site_index) == dim(new_site_index) || throw(ArgumentError("update_site!: Copy site index dimension mismatch at site $c"))
+        (new_site_index isa E) ||
+            throw(ArgumentError("update_site!: new copy site index must be of type $E"))
+        dim(old_site_index) == dim(new_site_index) || throw(
+            ArgumentError("update_site!: Copy site index dimension mismatch at site $c")
+        )
         replaceinds!(W.data[2c], old_site_index => new_site_index)
         replaceinds!(W.data[2c], prime(old_site_index) => prime(new_site_index))
         W.sites_copy[c] = new_site_index
@@ -335,8 +505,10 @@ function update_bond!(W::PairedSiteMPO, old_bond_index::Index, new_bond_index::I
     k = findfirst(x -> x == old_bond_index, W.bonds_main)
     if k !== nothing
         B = typeof(W.bonds_main[k])
-        (new_bond_index isa B) || throw(ArgumentError("update_bond!: new main bond index must be of type $B"))
-        dim(old_bond_index) == dim(new_bond_index) || throw(ArgumentError("update_bond!: Main bond dimension mismatch at bond $k"))
+        (new_bond_index isa B) ||
+            throw(ArgumentError("update_bond!: new main bond index must be of type $B"))
+        dim(old_bond_index) == dim(new_bond_index) ||
+            throw(ArgumentError("update_bond!: Main bond dimension mismatch at bond $k"))
         replaceinds!(W.data[2k], old_bond_index => new_bond_index)
         replaceinds!(W.data[2k + 1], old_bond_index => new_bond_index)
         W.bonds_main[k] = new_bond_index
@@ -347,8 +519,10 @@ function update_bond!(W::PairedSiteMPO, old_bond_index::Index, new_bond_index::I
     j = findfirst(x -> x == old_bond_index, W.bonds_copy)
     if j !== nothing
         B = typeof(W.bonds_copy[j])
-        (new_bond_index isa B) || throw(ArgumentError("update_bond!: new copy bond index must be of type $B"))
-        dim(old_bond_index) == dim(new_bond_index) || throw(ArgumentError("update_bond!: Copy bond dimension mismatch at bond $j"))
+        (new_bond_index isa B) ||
+            throw(ArgumentError("update_bond!: new copy bond index must be of type $B"))
+        dim(old_bond_index) == dim(new_bond_index) ||
+            throw(ArgumentError("update_bond!: Copy bond dimension mismatch at bond $j"))
         replaceinds!(W.data[2j - 1], old_bond_index => new_bond_index)
         replaceinds!(W.data[2j], old_bond_index => new_bond_index)
         W.bonds_copy[j] = new_bond_index

@@ -7,15 +7,13 @@ using ITensors, Random, Printf
 using LinearAlgebra: norm
 using ..RSVD: rsvd
 
-using ..Mps: AbstractMPS, SignalMPS, zTMPS,
-             PairCore,
-             nsite, siteindices, bondindices
+using ..Mps: AbstractMPS, SignalMPS, zTMPS, PairCore, nsite, siteindices, bondindices
 
 export signal_mps, signal_ztmps
 
 ################################## SIGNAL VEC TO MPS #########################################
 # Convert an input 1D array signal into ITensor MPS with the binary encoding of the indices
-function _array_to_tensor(x::AbstractVector; sites = undef)
+function _array_to_tensor(x::AbstractVector; sites=undef)
     N = length(x)
     n = round(Int, log2(N)) # no. of qubits that can encodes signal
 
@@ -28,11 +26,13 @@ function _array_to_tensor(x::AbstractVector; sites = undef)
             x_filled[1:N] .= x
             x = x_filled
         end
-        @assert length(x) == 2^n || "_array_to_tensor: Length of signal vector must be a power of 2"
+        @assert length(x) == 2^n ||
+            "_array_to_tensor: Length of signal vector must be a power of 2"
         if sites === undef
             sites = [Index(2; tags=@sprintf("site-%d", i)) for i in 1:n]
         end
-        @assert length(sites) == n || "_array_to_tensor: Number of provided sites must match log2(length(x))"
+        @assert length(sites) == n ||
+            "_array_to_tensor: Number of provided sites must match log2(length(x))"
         normalisation_const = norm(x)
         x /= normalisation_const
 
@@ -46,23 +46,30 @@ function _array_to_tensor(x::AbstractVector; sites = undef)
 end
 
 # Convert an ITensor to MPS with given tol. TODO: test this with a vector of [1 2 3 ... 64] and see if it transforms as expected
-function _tensor_to_mps_svd(ψ::ITensor;
-                      cutoff::Real = 1e-15, maxdim::Int = typemax(Int))
+function _tensor_to_mps_svd(ψ::ITensor; cutoff::Real=1e-15, maxdim::Int=typemax(Int))
     ITensors.disable_warn_order()
     try
         N = length(inds(ψ))
         I = eltype(inds(ψ))
-        
-        N ≥ 1 || throw(ArgumentError("_tensor_to_mps_svd: Need at least one site in the tensor to convert to MPS. Found $N sites."))
 
-        all(dims(inds(ψ)) .== 2) || throw(ArgumentError("_tensor_to_mps_svd: All indices of the input tensor must be of dimension 2 (qubit indices). Found dims: $(dims(inds(ψ)))"))
+        N ≥ 1 || throw(
+            ArgumentError(
+                "_tensor_to_mps_svd: Need at least one site in the tensor to convert to MPS. Found $N sites.",
+            ),
+        )
+
+        all(dims(inds(ψ)) .== 2) || throw(
+            ArgumentError(
+                "_tensor_to_mps_svd: All indices of the input tensor must be of dimension 2 (qubit indices). Found dims: $(dims(inds(ψ)))",
+            ),
+        )
 
         # Trivial case: single site MPS
         if N == 1
             return SignalMPS([ψ], collect(inds(ψ)), Vector{I}(undef, 0))
         end
-        
-        data  = Vector{ITensor}(undef, N)
+
+        data = Vector{ITensor}(undef, N)
         sites = collect(inds(ψ))
         bonds = Vector{I}(undef, N - 1)
         current_ψ = ψ
@@ -74,9 +81,10 @@ function _tensor_to_mps_svd(ψ::ITensor;
                 left_inds = (sites[i], bonds[i - 1])
             end
 
-            U, S, V = svd(current_ψ, left_inds; cutoff = cutoff, maxdim = maxdim)
+            U, S, V = svd(current_ψ, left_inds; cutoff=cutoff, maxdim=maxdim)
             old_bond = commonind(U, S)
-            @assert !isnothing(old_bond) || error("No shared bond index between U and S at site $i")
+            @assert !isnothing(old_bond) ||
+                error("No shared bond index between U and S at site $i")
             new_bond = Index(dim(old_bond); tags=@sprintf("bond-%d", i))
 
             replaceind!(U, old_bond, new_bond)
@@ -85,7 +93,7 @@ function _tensor_to_mps_svd(ψ::ITensor;
             data[i] = U
             bonds[i] = new_bond
             current_ψ = S * V
-            
+
             @assert commonind(data[i], current_ψ) == bonds[i] "Bond index mismatch at site $i during MPS conversion."
         end
         data[N] = current_ψ
@@ -101,16 +109,26 @@ end
 Convert a tensor `ψ` to an MPS using a divide-and-conquer Randomized SVD (RSVD) approach.
 Recursively splits the tensor into left and right halves, applying RSVD at the cut to reduce bond dimensions.
 """
-function _tensor_to_mps_rsvd(ψ::ITensor; cutoff::Real = 1e-15, maxdim::Int = typemax(Int), kwargs...)
+function _tensor_to_mps_rsvd(
+    ψ::ITensor; cutoff::Real=1e-15, maxdim::Int=typemax(Int), kwargs...
+)
     ITensors.disable_warn_order()
     try
         N = length(inds(ψ))
-        N ≥ 1 || throw(ArgumentError("_tensor_to_mps_rsvd: Need at least one site in the tensor to convert to MPS. Found $N sites."))
-        all(dims(inds(ψ)) .== 2) || throw(ArgumentError("_tensor_to_mps_rsvd: All indices of the input tensor must be of dimension 2 (qubit indices). Found dims: $(dims(inds(ψ)))"))
-        
+        N ≥ 1 || throw(
+            ArgumentError(
+                "_tensor_to_mps_rsvd: Need at least one site in the tensor to convert to MPS. Found $N sites.",
+            ),
+        )
+        all(dims(inds(ψ)) .== 2) || throw(
+            ArgumentError(
+                "_tensor_to_mps_rsvd: All indices of the input tensor must be of dimension 2 (qubit indices). Found dims: $(dims(inds(ψ)))",
+            ),
+        )
+
         sites = collect(inds(ψ))
         I = eltype(sites)
-        
+
         # Trivial case: single site MPS
         if N == 1
             return SignalMPS([ψ], sites, Vector{I}(undef, 0))
@@ -129,14 +147,20 @@ function _tensor_to_mps_rsvd(ψ::ITensor; cutoff::Real = 1e-15, maxdim::Int = ty
         T0 = ψ * ITensor(1.0, left_bond_0) * ITensor(1.0, right_bond_N)
 
         # Recursive compress function (inlined divide-and-conquer)
-        function compress_tt!(T_chunk::ITensor, first_site_idx::Int, last_site_idx::Int, left_bond::Index, right_bond::Index)
+        function compress_tt!(
+            T_chunk::ITensor,
+            first_site_idx::Int,
+            last_site_idx::Int,
+            left_bond::Index,
+            right_bond::Index,
+        )
             if first_site_idx == last_site_idx
                 core = T_chunk
                 if inds(core) != IndexSet(left_bond, sites[first_site_idx], right_bond)
                     core = permute(core, left_bond, sites[first_site_idx], right_bond)
                 end
                 data[first_site_idx] = core
-                return
+                return nothing
             end
 
             mid = (first_site_idx + last_site_idx - 1) ÷ 2
@@ -150,7 +174,9 @@ function _tensor_to_mps_rsvd(ψ::ITensor; cutoff::Real = 1e-15, maxdim::Int = ty
 
             # Record the link dimension between mid and mid+1.
             old_bond = commonind(T_left, T_right)
-            @assert !isnothing(old_bond) || error("_tensor_to_mps_rsvd: missing internal bond between sites $mid and $(mid + 1)")
+            @assert !isnothing(old_bond) || error(
+                "_tensor_to_mps_rsvd: missing internal bond between sites $mid and $(mid + 1)",
+            )
             new_bond = Index(dim(old_bond); tags=@sprintf("bond-%d", mid))
             bonds[mid] = new_bond
 
@@ -159,7 +185,7 @@ function _tensor_to_mps_rsvd(ψ::ITensor; cutoff::Real = 1e-15, maxdim::Int = ty
 
             compress_tt!(T_left, first_site_idx, mid, left_bond, new_bond)
             compress_tt!(T_right, mid + 1, last_site_idx, new_bond, right_bond)
-            return
+            return nothing
         end
 
         compress_tt!(T0, 1, N, left_bond_0, right_bond_N)
@@ -175,8 +201,9 @@ function _tensor_to_mps_rsvd(ψ::ITensor; cutoff::Real = 1e-15, maxdim::Int = ty
 end
 
 # Simple dispatching wrapper that returns the same (data, bonds) pair expected by higher-level helpers
-function _tensor_to_mps(ψ::ITensor; method::Symbol = :svd, kwargs...)
-    method ∈ (:svd, :rsvd) || throw(ArgumentError("tensor_to_mps: unknown method $method. Use :svd or :rsvd."))
+function _tensor_to_mps(ψ::ITensor; method::Symbol=:svd, kwargs...)
+    method ∈ (:svd, :rsvd) ||
+        throw(ArgumentError("tensor_to_mps: unknown method $method. Use :svd or :rsvd."))
     if method == :svd
         return _tensor_to_mps_svd(ψ; kwargs...)
     else
@@ -184,14 +211,14 @@ function _tensor_to_mps(ψ::ITensor; method::Symbol = :svd, kwargs...)
     end
 end
 
-function signal_mps(x::AbstractVector{<:Number}; method::Symbol = :svd,
-                    kwargs...)
+function signal_mps(x::AbstractVector{<:Number}; method::Symbol=:svd, kwargs...)
     ψ, normalisation_const = _array_to_tensor(x)
     return _tensor_to_mps(ψ; method=method, kwargs...), normalisation_const
 end
 
-function signal_ztmps(x::AbstractVector{<:Number};
-                         cutoff::Real = 1e-10, maxdim::Int = typemax(Int))
+function signal_ztmps(
+    x::AbstractVector{<:Number}; cutoff::Real=1e-10, maxdim::Int=typemax(Int)
+)
     # The SignalMPS to be copied
     ψ_signal, normalisation_const = signal_mps(x; cutoff=cutoff, maxdim=maxdim)
     n = nsite(ψ_signal)
@@ -212,7 +239,8 @@ function signal_ztmps(x::AbstractVector{<:Number};
         core_main, core_copy = U, S * V
 
         old_bond = commonind(core_main, core_copy)
-        @assert !isnothing(old_bond) || error("No shared bond index between main and copy cores at site $i")
+        @assert !isnothing(old_bond) ||
+            error("No shared bond index between main and copy cores at site $i")
         new_bond = Index(dim(old_bond); tags=@sprintf("bond-copy-%d", i))
         replaceind!(core_main, old_bond, new_bond)
         replaceind!(core_copy, old_bond, new_bond)
@@ -221,7 +249,8 @@ function signal_ztmps(x::AbstractVector{<:Number};
         bonds_copy[i] = new_bond
     end
 
-    return zTMPS(paircores, bonds_main, bonds_copy, sites_main, sites_copy), normalisation_const
+    return zTMPS(paircores, bonds_main, bonds_copy, sites_main, sites_copy),
+    normalisation_const
 end
 
 end # module SignalConverters

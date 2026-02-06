@@ -20,11 +20,25 @@ using ..DTTransform: zip_to_combine_mpos, zip_to_compress_mpo
 
 export build_zt_mpo
 
-function build_zt_mpo(n::Int, ωr::Real, sites_main::Vector{I}, sites_copy::Vector{I};
-                            cutoff=1e-14, maxdim=1000) where {I<:Index}
+function build_zt_mpo(
+    n::Int,
+    ωr::Real,
+    sites_main::Vector{I},
+    sites_copy::Vector{I};
+    cutoff=1e-14,
+    maxdim=1000,
+) where {I<:Index}
     n >= 1 || throw(ArgumentError("build_zt_mpo: n must be ≥ 1. Found n=$n"))
-    length(sites_main) == n || throw(ArgumentError("build_zt_mpo: sites_main must have $n elements. Got $(length(sites_main))"))
-    length(sites_copy) == n || throw(ArgumentError("build_zt_mpo: sites_copy must have $n elements. Got $(length(sites_copy))"))
+    length(sites_main) == n || throw(
+        ArgumentError(
+            "build_zt_mpo: sites_main must have $n elements. Got $(length(sites_main))"
+        ),
+    )
+    length(sites_copy) == n || throw(
+        ArgumentError(
+            "build_zt_mpo: sites_copy must have $n elements. Got $(length(sites_copy))"
+        ),
+    )
 
     # Interleave sites: [main[1], copy[1], main[2], copy[2], ...]
     all_sites = Vector{I}(undef, 2n)
@@ -37,7 +51,7 @@ function build_zt_mpo(n::Int, ωr::Real, sites_main::Vector{I}, sites_copy::Vect
         # For n=1, just part 1 block for k=1 (damped Hadamard on main, identity on copy) and part 3 block for k=1 (identity on main, Hadamard on copy)
         mpo_part1 = control_damping_mpo(1, 1, ωr, all_sites)
         mpo_part3 = control_Hphase_ztmps_mpo(1, all_sites)
-        
+
         full_mpo, _, _ = zip_to_combine_mpos(mpo_part1, mpo_part3, 0)
         return full_mpo
     end
@@ -53,24 +67,24 @@ function build_zt_mpo(n::Int, ωr::Real, sites_main::Vector{I}, sites_copy::Vect
         # This is necessary because block_k acts on 1:k, while mpo_part1 currently acts on 1:k-1
         if length(mpo_part1.sites_main) < k
             # Get new sites
-            s_main = all_sites[2*k - 1]
-            s_copy = all_sites[2*k]
-            
+            s_main = all_sites[2 * k - 1]
+            s_copy = all_sites[2 * k]
+
             # Create new bonds
             b_main = Index(1, "bond-main-$(k-1)")
             b_copy = Index(1, "bond-copy-$k")
-            
+
             # Update last tensor of mpo_part1 (copy[k-1]) to connect to new main[k]
             mpo_part1.data[end] *= ITensor(1.0, b_main)
             push!(mpo_part1.bonds_main, b_main)
-            
+
             # Create new tensors for site k
             # main[k]: connects to b_main (left) and b_copy (right)
             T_main = delta(s_main, s_main') * ITensor(1.0, b_main) * ITensor(1.0, b_copy)
-            
+
             # copy[k]: connects to b_copy (left)
             T_copy = delta(s_copy, s_copy') * ITensor(1.0, b_copy)
-            
+
             # Update mpo_part1
             push!(mpo_part1.data, T_main)
             push!(mpo_part1.data, T_copy)
@@ -81,28 +95,32 @@ function build_zt_mpo(n::Int, ωr::Real, sites_main::Vector{I}, sites_copy::Vect
 
         # Block for control on main[k], acts on sites 1:2k
         block_k = control_damping_mpo(n, k, ωr, all_sites[1:2k])
-        
+
         # Combine with current MPO (zip-down since they share first sites)
         mpo_part1, oc, _ = zip_to_combine_mpos(mpo_part1, block_k, oc)
-        
+
         # Compress
-        mpo_part1, oc = zip_to_compress_mpo(mpo_part1, oc, "down"; cutoff=cutoff, maxdim=maxdim)
+        mpo_part1, oc = zip_to_compress_mpo(
+            mpo_part1, oc, "down"; cutoff=cutoff, maxdim=maxdim
+        )
     end
 
     # =====================================================
     # Part 2: Build copy tensor train from ℓ = k+1 to n for k = 1 down to n-1
     # =====================================================
     # Zip-combine blocks from k = 1 to n-1
-    for k in 1:(n-1)
+    for k in 1:(n - 1)
         # Block for control on main[k], acts on sites 2k+1:2n
         L = n - k
-        block_k = control_damping_copy_mpo(n, k, ωr, all_sites[2k-1:2n])
-        
+        block_k = control_damping_copy_mpo(n, k, ωr, all_sites[(2k - 1):2n])
+
         # Combine with current MPO (zip-up since they share last sites)
         mpo_part1, oc = zip_to_combine_mpos(mpo_part1, block_k, oc)
-        
+
         # Compress
-        mpo_part1, oc = zip_to_compress_mpo(mpo_part1, oc, "up"; cutoff=cutoff, maxdim=maxdim)
+        mpo_part1, oc = zip_to_compress_mpo(
+            mpo_part1, oc, "up"; cutoff=cutoff, maxdim=maxdim
+        )
     end
 
     # =====================================================
@@ -117,11 +135,17 @@ function build_zt_mpo(n::Int, ωr::Real, sites_main::Vector{I}, sites_copy::Vect
         mpo_part1, oc = zip_to_combine_mpos(mpo_part1, block_qft_k, oc)
 
         # Compress
-        mpo_part1, oc = zip_to_compress_mpo(mpo_part1, oc, "down"; cutoff=cutoff, maxdim=maxdim)
+        mpo_part1, oc = zip_to_compress_mpo(
+            mpo_part1, oc, "down"; cutoff=cutoff, maxdim=maxdim
+        )
     end
     return mpo_part1
 end
 
-build_zt_mpo(ψ::zTMPS, ωr::Real; cutoff=1e-14, maxdim=1000) = build_zt_mpo(length(ψ.sites_main), ωr, ψ.sites_main, ψ.sites_copy; cutoff=cutoff, maxdim=maxdim)
+function build_zt_mpo(ψ::zTMPS, ωr::Real; cutoff=1e-14, maxdim=1000)
+    build_zt_mpo(
+        length(ψ.sites_main), ωr, ψ.sites_main, ψ.sites_copy; cutoff=cutoff, maxdim=maxdim
+    )
+end
 
 end # module ZTTransformer

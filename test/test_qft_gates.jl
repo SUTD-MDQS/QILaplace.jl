@@ -10,7 +10,7 @@ import QILaplace.QFTGates: I, H, P, Π, control_Hphase_mpo
         expected = i == j ? 1.0 : 0.0
         @test isapprox(I_gate[i, j], expected; atol=1e-12, rtol=1e-12)
     end
-    
+
     H_gate = H(site)
     H_expected = (1/sqrt(2)) * [1 1; 1 -1]
     for (i, j) in Iterators.product(1:2, 1:2)
@@ -45,7 +45,7 @@ end
             # Create input basis state using signal_mps
             x = [i == (b+1) ? 1.0 : 0.0 for i in 1:(1 << n)]
             ψ_in, _ = signal_mps(x)
-            
+
             # Replace signal_mps sites with MPO sites
             for i in 1:n
                 update_site!(ψ_in, ψ_in.sites[i], sites[i])
@@ -59,7 +59,7 @@ end
 
             # Analytical expected output
             site_bits_input = int_to_bits(b, n)
-            
+
             # Compute total phase for the |site[1]=1⟩ component
             phase_for_1 = 1.0 + 0.0im
             for l in 2:n

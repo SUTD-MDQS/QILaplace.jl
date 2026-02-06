@@ -13,9 +13,9 @@ order=:lsb -> [bit_1, ..., bit_n] (LSB first)
 """
 function int_to_bits(val::Int, n::Int; order::Symbol=:msb)
     if order == :msb
-        return reverse(digits(val, base=2, pad=n))
+        return reverse(digits(val; base=2, pad=n))
     elseif order == :lsb
-        return digits(val, base=2, pad=n)
+        return digits(val; base=2, pad=n)
     else
         throw(ArgumentError("order must be :msb or :lsb"))
     end
@@ -46,7 +46,7 @@ function int_to_paired_bits(val::Int, n::Int; order::Symbol=:msb)
     bits = int_to_bits(val, n; order=order)
     paired = Vector{Int}(undef, 2n)
     for i in 1:n
-        paired[2i-1] = bits[i]
+        paired[2i - 1] = bits[i]
         paired[2i] = bits[i]
     end
     return paired
@@ -83,7 +83,7 @@ end
 function apply_dense(W::SingleSiteMPO, ψ::SignalMPS)
     W_dense = to_dense_mpo(W)
     ψ_dense = to_dense_mps(ψ)
-    
+
     # Contract: MPO primed indices with MPS unprimed indices
     # First, replace primed MPO indices with temp indices
     result_mpo = copy(W_dense)
@@ -93,10 +93,10 @@ function apply_dense(W::SingleSiteMPO, ψ::SignalMPS)
         result_mpo = replaceind(result_mpo, site', site_tmp)
         result_mps = replaceind(result_mps, site, site_tmp)
     end
-    
+
     # Contract
     result = result_mpo * result_mps
-    
+
     return result
 end
 
@@ -128,12 +128,15 @@ end
 function embed_mpo(W::SingleSiteMPO, target_sites::Vector{<:Index})
     n_target = length(target_sites)
     n_window = length(W)
-    n_target >= n_window || throw(ArgumentError("embed_mpo: target length must be >= MPO length"))
+    n_target >= n_window ||
+        throw(ArgumentError("embed_mpo: target length must be >= MPO length"))
 
     start = findfirst(==(W.sites[1]), target_sites)
     start === nothing && throw(ArgumentError("embed_mpo: window not found in target sites"))
-    (start + n_window - 1) <= n_target || throw(ArgumentError("embed_mpo: window exceeds target range"))
-    target_sites[start:start + n_window - 1] == W.sites || throw(ArgumentError("embed_mpo: target window must match MPO sites"))
+    (start + n_window - 1) <= n_target ||
+        throw(ArgumentError("embed_mpo: window exceeds target range"))
+    target_sites[start:(start + n_window - 1)] == W.sites ||
+        throw(ArgumentError("embed_mpo: target window must match MPO sites"))
 
     IndexType = eltype(target_sites)
     new_bonds = IndexType[]
@@ -194,7 +197,7 @@ function basis_state_vector(i::Int, n::Int)
     N = 2^n
     @assert 0 <= i < N "Basis state index out of range"
     vec = zeros(Float64, N)
-    vec[i+1] = 1.0
+    vec[i + 1] = 1.0
     return vec
 end
 
@@ -202,12 +205,12 @@ end
 function mps_to_vector(ψ::SignalMPS)
     n = length(ψ.sites)
     N = 2^n
-    
+
     T = ψ.data[1]
     for i in 2:n
         T *= ψ.data[i]
     end
-    
+
     # Extract as array with proper ordering (MSB-first: reverse sites)
     arr = Array(T, reverse(ψ.sites)...)
     vec = reshape(arr, N)

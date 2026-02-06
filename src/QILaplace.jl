@@ -6,16 +6,27 @@ using ITensors, Random, Printf
 
 # Mps.jl
 include("mps.jl")
-using .Mps: SignalMPS, zTMPS,
-            nsite, siteindices, bondindices,
-            canonicalize!, compress!,
-            update_site!, update_bond!,
-            coefficient
-export SignalMPS, zTMPS,
-        nsite, siteindices, bondindices,
-        canonicalize!, compress!,
-        update_site!, update_bond!,
-        coefficient
+using .Mps:
+    SignalMPS,
+    zTMPS,
+    nsite,
+    siteindices,
+    bondindices,
+    canonicalize!,
+    compress!,
+    update_site!,
+    update_bond!,
+    coefficient
+export SignalMPS,
+    zTMPS,
+    nsite,
+    siteindices,
+    bondindices,
+    canonicalize!,
+    compress!,
+    update_site!,
+    update_bond!,
+    coefficient
 
 # Mpo.jl
 include("mpo.jl")
