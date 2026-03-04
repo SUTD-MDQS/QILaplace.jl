@@ -3,8 +3,10 @@
 
 module ApplyMPO
 
-using ITensors, Printf
+import ITensors.apply
 import Base: *
+
+using ITensors, Printf
 using ..Mps
 using ..Mps: SignalMPS, zTMPS
 using ..Mpo: SingleSiteMPO, PairedSiteMPO

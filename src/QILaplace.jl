@@ -1,6 +1,5 @@
 # src/QILaplace.jl
 module QILaplace
-__precompile__(true)
 
 using ITensors, Random, Printf
 
@@ -36,6 +35,7 @@ export SingleSiteMPO, PairedSiteMPO
 # linalg/apply.jl
 include("linalg/apply.jl")
 using .ApplyMPO: apply
+export apply
 
 # signals/Signals.jl
 include("signals/Signals.jl")
@@ -77,10 +77,5 @@ export build_dt_mpo
 include("transforms/zt_transformer.jl")
 using .ZTTransformer: build_zt_mpo
 export build_zt_mpo
-
-# Algorithms.jl
-
-# Precompile
-__init__() = nothing
 
 end # module QILaplace

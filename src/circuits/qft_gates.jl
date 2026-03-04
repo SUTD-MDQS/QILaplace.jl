@@ -6,8 +6,6 @@ module QFTGates
 using ITensors, Printf
 using ..Mpo: SingleSiteMPO
 
-export control_Hphase_mpo
-
 ################################ ELEMENTARY QFT GATES #####################################
 
 # The identity operation on a qubit
@@ -15,7 +13,7 @@ I(site_index::IType) where {IType<:Index} = delta(site_index', site_index)
 
 # The Hadamard gate on a qubit
 H(site_index::IType) where {IType<:Index} = begin
-    Hmat = (1/sqrt(2)) * [
+    Hmat = (1 / sqrt(2)) * [
         1 1;
         1 -1
     ]
@@ -62,17 +60,17 @@ function control_Hphase_mpo(k::Int, sites::Vector{IType}) where {IType<:Index}
     # one-hot tensor embedding for bond indices
     onehot(b::Index, k::Int) = begin
         T = ITensor(b)
-        T[b => k] = 1
+        T[b=>k] = 1
         return T
     end
     onehot(bL::Index, r::Int, bR::Index, c::Int) = begin
         T = ITensor(bL, bR)
-        T[bL => r, bR => c] = 1
+        T[bL=>r, bR=>c] = 1
         return T
     end
 
     data = Vector{ITensor}(undef, k)
-    bonds = [Index(2; tags=@sprintf("qft-bond-%d", i)) for i in 1:(k - 1)]
+    bonds = [Index(2; tags=@sprintf("qft-bond-%d", i)) for i in 1:(k-1)]
 
     # First site: control projector and bond to next site
     site_tmp = sim(sites[1]) # To ensure unique tags for contraction
@@ -82,17 +80,17 @@ function control_Hphase_mpo(k::Int, sites::Vector{IType}) where {IType<:Index}
     data[1] = (Hcontrol * Π0 * onehot(bonds[1], 1) + Hcontrol * Π1 * onehot(bonds[1], 2))
 
     # Intermediate sites: controlled phase rotations
-    for l in 2:(k - 1)
+    for l in 2:(k-1)
         θ = 2π / 2.0^(l)
         data[l] = (
-            I(sites[l]) * onehot(bonds[l - 1], 1, bonds[l], 1) +
-            P(θ, sites[l]) * onehot(bonds[l - 1], 2, bonds[l], 2)
+            I(sites[l]) * onehot(bonds[l-1], 1, bonds[l], 1) +
+            P(θ, sites[l]) * onehot(bonds[l-1], 2, bonds[l], 2)
         )
     end
     # Last site: phase rotation and closing bond
     θ = 2π / 2.0^(k)
     data[k] = (
-        I(sites[k]) * onehot(bonds[k - 1], 1) + P(θ, sites[k]) * onehot(bonds[k - 1], 2)
+        I(sites[k]) * onehot(bonds[k-1], 1) + P(θ, sites[k]) * onehot(bonds[k-1], 2)
     )
 
     return SingleSiteMPO(data, sites, bonds)

@@ -6,12 +6,10 @@ using ITensors, Printf
 using ..Mpo: PairedSiteMPO
 using ..QFTGates: I, Π
 
-export control_damping_mpo, control_damping_copy_mpo
-
 ################################ ELEMENTARY DT GATES #####################################
 # Damped Hadamard gate on a qubit
 function dampedH(ωr::Real, site_index::IType) where {IType<:Index}
-    dampedHmat = 1/√2 * [
+    dampedHmat = 1 / √2 * [
         1 1;
         1 exp(-ωr / 2)
     ]
@@ -51,12 +49,12 @@ function control_damping_mpo(
     # one-hot tensor embedding for bond indices
     onehot(b::Index, k::Int) = begin
         T = ITensor(b)
-        T[b => k] = 1
+        T[b=>k] = 1
         return T
     end
     onehot(bL::Index, r::Int, bR::Index, c::Int) = begin
         T = ITensor(bL, bR)
-        T[bL => r, bR => c] = 1
+        T[bL=>r, bR=>c] = 1
         return T
     end
 
@@ -75,14 +73,14 @@ function control_damping_mpo(
     data = Vector{ITensor}(undef, 2k)
     sites_main = sites[1:2:end]
     sites_copy = sites[2:2:end]
-    bonds_main = [Index(2; tags=@sprintf("dt-bond-main-%d", i)) for i in 1:(k - 1)]
+    bonds_main = [Index(2; tags=@sprintf("dt-bond-main-%d", i)) for i in 1:(k-1)]
     bonds_copy = [Index(2; tags=@sprintf("dt-bond-copy-%d", i)) for i in 1:k]
 
     # Intermediate sites: controlled R and identity gates
-    for l in 1:(k - 1)
+    for l in 1:(k-1)
         R_factor = ωr * 2.0^(l - k - 1)
         # main site tensor: controlled R gate
-        data[2l - 1] = begin
+        data[2l-1] = begin
             if l == 1
                 # Onehot-encode just for the copy bond
                 (
@@ -92,9 +90,9 @@ function control_damping_mpo(
             else
                 # Onehot-encode for both main and copy bonds
                 (
-                    I(sites_main[l]) * onehot(bonds_main[l - 1], 1, bonds_copy[l], 1) +
+                    I(sites_main[l]) * onehot(bonds_main[l-1], 1, bonds_copy[l], 1) +
                     R(R_factor, sites_main[l]) *
-                    onehot(bonds_main[l - 1], 2, bonds_copy[l], 2)
+                    onehot(bonds_main[l-1], 2, bonds_copy[l], 2)
                 )
             end
         end
@@ -116,9 +114,9 @@ function control_damping_mpo(
     replaceind!(Π1, sites_main[k], site_tmp)
     replaceind!(Hdamped, sites_main[k]', site_tmp)
 
-    data[2k - 1] = ((
-        Π0 * Hdamped * onehot(bonds_main[k - 1], 1, bonds_copy[k], 1) +
-        Π1 * Hdamped * onehot(bonds_main[k - 1], 2, bonds_copy[k], 2)
+    data[2k-1] = ((
+        Π0 * Hdamped * onehot(bonds_main[k-1], 1, bonds_copy[k], 1) +
+        Π1 * Hdamped * onehot(bonds_main[k-1], 2, bonds_copy[k], 2)
     ))
 
     # Last site: copy gate
@@ -157,12 +155,12 @@ function control_damping_copy_mpo(
     # one-hot tensor embedding for bond indices
     onehot(b::Index, j::Int) = begin
         T = ITensor(b)
-        T[b => j] = 1
+        T[b=>j] = 1
         return T
     end
     onehot(bL::Index, r::Int, bR::Index, c::Int) = begin
         T = ITensor(bL, bR)
-        T[bL => r, bR => c] = 1
+        T[bL=>r, bR=>c] = 1
         return T
     end
 
@@ -179,7 +177,7 @@ function control_damping_copy_mpo(
         return PairedSiteMPO(data, sites_main, sites_copy, eltype(sites)[], bonds_copy)
     end
 
-    bonds_main = [Index(2; tags=@sprintf("dt-bond-main-%d", i)) for i in 1:(L - 1)]
+    bonds_main = [Index(2; tags=@sprintf("dt-bond-main-%d", i)) for i in 1:(L-1)]
     bonds_copy = [Index(2; tags=@sprintf("dt-bond-copy-%d", i)) for i in 1:L]
 
     # main[1]: Identity
@@ -193,15 +191,15 @@ function control_damping_copy_mpo(
     )
 
     # Blocks 2 to L-1 (Global k+1 to n-1)
-    for j in 2:(L - 1)
+    for j in 2:(L-1)
         # R-factor for target j (Global k+j-1)
         # θ = ωr * 2^(j-2)
         R_factor = ωr * 2.0^(j - 2)
 
         # main[j]: Controlled R
-        data[2j - 1] = (
-            I(sites_main[j]) * onehot(bonds_main[j - 1], 1, bonds_copy[j], 1) +
-            R(R_factor, sites_main[j]) * onehot(bonds_main[j - 1], 2, bonds_copy[j], 2)
+        data[2j-1] = (
+            I(sites_main[j]) * onehot(bonds_main[j-1], 1, bonds_copy[j], 1) +
+            R(R_factor, sites_main[j]) * onehot(bonds_main[j-1], 2, bonds_copy[j], 2)
         )
         # copy[j]: Identity
         data[2j] = (
@@ -215,9 +213,9 @@ function control_damping_copy_mpo(
     R_factor = ωr * 2.0^(j - 2)
 
     # main[L]: Controlled R
-    data[2L - 1] = (
-        I(sites_main[L]) * onehot(bonds_main[L - 1], 1, bonds_copy[L], 1) +
-        R(R_factor, sites_main[L]) * onehot(bonds_main[L - 1], 2, bonds_copy[L], 2)
+    data[2L-1] = (
+        I(sites_main[L]) * onehot(bonds_main[L-1], 1, bonds_copy[L], 1) +
+        R(R_factor, sites_main[L]) * onehot(bonds_main[L-1], 2, bonds_copy[L], 2)
     )
 
     # copy[L]: Identity
