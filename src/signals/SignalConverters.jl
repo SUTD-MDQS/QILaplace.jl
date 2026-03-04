@@ -27,12 +27,12 @@ function _array_to_tensor(x::AbstractVector; sites=undef)
             x = x_filled
         end
         @assert length(x) == 2^n ||
-            "_array_to_tensor: Length of signal vector must be a power of 2"
+                "_array_to_tensor: Length of signal vector must be a power of 2"
         if sites === undef
             sites = [Index(2; tags=@sprintf("site-%d", i)) for i in 1:n]
         end
         @assert length(sites) == n ||
-            "_array_to_tensor: Number of provided sites must match log2(length(x))"
+                "_array_to_tensor: Number of provided sites must match log2(length(x))"
         normalisation_const = norm(x)
         x /= normalisation_const
 
@@ -74,17 +74,17 @@ function _tensor_to_mps_svd(ψ::ITensor; cutoff::Real=1e-15, maxdim::Int=typemax
         bonds = Vector{I}(undef, N - 1)
         current_ψ = ψ
 
-        for i in 1:(N - 1)
+        for i in 1:(N-1)
             if i == 1
                 left_inds = sites[i]
             else
-                left_inds = (sites[i], bonds[i - 1])
+                left_inds = (sites[i], bonds[i-1])
             end
 
             U, S, V = svd(current_ψ, left_inds; cutoff=cutoff, maxdim=maxdim)
             old_bond = commonind(U, S)
             @assert !isnothing(old_bond) ||
-                error("No shared bond index between U and S at site $i")
+                    error("No shared bond index between U and S at site $i")
             new_bond = Index(dim(old_bond); tags=@sprintf("bond-%d", i))
 
             replaceind!(U, old_bond, new_bond)
@@ -213,14 +213,16 @@ end
 
 function signal_mps(x::AbstractVector{<:Number}; method::Symbol=:svd, kwargs...)
     ψ, normalisation_const = _array_to_tensor(x)
-    return _tensor_to_mps(ψ; method=method, kwargs...), normalisation_const
+    mps = _tensor_to_mps(ψ; method=method, kwargs...)
+    mps.amplitude = normalisation_const
+    return mps
 end
 
 function signal_ztmps(
     x::AbstractVector{<:Number}; cutoff::Real=1e-10, maxdim::Int=typemax(Int)
 )
     # The SignalMPS to be copied
-    ψ_signal, normalisation_const = signal_mps(x; cutoff=cutoff, maxdim=maxdim)
+    ψ_signal = signal_mps(x; cutoff=cutoff, maxdim=maxdim)
     n = nsite(ψ_signal)
 
     sites_main = sim.(ψ_signal.sites)
@@ -234,13 +236,13 @@ function signal_ztmps(
         # Build fused site tensors (project |σ⟩ -> |σ_main⟩ ⊗ |σ_copy⟩)
         T_core = ψ_signal.data[i] * delta(ψ_signal.sites[i], sites_main[i], sites_copy[i])
 
-        left_inds = i == 1 ? (sites_main[i],) : (bonds_main[i - 1], sites_main[i])
+        left_inds = i == 1 ? (sites_main[i],) : (bonds_main[i-1], sites_main[i])
         U, S, V = svd(T_core, left_inds...; cutoff=cutoff, maxdim=maxdim)
         core_main, core_copy = U, S * V
 
         old_bond = commonind(core_main, core_copy)
         @assert !isnothing(old_bond) ||
-            error("No shared bond index between main and copy cores at site $i")
+                error("No shared bond index between main and copy cores at site $i")
         new_bond = Index(dim(old_bond); tags=@sprintf("bond-copy-%d", i))
         replaceind!(core_main, old_bond, new_bond)
         replaceind!(core_copy, old_bond, new_bond)
@@ -249,8 +251,9 @@ function signal_ztmps(
         bonds_copy[i] = new_bond
     end
 
-    return zTMPS(paircores, bonds_main, bonds_copy, sites_main, sites_copy),
-    normalisation_const
+    zt = zTMPS(paircores, bonds_main, bonds_copy, sites_main, sites_copy;
+        amplitude=ψ_signal.amplitude)
+    return zt
 end
 
 end # module SignalConverters

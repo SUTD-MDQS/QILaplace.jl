@@ -7,6 +7,7 @@
 </h1>
 
 <h4 align="center">Quantum-inspired signal transforms via tensor network representations.</h4>
+<h4 align="center">For the core API features, check the docs folder.</h4>
 
 <p align="center">
   <a href="https://github.com/SUTD-MDQS/QILaplace.jl/actions/workflows/CI.yml">

@@ -18,7 +18,7 @@ import QILaplace.Mps: _as_signal_2n
         for b in 0:((1 << k) - 1)
             # Create input basis state using signal_ztmps
             x = [i == (b+1) ? 1.0 : 0.0 for i in 1:(1 << k)]
-            ψ_in, _ = signal_ztmps(x)
+            ψ_in = signal_ztmps(x)
 
             # Replace signal_ztmps sites with MPO sites
             for i in 1:k

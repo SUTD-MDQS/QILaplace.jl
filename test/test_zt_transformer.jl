@@ -92,7 +92,7 @@ end
                 Z_ref = analytical_zt(x; ωr=ωr, ωi=ωi, Δt=Δt, normalize=true)
 
                 # Build zTMPS input and apply ZT MPO
-                ψ_in, _ = signal_ztmps(x)
+                ψ_in = signal_ztmps(x)
                 mpo = build_zt_mpo(ψ_in, ωr)
                 ψ_out = apply(mpo, ψ_in)
 

@@ -44,7 +44,7 @@ end
         for b in 0:((1 << n) - 1)
             # Create input basis state using signal_mps
             x = [i == (b+1) ? 1.0 : 0.0 for i in 1:(1 << n)]
-            ψ_in, _ = signal_mps(x)
+            ψ_in = signal_mps(x)
 
             # Replace signal_mps sites with MPO sites
             for i in 1:n

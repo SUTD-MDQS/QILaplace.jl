@@ -19,10 +19,10 @@ function _as_single_site_mpo(W::PairedSiteMPO)
     bonds = Vector{eltype(W.bonds_main)}(undef, 2n - 1)
 
     for i in 1:n
-        sites[2i - 1] = W.sites_main[i]
+        sites[2i-1] = W.sites_main[i]
         sites[2i] = W.sites_copy[i]
 
-        bonds[2i - 1] = W.bonds_copy[i]
+        bonds[2i-1] = W.bonds_copy[i]
         if i < n
             bonds[2i] = W.bonds_main[i]
         end
@@ -45,9 +45,9 @@ function _paired_from_single(W::SingleSiteMPO)
     bonds_copy = Vector{eltype(W.bonds)}(undef, n)
 
     for i in 1:n
-        sites_main[i] = W.sites[2i - 1]
+        sites_main[i] = W.sites[2i-1]
         sites_copy[i] = W.sites[2i]
-        bonds_copy[i] = W.bonds[2i - 1]
+        bonds_copy[i] = W.bonds[2i-1]
         if i < n
             bonds_main[i] = W.bonds[2i]
         end
@@ -88,7 +88,7 @@ function apply(W::SingleSiteMPO, ψ::SignalMPS; kwargs...)
     end
 
     # Combine the MPO and MPS bond indices at each bond
-    for i in 1:(n - 1)
+    for i in 1:(n-1)
         # Create combiner for the MPO bond and MPS bond
         combining_inds = (W.bonds[i], ψ.bonds[i])
         combiner_tensor = combiner(combining_inds...)
@@ -101,10 +101,10 @@ function apply(W::SingleSiteMPO, ψ::SignalMPS; kwargs...)
         new_bonds[i] = new_bond
 
         # Apply dag combiner to the left side of site i+1
-        new_data[i + 1] = dag(combiner_tensor) * new_data[i + 1]
+        new_data[i+1] = dag(combiner_tensor) * new_data[i+1]
     end
 
-    return SignalMPS(new_data, ψ.sites, new_bonds)
+    return SignalMPS(new_data, ψ.sites, new_bonds; amplitude=ψ.amplitude)
 end
 
 function apply(W1::SingleSiteMPO, W2::SingleSiteMPO; kwargs...)
@@ -119,7 +119,7 @@ function apply(W1::SingleSiteMPO, W2::SingleSiteMPO; kwargs...)
     match_len = 0
     while start1 + match_len <= n1 &&
               start2 + match_len <= n2 &&
-              W1.sites[start1 + match_len] == W2.sites[start2 + match_len]
+              W1.sites[start1+match_len] == W2.sites[start2+match_len]
         match_len += 1
     end
 
@@ -141,7 +141,7 @@ function apply(W1::SingleSiteMPO, W2::SingleSiteMPO; kwargs...)
     # 4. Process matching window
     prev_comb = nothing
 
-    for i in 0:(match_len - 1)
+    for i in 0:(match_len-1)
         idx1 = start1 + i
         idx2 = start2 + i
         base_idx = base_start + i
@@ -197,8 +197,10 @@ function apply(W::PairedSiteMPO, ψ::zTMPS; kwargs...)
     # Apply using the SingleSiteMPO implementation
     ψ_out_2n = apply(W_single, ψ_2n; kwargs...)
 
-    # Convert back to zTMPS
-    return Mps._writeback_signal_2n(ψ_out_2n)
+    # Convert back to zTMPS, preserving input amplitude
+    result = Mps._writeback_signal_2n(ψ_out_2n)
+    result.amplitude = ψ.amplitude
+    return result
 end
 
 function apply(mpo1::PairedSiteMPO, mpo2::PairedSiteMPO; kwargs...)

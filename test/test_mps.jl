@@ -34,7 +34,7 @@ end
         ψ = QILaplace.Mps.SignalMPS(N)
         @test length(ψ.data) == N
         @test length(ψ.sites) == N
-        @test length(ψ.bonds) == max(N-1, 0)
+        @test length(ψ.bonds) == max(N - 1, 0)
     end
 
     # Length mismatch: data ≠ sites
@@ -46,7 +46,7 @@ end
     # Edge ranks = 2, bulk = 3
     N = 3
     sites = [Index(2, @sprintf("s%d", i)) for i in 1:N]
-    bonds = [Index(2, @sprintf("b%d", i)) for i in 1:(N - 1)]
+    bonds = [Index(2, @sprintf("b%d", i)) for i in 1:(N-1)]
     data = [
         random_itensor(sites[1], bonds[1]),
         random_itensor(bonds[1], sites[2], bonds[2]),
@@ -83,7 +83,7 @@ end
         @test length(ψ.data) == n
         @test length(ψ.sites_main) == n
         @test length(ψ.sites_copy) == n
-        @test length(ψ.bonds_main) == max(n-1, 0)
+        @test length(ψ.bonds_main) == max(n - 1, 0)
         @test length(ψ.bonds_copy) == n
 
         for i in 1:n
@@ -96,18 +96,18 @@ end
         end
 
         if n > 1
-            for i in 1:(n - 1)
+            for i in 1:(n-1)
                 @test ψ.bonds_main[i] in inds(ψ.data[i].Acopy)
-                @test ψ.bonds_main[i] in inds(ψ.data[i + 1].Amain)
+                @test ψ.bonds_main[i] in inds(ψ.data[i+1].Amain)
             end
         end
 
         # Site uniqueness check
-        @test length(unique([ψ.sites_main; ψ.sites_copy])) == 2*nsite(ψ)
+        @test length(unique([ψ.sites_main; ψ.sites_copy])) == 2 * nsite(ψ)
 
         # Bond uniqueness check
         @test length(unique([ψ.bonds_main; ψ.bonds_copy])) ==
-            length(ψ.bonds_main) + length(ψ.bonds_copy)
+              length(ψ.bonds_main) + length(ψ.bonds_copy)
     end
 end
 
@@ -164,8 +164,8 @@ end
     ψ2n = _as_signal_2n(ψ)
     before = norm(ψ)
 
-    canonicalize!(ψ2n, "->")
-    canonicalize!(ψ2n, "<-")
+    canonicalize!(ψ2n, :right)
+    canonicalize!(ψ2n, :left)
 
     ψ_back = _writeback_signal_2n(ψ2n)
     after = norm(ψ_back)
@@ -184,7 +184,7 @@ end
     # SignalMPS updates should yield a valid MPS
     N = 4
     sites = [Index(2, @sprintf("s%d", i)) for i in 1:N]
-    bonds = [Index(2, @sprintf("b%d", i)) for i in 1:(N - 1)]
+    bonds = [Index(2, @sprintf("b%d", i)) for i in 1:(N-1)]
     data = [
         random_itensor(sites[1], bonds[1]),
         random_itensor(bonds[1], sites[2], bonds[2]),
@@ -269,7 +269,7 @@ end
     # SignalMPS norm - contract to array and compare with LinearAlgebra.norm
     N = 3
     sites = [Index(2, @sprintf("s%d", i)) for i in 1:N]
-    bonds = [Index(2, @sprintf("b%d", i)) for i in 1:(N - 1)]
+    bonds = [Index(2, @sprintf("b%d", i)) for i in 1:(N-1)]
     data = [
         random_itensor(sites[1], bonds[1]),
         random_itensor(bonds[1], sites[2], bonds[2]),
@@ -331,7 +331,7 @@ end
 @testset "mps.jl: compression and norm preservation" begin
     N = 4
     sites = [Index(2, @sprintf("s%d", i)) for i in 1:N]
-    bonds = [Index(4, @sprintf("b%d", i)) for i in 1:(N - 1)]
+    bonds = [Index(4, @sprintf("b%d", i)) for i in 1:(N-1)]
     data = [
         random_itensor(sites[1], bonds[1]),
         random_itensor(bonds[1], sites[2], bonds[2]),
@@ -359,12 +359,12 @@ end
     QILaplace.Mps.compress!(ψz; maxdim=2, tol=1e-8, sweeps=2)
     @test isapprox(norm(ψz), 1.0; rtol=1e-8)
     for b in ψz.bonds_main
-        ;
-        @test dim(b) ≤ 2;
+
+        @test dim(b) ≤ 2
     end
     for b in ψz.bonds_copy
-        ;
-        @test dim(b) ≤ 2;
+
+        @test dim(b) ≤ 2
     end
 end
 
@@ -380,11 +380,11 @@ end
     ψ2n = _as_signal_2n(ψ)
     # Check alternating site/bond ordering
     for i in 1:n
-        @test ψ2n.data[2i - 1] === ψ.data[i].Amain
+        @test ψ2n.data[2i-1] === ψ.data[i].Amain
         @test ψ2n.data[2i] === ψ.data[i].Acopy
-        @test ψ2n.sites[2i - 1] == ψ.sites_main[i]
+        @test ψ2n.sites[2i-1] == ψ.sites_main[i]
         @test ψ2n.sites[2i] == ψ.sites_copy[i]
-        @test ψ2n.bonds[2i - 1] == ψ.bonds_copy[i]
+        @test ψ2n.bonds[2i-1] == ψ.bonds_copy[i]
         if i < n
             @test ψ2n.bonds[2i] == ψ.bonds_main[i]
         end
@@ -404,11 +404,11 @@ end
 @testset "mps.jl: coefficient extraction" begin
     sites = [Index(2, "coeff-s$k") for k in 1:3]
     bonds = [Index(1, "coeff-b1"), Index(1, "coeff-b2")]
-    A1 = zeros(Float64, 2, 1);
+    A1 = zeros(Float64, 2, 1)
     A1[2, 1] = 1.0
-    A2 = zeros(Float64, 1, 2, 1);
+    A2 = zeros(Float64, 1, 2, 1)
     A2[1, 1, 1] = 1.0
-    A3 = zeros(Float64, 1, 2);
+    A3 = zeros(Float64, 1, 2)
     A3[1, 2] = 0.5
     data = [
         ITensor(A1, sites[1], bonds[1]),

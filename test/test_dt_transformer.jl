@@ -222,7 +222,7 @@ end
             expected = analytical_dt(vec, ωr)
 
             # Create zTMPS and build MPO using its sites
-            ψ, = signal_ztmps(vec)
+            ψ = signal_ztmps(vec)
             mpo = build_dt_mpo(ψ, ωr)
 
             ψ_out = apply(mpo, ψ)

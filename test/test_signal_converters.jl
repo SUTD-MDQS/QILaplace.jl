@@ -115,19 +115,21 @@ end
     x = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]  # n=3
 
     # Test SVD method
-    ψ_svd, norm_svd = signal_mps(x; method=:svd, cutoff=1e-14)
-    @test isapprox(norm_svd, sqrt(sum(abs2, x)); rtol=1e-12)
+    ψ_svd = signal_mps(x; method=:svd, cutoff=1e-14)
+    @test isapprox(ψ_svd.amplitude, sqrt(sum(abs2, x)); rtol=1e-12)
+
+    # Verify amplitude matches LinearAlgebra.norm of original signal
+    @test isapprox(ψ_svd.amplitude, LinearAlgebra.norm(x); rtol=1e-12)
 
     # Reconstruct and verify coefficient-by-coefficient
     for i in 0:7
-        expected = x[i + 1] / norm_svd
         obtained = coefficient(ψ_svd, i)
-        @test isapprox(obtained, expected; atol=1e-12)
+        @test isapprox(obtained, x[i+1]; atol=1e-12)
     end
 
     # Test RSVD method
-    ψ_rsvd, norm_rsvd = signal_mps(x; method=:rsvd, cutoff=1e-12, maxdim=128)
-    @test isapprox(norm_rsvd, norm_svd; rtol=1e-12)
+    ψ_rsvd = signal_mps(x; method=:rsvd, cutoff=1e-12, maxdim=128)
+    @test isapprox(ψ_rsvd.amplitude, ψ_svd.amplitude; rtol=1e-12)
 
     # Compare RSVD to SVD via coefficients
     for i in 0:7
@@ -144,44 +146,43 @@ end
 @testset "SignalConverters.jl: coefficient extraction with all input types" begin
     # Create a simple signal with known values
     x = Float64[1, 2, 3, 4, 5, 6, 7, 8]  # n=3, indices 000 to 111
-    ψ, normalisation = signal_mps(x; method=:svd, cutoff=0.0, maxdim=typemax(Int))
+    ψ = signal_mps(x; method=:svd, cutoff=0.0, maxdim=typemax(Int))
 
     # Test 1: Vector of integers (zero-based)
     for i in 0:7
-        bits = [(i >> (2-j)) & 1 for j in 0:2]  # Extract 3 bits
-        expected = x[i + 1] / normalisation
+        bits = [(i >> (2 - j)) & 1 for j in 0:2]  # Extract 3 bits
         obtained = coefficient(ψ, bits)
-        @test isapprox(obtained, expected; atol=1e-12)
+        @test isapprox(obtained, x[i+1]; atol=1e-12)
     end
 
     # Test 2: Direct integer input (big-endian)
-    @test isapprox(coefficient(ψ, 0), x[1] / normalisation; atol=1e-12)
-    @test isapprox(coefficient(ψ, 1), x[2] / normalisation; atol=1e-12)
-    @test isapprox(coefficient(ψ, 2), x[3] / normalisation; atol=1e-12)
-    @test isapprox(coefficient(ψ, 5), x[6] / normalisation; atol=1e-12)
-    @test isapprox(coefficient(ψ, 7), x[8] / normalisation; atol=1e-12)
+    @test isapprox(coefficient(ψ, 0), x[1]; atol=1e-12)
+    @test isapprox(coefficient(ψ, 1), x[2]; atol=1e-12)
+    @test isapprox(coefficient(ψ, 2), x[3]; atol=1e-12)
+    @test isapprox(coefficient(ψ, 5), x[6]; atol=1e-12)
+    @test isapprox(coefficient(ψ, 7), x[8]; atol=1e-12)
 
     # Test 3: Bitstring (contiguous)
-    @test isapprox(coefficient(ψ, "000"), x[1] / normalisation; atol=1e-12)
-    @test isapprox(coefficient(ψ, "001"), x[2] / normalisation; atol=1e-12)
-    @test isapprox(coefficient(ψ, "010"), x[3] / normalisation; atol=1e-12)
-    @test isapprox(coefficient(ψ, "101"), x[6] / normalisation; atol=1e-12)
-    @test isapprox(coefficient(ψ, "111"), x[8] / normalisation; atol=1e-12)
+    @test isapprox(coefficient(ψ, "000"), x[1]; atol=1e-12)
+    @test isapprox(coefficient(ψ, "001"), x[2]; atol=1e-12)
+    @test isapprox(coefficient(ψ, "010"), x[3]; atol=1e-12)
+    @test isapprox(coefficient(ψ, "101"), x[6]; atol=1e-12)
+    @test isapprox(coefficient(ψ, "111"), x[8]; atol=1e-12)
 
     # Test 4: Bitstring with separators
-    @test isapprox(coefficient(ψ, "[0,0,0]"), x[1] / normalisation; atol=1e-12)
-    @test isapprox(coefficient(ψ, "1, 0, 1"), x[6] / normalisation; atol=1e-12)
-    @test isapprox(coefficient(ψ, "[1,1,1]"), x[8] / normalisation; atol=1e-12)
+    @test isapprox(coefficient(ψ, "[0,0,0]"), x[1]; atol=1e-12)
+    @test isapprox(coefficient(ψ, "1, 0, 1"), x[6]; atol=1e-12)
+    @test isapprox(coefficient(ψ, "[1,1,1]"), x[8]; atol=1e-12)
 
     # Test 5: getindex syntax (ψ[...])
-    @test isapprox(ψ[0, 0, 0], x[1] / normalisation; atol=1e-12)
-    @test isapprox(ψ[0, 0, 1], x[2] / normalisation; atol=1e-12)
-    @test isapprox(ψ[1, 0, 1], x[6] / normalisation; atol=1e-12)
-    @test isapprox(ψ[1, 1, 1], x[8] / normalisation; atol=1e-12)
+    @test isapprox(ψ[0, 0, 0], x[1]; atol=1e-12)
+    @test isapprox(ψ[0, 0, 1], x[2]; atol=1e-12)
+    @test isapprox(ψ[1, 0, 1], x[6]; atol=1e-12)
+    @test isapprox(ψ[1, 1, 1], x[8]; atol=1e-12)
 
     # Test 6: Tuple input
-    @test isapprox(coefficient(ψ, (0, 0, 0)), x[1] / normalisation; atol=1e-12)
-    @test isapprox(coefficient(ψ, (1, 0, 1)), x[6] / normalisation; atol=1e-12)
+    @test isapprox(coefficient(ψ, (0, 0, 0)), x[1]; atol=1e-12)
+    @test isapprox(coefficient(ψ, (1, 0, 1)), x[6]; atol=1e-12)
 
     # Test error cases
     @test_throws ArgumentError coefficient(ψ, [0, 0])  # wrong length
@@ -192,11 +193,10 @@ end
 # ==================== RSVD coefficient validation ====================
 @testset "SignalConverters.jl: RSVD coefficient accuracy" begin
     x = Float64[1, 2, 3, 4, 5, 6, 7, 8]
-    ψ_rsvd, normalisation = signal_mps(x; method=:rsvd, cutoff=1e-12, maxdim=128)
+    ψ_rsvd = signal_mps(x; method=:rsvd, cutoff=1e-12, maxdim=128)
 
-    # Test with various input types
-    @test isapprox(ψ_rsvd[0, 0, 0], x[1] / normalisation; atol=1e-10)
-    @test isapprox(coefficient(ψ_rsvd, 0b010), x[3] / normalisation; atol=1e-10)
-    @test isapprox(coefficient(ψ_rsvd, "101"), x[6] / normalisation; atol=1e-10)
-    @test isapprox(coefficient(ψ_rsvd, [1, 1, 1]), x[8] / normalisation; atol=1e-10)
+    @test isapprox(ψ_rsvd[0, 0, 0], x[1]; atol=1e-10)
+    @test isapprox(coefficient(ψ_rsvd, 0b010), x[3]; atol=1e-10)
+    @test isapprox(coefficient(ψ_rsvd, "101"), x[6]; atol=1e-10)
+    @test isapprox(coefficient(ψ_rsvd, [1, 1, 1]), x[8]; atol=1e-10)
 end

@@ -6,14 +6,14 @@ import QILaplace.QFTTransform: zip_up_mpos, zip_down_mpos
 function dft(v::Vector)
     N = length(v)
     out = zeros(ComplexF64, N)
-    for k in 0:(N - 1)
+    for k in 0:(N-1)
         sum_val = 0.0 + 0.0im
-        for j in 0:(N - 1)
+        for j in 0:(N-1)
             # QFT definition: |j> -> 1/sqrt(N) sum_k exp(2pi i j k / N) |k>
             angle = 2 * π * j * k / N
-            sum_val += v[j + 1] * exp(im * angle)
+            sum_val += v[j+1] * exp(im * angle)
         end
-        out[k + 1] = sum_val / sqrt(N)
+        out[k+1] = sum_val / sqrt(N)
     end
     return out
 end
@@ -23,11 +23,11 @@ end
 function qn_matrix(n::Int)
     N = 2^n
     M = zeros(ComplexF64, N, N)
-    for j in 0:(N - 1)
+    for j in 0:(N-1)
         j_rev = bits_to_int(int_to_bits(j, n; order=:lsb); order=:msb)
-        for k in 0:(N - 1)
+        for k in 0:(N-1)
             angle = 2 * π * j_rev * k / N
-            M[j + 1, k + 1] = exp(im * angle) / sqrt(N)
+            M[j+1, k+1] = exp(im * angle) / sqrt(N)
         end
     end
     return M
@@ -48,7 +48,7 @@ end
 
             # mpo2 acts on subset of sites (2:n)
             subset_sites = sites[2:end]
-            mpo2_orig = control_Hphase_mpo(n-1, subset_sites)
+            mpo2_orig = control_Hphase_mpo(n - 1, subset_sites)
 
             # Store original ITensors as arrays before modifying indices
             T1 = prod(mpo1_orig.data)
@@ -65,7 +65,7 @@ end
 
             # Now prepare copies for zip_up
             mpo1 = control_Hphase_mpo(n, sites)
-            mpo2 = control_Hphase_mpo(n-1, subset_sites)
+            mpo2 = control_Hphase_mpo(n - 1, subset_sites)
 
             # Prepare indices for zip_up (contract M1's output with M2's input on overlapping sites)
             for (idx2, s) in enumerate(subset_sites)
@@ -101,14 +101,14 @@ end
             # Create two MPOs for apply
             mpo1_orig = control_Hphase_mpo(n, sites)
             subset_sites = sites[2:end]
-            mpo2_orig = control_Hphase_mpo(n-1, subset_sites)
+            mpo2_orig = control_Hphase_mpo(n - 1, subset_sites)
 
             # Use apply to combine MPOs (this should give the same result as zip_up)
             mpo_applied = apply(mpo1_orig, mpo2_orig; cutoff=0.0, maxdim=1000)
 
             # Create fresh copies for zip_up
             mpo1 = control_Hphase_mpo(n, sites)
-            mpo2 = control_Hphase_mpo(n-1, subset_sites)
+            mpo2 = control_Hphase_mpo(n - 1, subset_sites)
 
             # Prepare indices for zip_up
             for (idx2, s) in enumerate(subset_sites)
@@ -143,7 +143,7 @@ end
 
         mpo1 = control_Hphase_mpo(n, sites)
         subset_sites = sites[2:end]
-        mpo2 = control_Hphase_mpo(n-1, subset_sites)
+        mpo2 = control_Hphase_mpo(n - 1, subset_sites)
 
         # Store original bond dimensions
         bonds1_dims = [dim(b) for b in mpo1.bonds]
@@ -186,7 +186,7 @@ end
             # We'll create a simple combined MPO for testing
             mpo1 = control_Hphase_mpo(n, sites)
             subset_sites = sites[2:end]
-            mpo2 = control_Hphase_mpo(n-1, subset_sites)
+            mpo2 = control_Hphase_mpo(n - 1, subset_sites)
 
             # Prepare and zip up
             for (idx2, s) in enumerate(subset_sites)
@@ -232,7 +232,7 @@ end
             # Create combined MPO
             mpo1 = control_Hphase_mpo(n, sites)
             subset_sites = sites[2:end]
-            mpo2 = control_Hphase_mpo(n-1, subset_sites)
+            mpo2 = control_Hphase_mpo(n - 1, subset_sites)
 
             for (idx2, s) in enumerate(subset_sites)
                 idx1 = idx2 + 1
@@ -274,13 +274,13 @@ end
         sites = [Index(2, "site-$i") for i in 1:n]
 
         # Create a basis state first
-        psi_test, _ = signal_mps(basis_state_vector(3, n))
+        psi_test = signal_mps(basis_state_vector(3, n))
 
         # Now create MPOs with the MPS sites to ensure they match from the start
         mps_sites = psi_test.sites
         mpo1 = control_Hphase_mpo(n, mps_sites)
         subset_sites = mps_sites[2:end]
-        mpo2 = control_Hphase_mpo(n-1, subset_sites)
+        mpo2 = control_Hphase_mpo(n - 1, subset_sites)
 
         # Prepare indices for zip_up
         for (idx2, s) in enumerate(subset_sites)
@@ -340,12 +340,12 @@ end
         Q_n = qn_matrix(n)
 
         # Test each basis state
-        for j in 0:(N - 1)
+        for j in 0:(N-1)
             # Build a fresh QFT MPO with generic sites
             qft_mpo = build_qft_mpo(n, sites; cutoff=1e-14, maxdim=1000)
 
             # Create basis state |j> (this will have its own new sites)
-            psi_j, _ = signal_mps(basis_state_vector(j, n))
+            psi_j = signal_mps(basis_state_vector(j, n))
 
             # Update qft_mpo sites to match psi_j sites using update_site!
             for i in 1:n
@@ -363,7 +363,7 @@ end
             result_vec = mps_to_vector(psi_result)
 
             # Expected: j-th column of Qn matrix (0-indexed)
-            expected_vec = Q_n[:, j + 1]
+            expected_vec = Q_n[:, j+1]
 
             # Compare
             err = LinearAlgebra.norm(result_vec - expected_vec)
@@ -384,12 +384,12 @@ end
         sites = [Index(2, "site-$i") for i in 1:n]
 
         # Test each basis state
-        for j in 0:(N - 1)
+        for j in 0:(N-1)
             # Build a fresh QFT MPO
             qft_mpo = build_qft_mpo(n, sites; cutoff=1e-14, maxdim=1000)
 
             # Create basis state |j> (this will have its own new sites)
-            psi_j, _ = signal_mps(basis_state_vector(j, n))
+            psi_j = signal_mps(basis_state_vector(j, n))
 
             # Update qft_mpo sites to match psi_j sites using update_site!
             for i in 1:n
@@ -408,13 +408,13 @@ end
             N_vec = length(qn_vec)
             n_vec = Int(log2(N_vec))
             fn_vec = similar(qn_vec)
-            for i in 0:(N_vec - 1)
+            for i in 0:(N_vec-1)
                 r = bits_to_int(int_to_bits(i, n_vec; order=:lsb); order=:msb)
-                fn_vec[r + 1] = qn_vec[i + 1]
+                fn_vec[r+1] = qn_vec[i+1]
             end
 
             # Expected dft vector
-            sig = [i == j ? 1.0 : 0.0 for i in 0:(N - 1)]
+            sig = [i == j ? 1.0 : 0.0 for i in 0:(N-1)]
             expected_vec = dft(sig)
 
             # Compare
@@ -440,21 +440,21 @@ end
         sig = randn(ComplexF64, N)
 
         # Apply QFT MPO
-        psi, norm_c = signal_mps(sig)
+        psi = signal_mps(sig)
 
         # Build QFT MPO
         qft_mpo = build_qft_mpo(n, psi.sites; cutoff=1e-14, maxdim=1000)
 
         psi_qn = apply(qft_mpo, psi; cutoff=0.0, maxdim=1000)
-        qn_result = mps_to_vector(psi_qn) * norm_c
+        qn_result = mps_to_vector(psi_qn) * psi_qn.amplitude
 
         # Apply bit-reversal to get full DFT
         N_res = length(qn_result)
         n_res = Int(log2(N_res))
         fn_result = similar(qn_result)
-        for i in 0:(N_res - 1)
+        for i in 0:(N_res-1)
             r = bits_to_int(int_to_bits(i, n_res; order=:lsb); order=:msb)
-            fn_result[r + 1] = qn_result[i + 1]
+            fn_result[r+1] = qn_result[i+1]
         end
 
         # Compare with FFTW (bfft uses +2πi convention like our QFT)

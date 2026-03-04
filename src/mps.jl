@@ -4,6 +4,7 @@ module Mps
 
 using ITensors, Printf
 import Base: getindex
+import LinearAlgebra: norm
 
 export SignalMPS,
     zTMPS,
@@ -14,7 +15,8 @@ export SignalMPS,
     update_bond!,
     canonicalize!,
     compress!,
-    coefficient
+    coefficient,
+    mps_to_vector
 
 ##################################### MPS TYPES #########################################
 
@@ -45,13 +47,10 @@ mutable struct SignalMPS{I<:Index} <: AbstractMPS
     data::Vector{ITensor}
     sites::Vector{I}
     bonds::Vector{I}
-    function SignalMPS(data::Vector{ITensor}, sites::Vector{I}, bonds::Vector{I}) where {I}
-        try
-            check_mps(data, sites, bonds)
-        catch e
-            rethrow(e)
-        end
-        new{I}(data, sites, bonds)
+    amplitude::Float64
+    function SignalMPS(data::Vector{ITensor}, sites::Vector{I}, bonds::Vector{I}; amplitude::Float64=1.0) where {I}
+        check_mps(data, sites, bonds)
+        new{I}(data, sites, bonds, amplitude)
     end
 end
 
@@ -61,21 +60,18 @@ mutable struct zTMPS{I<:Index} <: AbstractMPS
     bonds_copy::Vector{I}
     sites_main::Vector{I}
     sites_copy::Vector{I}
+    amplitude::Float64
 
     function zTMPS(
         cores::Vector{PairCore},
         bonds_main::Vector{I},
         bonds_copy::Vector{I},
         sites_main::Vector{I},
-        sites_copy::Vector{I},
+        sites_copy::Vector{I};
+        amplitude::Float64=1.0,
     ) where {I}
-        try
-            check_ztmps(cores, bonds_main, bonds_copy, sites_main, sites_copy)
-        catch e
-            rethrow(e)
-        end
-
-        new{I}(cores, bonds_main, bonds_copy, sites_main, sites_copy)
+        check_ztmps(cores, bonds_main, bonds_copy, sites_main, sites_copy)
+        new{I}(cores, bonds_main, bonds_copy, sites_main, sites_copy, amplitude)
     end
 end
 
@@ -94,17 +90,17 @@ function SignalMPS(sites::Vector{I}, bonds::Vector{I}) where {I}
         data[1] = ITensor(sites[1])
     else
         data[1] = ITensor(sites[1], bonds[1])
-        for i in 2:(n - 1)
-            data[i] = ITensor(bonds[i - 1], sites[i], bonds[i])
+        for i in 2:(n-1)
+            data[i] = ITensor(bonds[i-1], sites[i], bonds[i])
         end
-        data[n] = ITensor(bonds[n - 1], sites[n])
+        data[n] = ITensor(bonds[n-1], sites[n])
     end
     SignalMPS(data, sites, bonds)
 end
 
 SignalMPS(n::Int) = begin
     sites = [Index(2, @sprintf("site-%d", i)) for i in 1:n]
-    bonds = [Index(1, @sprintf("bond-%d", i)) for i in 1:(n - 1)]
+    bonds = [Index(1, @sprintf("bond-%d", i)) for i in 1:(n-1)]
     SignalMPS(sites, bonds)
 end
 
@@ -128,7 +124,7 @@ function zTMPS(sites_main::Vector{I}, sites_copy::Vector{I}) where {I}
     for i in 1:n
         c = bonds_copy[i] # intra-site bond main(i) <-> copy(i)
 
-        bL = i == 1 ? nothing : bonds_main[i - 1]
+        bL = i == 1 ? nothing : bonds_main[i-1]
         bR = i == n ? nothing : bonds_main[i]
 
         Amain = bL === nothing ? ITensor(sites_main[i], c) : ITensor(bL, sites_main[i], c)
@@ -183,7 +179,7 @@ function check_mps(data::Vector{ITensor}, sites::Vector{I}, bonds::Vector{I}) wh
             "SignalMPS: Edge tensors must have exactly 2 indices. Found $(length(inds(data[n]))) at site $n",
         ),
     )
-    for i in 2:(n - 1)
+    for i in 2:(n-1)
         length(inds(data[i])) == 3 || throw(
             ArgumentError(
                 "SignalMPS: Bulk tensors must have exactly 3 indices. Found $(length(inds(data[i]))) at site $i",
@@ -200,8 +196,8 @@ function check_mps(data::Vector{ITensor}, sites::Vector{I}, bonds::Vector{I}) wh
         throw(ArgumentError("SignalMPS: Site indices must be unique"))
 
     # Bond wiring (open boundary)
-    for i in 1:(n - 1)
-        shared = commonind(inds(data[i]), inds(data[i + 1]))
+    for i in 1:(n-1)
+        shared = commonind(inds(data[i]), inds(data[i+1]))
         (shared === bonds[i]) ||
             throw(ArgumentError("SignalMPS: Bond mismatch between core at $i and $(i+1)"))
     end
@@ -266,11 +262,11 @@ function check_ztmps(
 
         # left inter-site bond: copy(i-1) ↔ main(i)
         if i > 1
-            bL = bonds_main[i - 1]
+            bL = bonds_main[i-1]
             bL in isA || throw(
                 ArgumentError("zTMPS: left inter bond b_main[$(i-1)] missing in Amain[$i]"),
             )
-            bL in inds(data[i - 1].Acopy) || throw(
+            bL in inds(data[i-1].Acopy) || throw(
                 ArgumentError("zTMPS: left inter bond b_main[$(i-1)] not in Acopy[$(i-1)]"),
             )
         end
@@ -313,10 +309,9 @@ function Base.show(io::IO, ψ::SignalMPS)
         for I in idxs
             d = dim(I)
             tg = try
-                s = string(tags(I));
+                s = string(tags(I))
                 isempty(s) ? nothing : s
             catch
-                ;
                 nothing
             end
             push!(parts, tg === nothing ? "dim=$d" : "dim=$d, tags=$tg")
@@ -338,10 +333,9 @@ function Base.show(io::IO, ψ::zTMPS)
         for I in idxsA
             d = dim(I)
             tg = try
-                s = string(tags(I));
+                s = string(tags(I))
                 isempty(s) ? nothing : s
             catch
-                ;
                 nothing
             end
             push!(partsA, tg === nothing ? "dim=$d" : "dim=$d, tags=$tg")
@@ -354,10 +348,9 @@ function Base.show(io::IO, ψ::zTMPS)
         for I in idxsB
             d = dim(I)
             tg = try
-                s = string(tags(I));
+                s = string(tags(I))
                 isempty(s) ? nothing : s
             catch
-                ;
                 nothing
             end
             push!(partsB, tg === nothing ? "dim=$d" : "dim=$d, tags=$tg")
@@ -394,20 +387,20 @@ function _as_signal_2n(ψ::zTMPS{I}) where {I}
     for i in 1:N
         core = ψ.data[i]
 
-        data[2i - 1] = core.Amain
+        data[2i-1] = core.Amain
         data[2i] = core.Acopy
-        sites[2i - 1] = ψ.sites_main[i]
+        sites[2i-1] = ψ.sites_main[i]
         sites[2i] = ψ.sites_copy[i]
 
         # intra bond main(i)–copy(i)
-        bonds[2i - 1] = ψ.bonds_copy[i]
+        bonds[2i-1] = ψ.bonds_copy[i]
         # inter bond copy(i)–main(i+1)
         if i < N
             bonds[2i] = ψ.bonds_main[i]
         end
     end
 
-    return SignalMPS(data, sites, bonds)
+    return SignalMPS(data, sites, bonds; amplitude=ψ.amplitude)
 end
 
 """
@@ -431,16 +424,17 @@ function _writeback_signal_2n(ψ2n::SignalMPS{I}) where {I}
     zt_bonds_copy = Vector{I}(undef, N)
 
     for i in 1:N
-        zt_paircore_arr[i] = PairCore(ψ2n.data[2i - 1], ψ2n.data[2i], ψ2n.bonds[2i - 1])
-        zt_sites_main[i] = ψ2n.sites[2i - 1]
+        zt_paircore_arr[i] = PairCore(ψ2n.data[2i-1], ψ2n.data[2i], ψ2n.bonds[2i-1])
+        zt_sites_main[i] = ψ2n.sites[2i-1]
         zt_sites_copy[i] = ψ2n.sites[2i]
-        zt_bonds_copy[i] = ψ2n.bonds[2i - 1]
+        zt_bonds_copy[i] = ψ2n.bonds[2i-1]
         if i < N
             zt_bonds_main[i] = ψ2n.bonds[2i]
         end
     end
     return zTMPS(
-        zt_paircore_arr, zt_bonds_main, zt_bonds_copy, zt_sites_main, zt_sites_copy
+        zt_paircore_arr, zt_bonds_main, zt_bonds_copy, zt_sites_main, zt_sites_copy;
+        amplitude=ψ2n.amplitude,
     )
 end
 
@@ -493,7 +487,7 @@ function update_bond!(ψ::SignalMPS, old_bond_index::I, new_bond_index::I) where
 
     # replace in neighbouring cores
     replaceinds!(ψ.data[bond_idx], old_bond_index => new_bond_index)
-    replaceinds!(ψ.data[bond_idx + 1], old_bond_index => new_bond_index)
+    replaceinds!(ψ.data[bond_idx+1], old_bond_index => new_bond_index)
     ψ.bonds[bond_idx] = new_bond_index
     return ψ
 end
@@ -539,7 +533,7 @@ function update_bond!(ψ::zTMPS, old_bond_index::I, new_bond_index::I) where {I<
             throw(ArgumentError("update_bond!: Main bond dimension mismatch at bond $k"))
         # replace in copy(k).Acopy and main(k+1).Amain
         replaceinds!(ψ.data[k].Acopy, old_bond_index => new_bond_index)
-        replaceinds!(ψ.data[k + 1].Amain, old_bond_index => new_bond_index)
+        replaceinds!(ψ.data[k+1].Amain, old_bond_index => new_bond_index)
         ψ.bonds_main[k] = new_bond_index
         return ψ
     end
@@ -619,7 +613,7 @@ function coefficient(ψ::SignalMPS, config::AbstractVector{<:Integer})
     @inbounds for i in 2:N
         amp = (amp * ψ.data[i]) * _site_projector(ψ.sites[i], config[i])
     end
-    return scalar(amp)
+    return ψ.amplitude * scalar(amp)
 end
 
 coefficient(ψ::SignalMPS, config::Tuple{Vararg{Integer}}) = coefficient(ψ, collect(config))
@@ -636,6 +630,56 @@ end
 
 getindex(ψ::SignalMPS, config::Vararg{Integer}) = coefficient(ψ, collect(config))
 getindex(ψ::zTMPS, config::Vararg{Integer}) = coefficient(ψ, collect(config))
+
+##################################### MPS TO VECTOR #########################################
+
+"""
+    mps_to_vector(ψ::SignalMPS; reverse::Bool=true)
+
+Extract the dense state vector from a `SignalMPS`, scaled by the stored `amplitude`.
+
+# Arguments
+- `reverse::Bool=true`: If `true` (default), return the vector in MSB-first
+  (normal/natural) bit ordering — matching the original signal ordering from
+  `signal_mps`. If `false`, return the vector in the raw column-major
+  (bit-reversed) ordering of the tensor network, which corresponds to the
+  output ordering after a QFT or other transform.
+
+# Examples
+```julia
+ψ = signal_mps([1.0, 2.0, 3.0, 4.0])
+mps_to_vector(ψ)                  # [1.0, 2.0, 3.0, 4.0] (original signal)
+mps_to_vector(ψ; reverse=false)   # bit-reversed ordering
+```
+"""
+function mps_to_vector(ψ::SignalMPS; reverse::Bool=true)
+    n = length(ψ.sites)
+    N = 2^n
+
+    T = ψ.data[1]
+    for i in 2:n
+        T *= ψ.data[i]
+    end
+
+    site_order = reverse ? Base.reverse(ψ.sites) : ψ.sites
+    arr = Array(T, site_order...)
+    return reshape(arr, N) * ψ.amplitude
+end
+
+"""
+    mps_to_vector(ψ::zTMPS; reverse::Bool=true)
+
+Extract the dense state vector from a `zTMPS` by first converting to its
+`2N`-site `SignalMPS` representation, then extracting as a flat vector.
+Scaled by the stored `amplitude`.
+
+# Arguments
+- `reverse::Bool=true`: Controls bit ordering (see `mps_to_vector(::SignalMPS)`).
+"""
+function mps_to_vector(ψ::zTMPS; reverse::Bool=true)
+    ψ2n = _as_signal_2n(ψ)
+    return mps_to_vector(ψ2n; reverse=reverse)
+end
 
 ##################################### NORM FUNCTIONS #########################################
 
@@ -670,7 +714,7 @@ end
 ##################################### MPS CANONICALIZATION #########################################
 
 """
-    canonicalize!(ψ::SignalMPS, direction::String; center::Union{Nothing,Int}=nothing,
+    canonicalize!(ψ::SignalMPS, direction::Symbol; center::Union{Nothing,Int}=nothing,
                   cutoff::Float64=1e-12, maxdim::Int=typemax(Int))
 
 Bring SignalMPS into canonical form by sweeping QR/LQ decompositions.
@@ -688,21 +732,21 @@ Bring SignalMPS into canonical form by sweeping QR/LQ decompositions.
 """
 function canonicalize!(
     ψ::SignalMPS,
-    direction::String;
+    direction::Symbol;
     center::Union{Nothing,Int}=nothing,
     cutoff::Float64=1e-12,
     maxdim::Int=typemax(Int),
 )
-    direction ∈ ("->", "<-") || throw(ArgumentError("Direction must be \"->\" or \"<-\""))
+    direction ∈ (:right, :left) || throw(ArgumentError("Direction must be :right or :left"))
 
     N = length(ψ.data)
 
-    if direction == "->"
+    if direction == :right
         c = something(center, N)
         1 ≤ c ≤ N || throw(DomainError(c, "Center out of range [1,$N]"))
 
-        for n in 1:(c - 1)
-            left_inds = n == 1 ? (ψ.sites[n],) : (ψ.bonds[n - 1], ψ.sites[n])
+        for n in 1:(c-1)
+            left_inds = n == 1 ? (ψ.sites[n],) : (ψ.bonds[n-1], ψ.sites[n])
             U, R = factorize(
                 ψ.data[n], left_inds...; ortho="left", cutoff=cutoff, maxdim=maxdim
             )
@@ -714,28 +758,28 @@ function canonicalize!(
             replaceinds!(R, newlink => canon)
 
             ψ.data[n] = U
-            ψ.data[n + 1] = R * ψ.data[n + 1]
+            ψ.data[n+1] = R * ψ.data[n+1]
             ψ.bonds[n] = canon
         end
-    else  # direction == "<-"
+    else  # direction == :left
         c = something(center, 1)
         1 ≤ c ≤ N || throw(DomainError(c, "Center out of range [1,$N]"))
 
-        for n in N:-1:(c + 1)
-            left_inds = (ψ.bonds[n - 1],)
+        for n in N:-1:(c+1)
+            left_inds = (ψ.bonds[n-1],)
             L, V = factorize(
                 ψ.data[n], left_inds...; ortho="right", cutoff=cutoff, maxdim=maxdim
             )
             newlink = commonind(L, V)
             newlink !== nothing || throw(ErrorException("No common link at site $n"))
 
-            canon = Index(dim(newlink); tags=tags(ψ.bonds[n - 1]))
+            canon = Index(dim(newlink); tags=tags(ψ.bonds[n-1]))
             replaceinds!(L, newlink => canon)
             replaceinds!(V, newlink => canon)
 
-            ψ.data[n - 1] = ψ.data[n - 1] * L
+            ψ.data[n-1] = ψ.data[n-1] * L
             ψ.data[n] = V
-            ψ.bonds[n - 1] = canon
+            ψ.bonds[n-1] = canon
         end
     end
 
@@ -744,20 +788,20 @@ function canonicalize!(
 end
 
 # Convenience wrapper with automatic center selection
-function canonicalize!(ψ::SignalMPS, direction::String, cutoff::Float64, maxdim::Int)
+function canonicalize!(ψ::SignalMPS, direction::Symbol, cutoff::Float64, maxdim::Int)
     canonicalize!(ψ, direction; center=nothing, cutoff=cutoff, maxdim=maxdim)
 end
 
 """
-    canonicalize!(ψ::zTMPS, direction::String; center::Union{Nothing,Int}=nothing,
+    canonicalize!(ψ::zTMPS, direction::Symbol; center::Union{Nothing,Int}=nothing,
                   cutoff::Float64=1e-12, maxdim::Int=typemax(Int))
 
 Bring zTMPS into canonical form by sweeping through PairCore structures.
 
 # Arguments
 - `ψ`: zTMPS to canonicalize in-place
-- `direction`: `"->"` (left-to-right) or `"<-"` (right-to-left)
-- `center`: orthogonality center pair index (defaults to n for "->", 1 for "<-")
+- `direction`: `:right` (left-to-right) or `:left` (right-to-left)
+- `center`: orthogonality center pair index (defaults to n for `:right`, 1 for `:left`)
 - `cutoff`: truncation threshold for singular values
 - `maxdim`: maximum bond dimension
 
@@ -767,12 +811,12 @@ the PairCore structure. Sweeps through pairs in the specified direction.
 """
 function canonicalize!(
     ψ::zTMPS,
-    direction::String;
+    direction::Symbol;
     center::Union{Nothing,Int}=nothing,
     cutoff::Float64=1e-12,
     maxdim::Int=typemax(Int),
 )
-    direction ∈ ("->", "<-") || throw(ArgumentError("Direction must be \"->\" or \"<-\""))
+    direction ∈ (:right, :left) || throw(ArgumentError("Direction must be :right or :left"))
 
     # Convert to 2N SignalMPS, canonicalize there, and write back into ψ (mutate in-place)
     ψ_2n = _as_signal_2n(ψ)
@@ -798,7 +842,7 @@ function canonicalize!(
 end
 
 # Convenience wrapper with automatic center selection
-function canonicalize!(ψ::zTMPS, direction::String, cutoff::Float64, maxdim::Int)
+function canonicalize!(ψ::zTMPS, direction::Symbol, cutoff::Float64, maxdim::Int)
     canonicalize!(ψ, direction; center=nothing, cutoff=cutoff, maxdim=maxdim)
 end
 
@@ -810,55 +854,56 @@ function compress!(
     N = length(ψ.data)
     N ≥ 2 || throw(DomainError("SignalMPS must have at least 2 sites."))
 
-    cutoff = tol^2 / ((N-1)*sweeps)
+    cutoff = tol^2 / ((N - 1) * sweeps)
 
     # Make right-orthogonal to start
-    canonicalize!(ψ, "<-")
+    canonicalize!(ψ, :left)
 
     for _ in 1:sweeps
         # Left -> Right
-        for j in 1:(N - 1)
-            left_inds = j == 1 ? (ψ.sites[j],) : (ψ.sites[j], ψ.bonds[j - 1])
+        for j in 1:(N-1)
+            left_inds = j == 1 ? (ψ.sites[j],) : (ψ.sites[j], ψ.bonds[j-1])
             U, S, V = svd(
-                ψ.data[j]*ψ.data[j + 1], left_inds...; cutoff=cutoff, maxdim=maxdim
+                ψ.data[j] * ψ.data[j+1], left_inds...; cutoff=cutoff, maxdim=maxdim
             )
             svd_link = commonind(U, S)
             new_bond = Index(dim(svd_link); tags=tags(ψ.bonds[j]))
 
-            U_left, U_right = U, S*V
+            U_left, U_right = U, S * V
             replaceinds!(U_left, svd_link => new_bond)
             replaceinds!(U_right, svd_link => new_bond)
             ψ.bonds[j] = new_bond
 
             ψ.data[j] = U_left
-            ψ.data[j + 1] = U_right
+            ψ.data[j+1] = U_right
         end
         # Right -> Left
-        for j in (N - 1):-1:1
-            left_inds = j == 1 ? (ψ.sites[j],) : (ψ.bonds[j - 1], ψ.sites[j])
+        for j in (N-1):-1:1
+            left_inds = j == 1 ? (ψ.sites[j],) : (ψ.bonds[j-1], ψ.sites[j])
             U, S, V = svd(
-                ψ.data[j]*ψ.data[j + 1], left_inds...; cutoff=cutoff, maxdim=maxdim
+                ψ.data[j] * ψ.data[j+1], left_inds...; cutoff=cutoff, maxdim=maxdim
             )
             svd_link = commonind(S, V)
             new_bond = Index(dim(svd_link); tags=tags(ψ.bonds[j]))
 
-            U_left, U_right = U*S, V
+            U_left, U_right = U * S, V
             replaceinds!(U_left, svd_link => new_bond)
             replaceinds!(U_right, svd_link => new_bond)
             ψ.bonds[j] = new_bond
 
             ψ.data[j] = U_left
-            ψ.data[j + 1] = U_right
+            ψ.data[j+1] = U_right
         end
     end
 
     # Re-canonicalize and normalize
-    canonicalize!(ψ, "<-")
+    canonicalize!(ψ, :left)
     check_mps(ψ)
 
-    # Normalize: scale first tensor so total norm is 1
+    # Normalize: absorb norm into amplitude, keep tensor data unit-normed
     nrm = norm(ψ)
     if nrm != 0
+        ψ.amplitude *= nrm
         ψ.data[1] *= 1.0 / nrm
     end
     return ψ
