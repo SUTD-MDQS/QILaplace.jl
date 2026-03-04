@@ -46,7 +46,7 @@ function int_to_paired_bits(val::Int, n::Int; order::Symbol=:msb)
     bits = int_to_bits(val, n; order=order)
     paired = Vector{Int}(undef, 2n)
     for i in 1:n
-        paired[2i - 1] = bits[i]
+        paired[2i-1] = bits[i]
         paired[2i] = bits[i]
     end
     return paired
@@ -135,7 +135,7 @@ function embed_mpo(W::SingleSiteMPO, target_sites::Vector{<:Index})
     start === nothing && throw(ArgumentError("embed_mpo: window not found in target sites"))
     (start + n_window - 1) <= n_target ||
         throw(ArgumentError("embed_mpo: window exceeds target range"))
-    target_sites[start:(start + n_window - 1)] == W.sites ||
+    target_sites[start:(start+n_window-1)] == W.sites ||
         throw(ArgumentError("embed_mpo: target window must match MPO sites"))
 
     IndexType = eltype(target_sites)
@@ -144,7 +144,7 @@ function embed_mpo(W::SingleSiteMPO, target_sites::Vector{<:Index})
         resize!(new_bonds, n_target - 1)
         for i in 1:length(new_bonds)
             if start <= i && i < start + n_window - 1
-                new_bonds[i] = W.bonds[i - start + 1]
+                new_bonds[i] = W.bonds[i-start+1]
             else
                 new_bonds[i] = Index(1, "embed-bond-$i")
             end
@@ -158,7 +158,7 @@ function embed_mpo(W::SingleSiteMPO, target_sites::Vector{<:Index})
         if i < start || i > start + n_window - 1
             T = delta(sp, s)
             if i > 1
-                T *= ITensor([1.0], new_bonds[i - 1])
+                T *= ITensor([1.0], new_bonds[i-1])
             end
             if i <= length(new_bonds)
                 T *= ITensor([1.0], new_bonds[i])
@@ -168,7 +168,7 @@ function embed_mpo(W::SingleSiteMPO, target_sites::Vector{<:Index})
             w_idx = i - start + 1
             T = copy(W.data[w_idx])
             if w_idx == 1 && i > 1
-                T *= ITensor([1.0], new_bonds[i - 1])
+                T *= ITensor([1.0], new_bonds[i-1])
             end
             if w_idx == n_window && i <= length(new_bonds)
                 T *= ITensor([1.0], new_bonds[i])
@@ -197,32 +197,6 @@ function basis_state_vector(i::Int, n::Int)
     N = 2^n
     @assert 0 <= i < N "Basis state index out of range"
     vec = zeros(Float64, N)
-    vec[i + 1] = 1.0
+    vec[i+1] = 1.0
     return vec
-end
-
-"""Extract state vector from SignalMPS (MSB-first bit ordering)."""
-function mps_to_vector(ψ::SignalMPS)
-    n = length(ψ.sites)
-    N = 2^n
-
-    T = ψ.data[1]
-    for i in 2:n
-        T *= ψ.data[i]
-    end
-
-    # Extract as array with proper ordering (MSB-first: reverse sites)
-    arr = Array(T, reverse(ψ.sites)...)
-    vec = reshape(arr, N)
-    return vec
-end
-
-"""Extract state vector from zTMPS (flattens 2n-site representation)."""
-function mps_to_vector(ψ::zTMPS)
-    ψ2n = _as_signal_2n(ψ)
-    T = prod(ψ2n.data)
-    # Note: sites in ψ2n are interleaved [main[1], copy[1], main[2], copy[2], ...]
-    # Extract as flat vector (LSB-first: site[1] is fastest-varying)
-    A = Array(T, ψ2n.sites...)
-    return ComplexF64.(vec(A))
 end

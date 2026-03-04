@@ -634,14 +634,14 @@ getindex(ψ::zTMPS, config::Vararg{Integer}) = coefficient(ψ, collect(config))
 ##################################### MPS TO VECTOR #########################################
 
 """
-    mps_to_vector(ψ::SignalMPS; reverse::Bool=true)
+    mps_to_vector(ψ::SignalMPS; reverse::Bool=false)
 
 Extract the dense state vector from a `SignalMPS`, scaled by the stored `amplitude`.
 
 # Arguments
-- `reverse::Bool=true`: If `true` (default), return the vector in MSB-first
+- `reverse::Bool=false`: If `false` (default), return the vector in MSB-first
   (normal/natural) bit ordering — matching the original signal ordering from
-  `signal_mps`. If `false`, return the vector in the raw column-major
+  `signal_mps`. If `true`, return the vector in the raw column-major
   (bit-reversed) ordering of the tensor network, which corresponds to the
   output ordering after a QFT or other transform.
 
@@ -649,10 +649,10 @@ Extract the dense state vector from a `SignalMPS`, scaled by the stored `amplitu
 ```julia
 ψ = signal_mps([1.0, 2.0, 3.0, 4.0])
 mps_to_vector(ψ)                  # [1.0, 2.0, 3.0, 4.0] (original signal)
-mps_to_vector(ψ; reverse=false)   # bit-reversed ordering
+mps_to_vector(ψ; reverse=true)    # bit-reversed ordering
 ```
 """
-function mps_to_vector(ψ::SignalMPS; reverse::Bool=true)
+function mps_to_vector(ψ::SignalMPS; reverse::Bool=false)
     n = length(ψ.sites)
     N = 2^n
 
@@ -661,22 +661,22 @@ function mps_to_vector(ψ::SignalMPS; reverse::Bool=true)
         T *= ψ.data[i]
     end
 
-    site_order = reverse ? Base.reverse(ψ.sites) : ψ.sites
+    site_order = reverse ? ψ.sites : Base.reverse(ψ.sites)
     arr = Array(T, site_order...)
     return reshape(arr, N) * ψ.amplitude
 end
 
 """
-    mps_to_vector(ψ::zTMPS; reverse::Bool=true)
+    mps_to_vector(ψ::zTMPS; reverse::Bool=false)
 
 Extract the dense state vector from a `zTMPS` by first converting to its
 `2N`-site `SignalMPS` representation, then extracting as a flat vector.
 Scaled by the stored `amplitude`.
 
 # Arguments
-- `reverse::Bool=true`: Controls bit ordering (see `mps_to_vector(::SignalMPS)`).
+- `reverse::Bool=false`: Controls bit ordering (see `mps_to_vector(::SignalMPS)`).
 """
-function mps_to_vector(ψ::zTMPS; reverse::Bool=true)
+function mps_to_vector(ψ::zTMPS; reverse::Bool=false)
     ψ2n = _as_signal_2n(ψ)
     return mps_to_vector(ψ2n; reverse=reverse)
 end

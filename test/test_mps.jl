@@ -1,4 +1,4 @@
-import QILaplace.Mps: _as_signal_2n, _writeback_signal_2n, canonicalize!, compress!, norm
+import QILaplace.Mps: _as_signal_2n, _writeback_signal_2n, canonicalize!, compress!, norm, mps_to_vector
 
 # PairCore mutable struct check
 @testset "mps.jl: PairCore struct validation" begin
@@ -442,4 +442,32 @@ end
     @test isapprox(coeff_pair, coeff_signal; rtol=1e-12)
     @test isapprox(ψz[cfg...], coeff_pair; rtol=1e-12)
     @test_throws ArgumentError QILaplace.Mps.coefficient(ψz, [1, 0, 1])
+end
+
+# ==================== mps_to_vector ====================
+@testset "mps.jl: mps_to_vector correctness" begin
+    # Test 1: reverse=false (default) recovers original signal with amplitude
+    x = Float64[1, 2, 3, 4, 5, 6, 7, 8]
+    ψ = signal_mps(x; method=:svd, cutoff=0.0, maxdim=typemax(Int))
+    v = mps_to_vector(ψ)
+    @test length(v) == 8
+    @test isapprox(v, x; atol=1e-12)
+
+    # Test 2: reverse=true gives the bit-reversed ordering
+    v_raw = mps_to_vector(ψ; reverse=true)
+    @test length(v_raw) == 8
+    # In bit-reversed ordering, index i maps to bitrev(i)
+    n = 3
+    for i in 0:7
+        bits_orig = [(i >> (n - 1 - j)) & 1 for j in 0:(n-1)]
+        bits_rev = Base.reverse(bits_orig)
+        idx_rev = sum(bits_rev[j+1] * 2^(n - 1 - j) for j in 0:(n-1))
+        @test isapprox(v_raw[idx_rev+1], x[i+1]; atol=1e-12)
+    end
+
+    # Test 3: amplitude is correctly factored in
+    @test isapprox(ψ.amplitude, LinearAlgebra.norm(x); rtol=1e-12)
+
+    # Test 4: LinearAlgebra.norm works on MPS without qualification
+    @test isapprox(norm(ψ), 1.0; atol=1e-12)  # tensor data should be unit-normed
 end

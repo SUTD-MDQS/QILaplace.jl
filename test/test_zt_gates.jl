@@ -15,9 +15,9 @@ import QILaplace.Mps: _as_signal_2n
         W = control_Hphase_ztmps_mpo(k, sites)
 
         # Test all basis states
-        for b in 0:((1 << k) - 1)
+        for b in 0:((1<<k)-1)
             # Create input basis state using signal_ztmps
-            x = [i == (b+1) ? 1.0 : 0.0 for i in 1:(1 << k)]
+            x = [i == (b + 1) ? 1.0 : 0.0 for i in 1:(1<<k)]
             ψ_in = signal_ztmps(x)
 
             # Replace signal_ztmps sites with MPO sites
@@ -28,7 +28,7 @@ import QILaplace.Mps: _as_signal_2n
 
             # Apply MPO and extract dense output vector
             ψ_out = apply(W, ψ_in)
-            v_out = mps_to_vector(ψ_out)
+            v_out = mps_to_vector(ψ_out; reverse=true)
 
             # Analytical expected output            
             bits = int_to_bits(b, k)  # bits[1] is MSB (qubit 1), bits[k] is LSB (qubit k)
@@ -40,7 +40,7 @@ import QILaplace.Mps: _as_signal_2n
             v_exp = zeros(ComplexF64, 1 << (2k))
 
             control_bit = bits[k]  # qubit k is the control (LSB)
-            target_bits = bits[1:(k - 1)]  # qubits 1..k-1 are targets (MSBs)
+            target_bits = bits[1:(k-1)]  # qubits 1..k-1 are targets (MSBs)
 
             # The MPO only modifies COPY qubits, MAIN qubits stay unchanged from input
             main_bits = bits
@@ -52,7 +52,7 @@ import QILaplace.Mps: _as_signal_2n
             # Phase accumulation based on target INPUT bits
             phase_factor = ComplexF64(1.0)
             if control_bit == 1
-                for j in 1:(k - 1)
+                for j in 1:(k-1)
                     if target_bits[j] == 1
                         # Phase angle for copy site j
                         θ_j = -2π / 2.0^(k - j + 1)
@@ -81,18 +81,18 @@ import QILaplace.Mps: _as_signal_2n
             # State with hadamard output |0⟩
             idx_0 = 0
             for l in 1:k
-                idx_0 += main_bits[l] * (1 << (2*(l-1)))
-                idx_0 += copy_out_0[l] * (1 << (2*(l-1) + 1))
+                idx_0 += main_bits[l] * (1 << (2 * (l - 1)))
+                idx_0 += copy_out_0[l] * (1 << (2 * (l - 1) + 1))
             end
-            v_exp[idx_0 + 1] = a0
+            v_exp[idx_0+1] = a0
 
             # State with hadamard output |1⟩
             idx_1 = 0
             for l in 1:k
-                idx_1 += main_bits[l] * (1 << (2*(l-1)))
-                idx_1 += copy_out_1[l] * (1 << (2*(l-1) + 1))
+                idx_1 += main_bits[l] * (1 << (2 * (l - 1)))
+                idx_1 += copy_out_1[l] * (1 << (2 * (l - 1) + 1))
             end
-            v_exp[idx_1 + 1] = a1
+            v_exp[idx_1+1] = a1
 
             @test isapprox(v_out, v_exp; atol=1e-10)
         end

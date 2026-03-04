@@ -446,7 +446,7 @@ end
         qft_mpo = build_qft_mpo(n, psi.sites; cutoff=1e-14, maxdim=1000)
 
         psi_qn = apply(qft_mpo, psi; cutoff=0.0, maxdim=1000)
-        qn_result = mps_to_vector(psi_qn) * psi_qn.amplitude
+        qn_result = mps_to_vector(psi_qn)
 
         # Apply bit-reversal to get full DFT
         N_res = length(qn_result)

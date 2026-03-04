@@ -15,7 +15,9 @@ using .Mps:
     compress!,
     update_site!,
     update_bond!,
-    coefficient
+    coefficient,
+    mps_to_vector
+
 export SignalMPS,
     zTMPS,
     nsite,
@@ -25,7 +27,8 @@ export SignalMPS,
     compress!,
     update_site!,
     update_bond!,
-    coefficient
+    coefficient,
+    mps_to_vector
 
 # Mpo.jl
 include("mpo.jl")

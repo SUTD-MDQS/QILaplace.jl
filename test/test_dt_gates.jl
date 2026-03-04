@@ -9,7 +9,7 @@ import QILaplace.Mps: _as_signal_2n
     ωrs = [0.0, 0.25, 0.5, 1.0, 1.1]
     for ωr in ωrs
         dampedH_gate = dampedH(ωr, site)
-        dampedH_expected = 1/sqrt(2) * [1.0 1.0; 1.0 exp(-ωr/2)]
+        dampedH_expected = 1 / sqrt(2) * [1.0 1.0; 1.0 exp(-ωr / 2)]
         for (i, j) in Iterators.product(1:2, 1:2)
             @test isapprox(
                 dampedH_gate[i, j], dampedH_expected[i, j]; atol=1e-12, rtol=1e-12
@@ -29,7 +29,7 @@ end
 """Extract main and copy bits from interleaved bit vector."""
 function split_main_copy_bits(bits_2n::Vector{Int})
     n = length(bits_2n) ÷ 2
-    main_bits = [bits_2n[2i - 1] for i in 1:n]
+    main_bits = [bits_2n[2i-1] for i in 1:n]
     copy_bits = [bits_2n[2i] for i in 1:n]
     return main_bits, copy_bits
 end
@@ -61,9 +61,9 @@ import QILaplace.ApplyMPO: apply, _as_single_site_mpo
         W = control_damping_mpo(k, k, ωr, sites)
 
         # Test all basis states
-        for b in 0:((1 << k) - 1)
+        for b in 0:((1<<k)-1)
             # Create input basis state using signal_ztmps
-            x = [i == (b+1) ? 1.0 : 0.0 for i in 1:(1 << k)]
+            x = [i == (b + 1) ? 1.0 : 0.0 for i in 1:(1<<k)]
             ψ_in = signal_ztmps(x)
 
             # Replace signal_ztmps sites with MPO sites
@@ -74,7 +74,7 @@ import QILaplace.ApplyMPO: apply, _as_single_site_mpo
 
             # Apply MPO and extract dense output vector
             ψ_out = apply(W, ψ_in)
-            v_out = mps_to_vector(ψ_out)
+            v_out = mps_to_vector(ψ_out; reverse=true)
 
             # Analytical expected output                
             bits = int_to_bits(b, k)  # bits[1] is MSB (qubit 1), bits[k] is LSB (qubit k)
@@ -87,7 +87,7 @@ import QILaplace.ApplyMPO: apply, _as_single_site_mpo
             v_exp = zeros(ComplexF64, 1 << (2k))
 
             control_bit = bits[k]  # qubit k is the control (LSB)
-            target_bits = bits[1:(k - 1)]  # qubits 1..k-1 are targets (MSBs)
+            target_bits = bits[1:(k-1)]  # qubits 1..k-1 are targets (MSBs)
 
             # The MPO only modifies MAIN qubits, COPY qubits stay unchanged from input
             copy_bits = bits  # Copy bits unchanged from input
@@ -104,11 +104,11 @@ import QILaplace.ApplyMPO: apply, _as_single_site_mpo
                     # Convert to zTMPS index (interleaved main/copy)
                     idx_out = 0
                     for l in 1:k
-                        idx_out += main_out_bits[l] * (1 << (2*(l-1)))      # main[l] bit at position 2*(l-1)
-                        idx_out += copy_bits[l] * (1 << (2*(l-1) + 1))      # copy[l] bit at position 2*(l-1)+1
+                        idx_out += main_out_bits[l] * (1 << (2 * (l - 1)))      # main[l] bit at position 2*(l-1)
+                        idx_out += copy_bits[l] * (1 << (2 * (l - 1) + 1))      # copy[l] bit at position 2*(l-1)+1
                     end
 
-                    v_exp[idx_out + 1] = amp
+                    v_exp[idx_out+1] = amp
                 end
             else
                 # Π1 branch: Hadamard with damping on |1⟩ output
@@ -122,7 +122,7 @@ import QILaplace.ApplyMPO: apply, _as_single_site_mpo
 
                     # Targets: R gates apply based on target bit values
                     main_out_bits = copy(target_bits)
-                    for j in 1:(k - 1)
+                    for j in 1:(k-1)
                         if main_out_bits[j] == 1
                             # R gate damping factor for qubit j (target position j, control at k)
                             θ_j = ωr * 2.0^(j - k - 1)
@@ -134,11 +134,11 @@ import QILaplace.ApplyMPO: apply, _as_single_site_mpo
                     # Convert to zTMPS index (interleaved main/copy)
                     idx_out = 0
                     for l in 1:k
-                        idx_out += main_out_bits[l] * (1 << (2*(l-1)))      # main[l] bit at position 2*(l-1)
-                        idx_out += copy_bits[l] * (1 << (2*(l-1) + 1))      # copy[l] bit at position 2*(l-1)+1
+                        idx_out += main_out_bits[l] * (1 << (2 * (l - 1)))      # main[l] bit at position 2*(l-1)
+                        idx_out += copy_bits[l] * (1 << (2 * (l - 1) + 1))      # copy[l] bit at position 2*(l-1)+1
                     end
 
-                    v_exp[idx_out + 1] = amp
+                    v_exp[idx_out+1] = amp
                 end
             end
 
@@ -160,7 +160,7 @@ end
 
     for ωr in ωrs
         for n in 2:4
-            for k in 1:(n - 1)  # k must be < n for non-trivial gate
+            for k in 1:(n-1)  # k must be < n for non-trivial gate
                 L = n - k + 1  # number of qubits in the window
 
                 # Create sites for L paired qubits
@@ -172,9 +172,9 @@ end
                 W = control_damping_copy_mpo(n, k, ωr, sites)
 
                 # Iterate over L-qubit basis states
-                for b in 0:((1 << L) - 1)
+                for b in 0:((1<<L)-1)
                     # Create input basis state using signal_ztmps
-                    x = [i == (b+1) ? 1.0 : 0.0 for i in 1:(1 << L)]
+                    x = [i == (b + 1) ? 1.0 : 0.0 for i in 1:(1<<L)]
                     ψ_in = signal_ztmps(x)
 
                     # Replace signal_ztmps sites with MPO sites
@@ -185,7 +185,7 @@ end
 
                     # Apply MPO and extract dense output vector
                     ψ_out = apply(W, ψ_in)
-                    v_out = mps_to_vector(ψ_out)
+                    v_out = mps_to_vector(ψ_out; reverse=true)
 
                     # Analytical expected output
                     # This is a DIAGONAL gate, so input basis state → scalar × same basis state
@@ -215,7 +215,7 @@ end
                     end
 
                     v_exp = zeros(ComplexF64, 1 << (2L))
-                    v_exp[idx_out + 1] = damping
+                    v_exp[idx_out+1] = damping
 
                     @test isapprox(v_out, v_exp; atol=1e-10)
                 end
