@@ -1,0 +1,21 @@
+/* Sidebar logo styling for Documenter */
+
+nav.docs-sidebar .docs-package-name {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+nav.docs-sidebar .docs-sidebar-logo img {
+  width: auto;
+  height: 150px;
+  max-width: 200px;
+}
+
+nav.docs-sidebar .docs-sidebar-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 0.5rem;
+}
