@@ -75,11 +75,11 @@ end
     @test_throws ArgumentError QILaplace.Mps.SignalMPS(data, sites, bad_bonds)
 end
 
-# zTMPS mutable struct check
-@testset "mps.jl: zTMPS struct validation" begin
-    # Valid zTMPS for n = 1, 2, 3, 4
+# ZTMPS mutable struct check
+@testset "mps.jl: ZTMPS struct validation" begin
+    # Valid ZTMPS for n = 1, 2, 3, 4
     for n in 1:4
-        ψ = QILaplace.Mps.zTMPS(n)
+        ψ = QILaplace.Mps.ZTMPS(n)
         @test length(ψ.data) == n
         @test length(ψ.sites_main) == n
         @test length(ψ.sites_copy) == n
@@ -103,7 +103,7 @@ end
         end
 
         # Site uniqueness check
-        @test length(unique([ψ.sites_main; ψ.sites_copy])) == 2 * nsite(ψ)
+        @test length(unique([ψ.sites_main; ψ.sites_copy])) == 2 * length(ψ)
 
         # Bond uniqueness check
         @test length(unique([ψ.bonds_main; ψ.bonds_copy])) ==
@@ -122,20 +122,20 @@ end
     @test occursin("Site 1:", output)
     @test occursin("Site 2:", output)
 
-    # zTMPS show output
-    ψz = QILaplace.Mps.zTMPS(2)
+    # ZTMPS show output
+    ψz = QILaplace.Mps.ZTMPS(2)
     io = IOBuffer()
     show(io, ψz)
     output = String(take!(io))
-    @test occursin("zTMPS with 2 sites", output)
+    @test occursin("ZTMPS with 2 sites", output)
     @test occursin("Amain:", output)
     @test occursin("Acopy:", output)
 end
 
-# Round-trip internal conversion between SignalMPS and zTMPS
+# Round-trip internal conversion between SignalMPS and ZTMPS
 @testset "mps.jl: as_signal_2n / writeback_signal_2n round-trip" begin
     n = 3
-    ψ = QILaplace.Mps.zTMPS(n)
+    ψ = QILaplace.Mps.ZTMPS(n)
     for i in 1:n
         ψ.data[i].Amain .= random_itensor(inds(ψ.data[i].Amain)...)
         ψ.data[i].Acopy .= random_itensor(inds(ψ.data[i].Acopy)...)
@@ -155,7 +155,7 @@ end
 # Canonicalization via conversion
 @testset "mps.jl: canonicalize via conversion" begin
     n = 4
-    ψ = QILaplace.Mps.zTMPS(n)
+    ψ = QILaplace.Mps.ZTMPS(n)
     for i in 1:n
         ψ.data[i].Amain .= random_itensor(inds(ψ.data[i].Amain)...)
         ψ.data[i].Acopy .= random_itensor(inds(ψ.data[i].Acopy)...)
@@ -209,10 +209,10 @@ end
     @test ψs.bonds[2] == new_bond
 end
 
-# update_site! and update_bonds! index updates for zTMPS
-@testset "mps.jl: zTMPS site and bond index update" begin
+# update_site! and update_bonds! index updates for ZTMPS
+@testset "mps.jl: ZTMPS site and bond index update" begin
     n = 3
-    ψz = QILaplace.Mps.zTMPS(n)
+    ψz = QILaplace.Mps.ZTMPS(n)
     for i in 1:n
         ψz.data[i].Amain .= random_itensor(inds(ψz.data[i].Amain)...)
         ψz.data[i].Acopy .= random_itensor(inds(ψz.data[i].Acopy)...)
@@ -264,7 +264,7 @@ end
     @test_throws ArgumentError QILaplace.Mps.update_site!(ψz, bad_old_site, bad_new_site)
 end
 
-# norm function verification with analytical norm for both SignalMPS and zTMPS
+# norm function verification with analytical norm for both SignalMPS and ZTMPS
 @testset "mps.jl: norm function verification" begin
     # SignalMPS norm - contract to array and compare with LinearAlgebra.norm
     N = 3
@@ -290,14 +290,14 @@ end
     @test n1 > 0
     @test isfinite(n1)
 
-    # zTMPS norm - contract to array and compare
-    ψz = QILaplace.Mps.zTMPS(3)
+    # ZTMPS norm - contract to array and compare
+    ψz = QILaplace.Mps.ZTMPS(3)
     for i in 1:3
         ψz.data[i].Amain .= random_itensor(inds(ψz.data[i].Amain)...)
         ψz.data[i].Acopy .= random_itensor(inds(ψz.data[i].Acopy)...)
     end
 
-    # Contract zTMPS via conversion to SignalMPS
+    # Contract ZTMPS via conversion to SignalMPS
     ψz_2n = _as_signal_2n(ψz)
     ψz_contracted = ψz_2n.data[1]
     for i in 2:length(ψz_2n.data)
@@ -347,11 +347,11 @@ end
         @test dim(b) ≤ 2
     end
 
-    # zTMPS compress via conversion
+    # ZTMPS compress via conversion
     n = 3
     sm = [Index(2, @sprintf("sm%d", i)) for i in 1:n]
     sc = [Index(2, @sprintf("sc%d", i)) for i in 1:n]
-    ψz = QILaplace.Mps.zTMPS(sm, sc)
+    ψz = QILaplace.Mps.ZTMPS(sm, sc)
     for i in 1:n
         ψz.data[i].Amain .= random_itensor(inds(ψz.data[i].Amain)...)
         ψz.data[i].Acopy .= random_itensor(inds(ψz.data[i].Acopy)...)
@@ -371,7 +371,7 @@ end
 # Additional tests: alternation invariants and writeback validation
 @testset "mps.jl: alternation invariants and writeback validation" begin
     n = 3
-    ψ = QILaplace.Mps.zTMPS(n)
+    ψ = QILaplace.Mps.ZTMPS(n)
     for i in 1:n
         ψ.data[i].Amain .= random_itensor(inds(ψ.data[i].Amain)...)
         ψ.data[i].Acopy .= random_itensor(inds(ψ.data[i].Acopy)...)
@@ -431,7 +431,7 @@ end
     @test_throws ArgumentError QILaplace.Mps.coefficient(ψ, "[1, 2, 1]")
     @test_throws ArgumentError QILaplace.Mps.coefficient(ψ, 0b1000)
 
-    ψz = QILaplace.Mps.zTMPS(2)
+    ψz = QILaplace.Mps.ZTMPS(2)
     for i in 1:2
         ψz.data[i].Amain .= random_itensor(inds(ψz.data[i].Amain)...)
         ψz.data[i].Acopy .= random_itensor(inds(ψz.data[i].Acopy)...)

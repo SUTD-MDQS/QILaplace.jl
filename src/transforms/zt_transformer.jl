@@ -1,6 +1,6 @@
 #src/transforms/zt_transformer.jl
 # This module builds the discrete Laplace transform aka z-transform that acts on a given MPS to apply the damping transform circuit. 
-# It used the dt_gates from DTGates and zt_gates from ZTGates to build the full zT MPO as a PairedSiteMPO that acts on zTMPS representations of signals. 
+# It used the dt_gates from DTGates and zt_gates from ZTGates to build the full zT MPO as a PairedSiteMPO that acts on ZTMPS representations of signals. 
 
 # The zT transformer has three parts: 
 # - Part 1: control_damping_mpo blocks with control on main site k, targets on site 1...k-1
@@ -13,7 +13,7 @@ module ZTTransformer
 
 using ITensors, Printf
 using ..Mpo: PairedSiteMPO
-using ..Mps: zTMPS
+using ..Mps: ZTMPS
 using ..DTGates: control_damping_mpo, control_damping_copy_mpo
 using ..ZTGates: control_Hphase_ztmps_mpo
 using ..DTTransform: zip_to_combine_mpos, zip_to_compress_mpo
@@ -142,7 +142,7 @@ function build_zt_mpo(
     return mpo_part1
 end
 
-function build_zt_mpo(ψ::zTMPS, ωr::Real; cutoff=1e-14, maxdim=1000)
+function build_zt_mpo(ψ::ZTMPS, ωr::Real; cutoff=1e-14, maxdim=1000)
     build_zt_mpo(
         length(ψ.sites_main), ωr, ψ.sites_main, ψ.sites_copy; cutoff=cutoff, maxdim=maxdim
     )

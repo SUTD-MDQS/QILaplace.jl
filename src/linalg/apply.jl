@@ -8,7 +8,7 @@ import Base: *
 
 using ITensors, Printf
 using ..Mps
-using ..Mps: SignalMPS, zTMPS
+using ..Mps: SignalMPS, ZTMPS
 using ..Mpo: SingleSiteMPO, PairedSiteMPO
 
 export apply
@@ -184,11 +184,11 @@ function apply(W1::SingleSiteMPO, W2::SingleSiteMPO; kwargs...)
     return SingleSiteMPO(new_data, new_sites, new_bonds)
 end
 
-function apply(W::PairedSiteMPO, ψ::zTMPS; kwargs...)
+function apply(W::PairedSiteMPO, ψ::ZTMPS; kwargs...)
     length(W.data) == 2 * length(ψ.sites_main) ||
         throw(ArgumentError("apply: MPO and MPS must have compatible sizes."))
 
-    # Convert zTMPS to 2n SignalMPS
+    # Convert ZTMPS to 2n SignalMPS
     ψ_2n = Mps._as_signal_2n(ψ)
 
     # Convert PairedSiteMPO to SingleSiteMPO (2n sites)
@@ -197,7 +197,7 @@ function apply(W::PairedSiteMPO, ψ::zTMPS; kwargs...)
     # Apply using the SingleSiteMPO implementation
     ψ_out_2n = apply(W_single, ψ_2n; kwargs...)
 
-    # Convert back to zTMPS, preserving input amplitude
+    # Convert back to ZTMPS, preserving input amplitude
     result = Mps._writeback_signal_2n(ψ_out_2n)
     result.amplitude = ψ.amplitude
     return result
@@ -218,7 +218,7 @@ end
 # Convenience operator overloads
 *(W::SingleSiteMPO, ψ::SignalMPS) = apply(W, ψ)
 *(W1::SingleSiteMPO, W2::SingleSiteMPO) = apply(W1, W2)
-*(W::PairedSiteMPO, ψ::zTMPS) = apply(W, ψ)
+*(W::PairedSiteMPO, ψ::ZTMPS) = apply(W, ψ)
 *(W1::PairedSiteMPO, W2::PairedSiteMPO) = apply(W1, W2)
 
 end # module ApplyMPO

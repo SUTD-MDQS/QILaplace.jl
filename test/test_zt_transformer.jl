@@ -43,13 +43,13 @@ end
 # ----------------------------
 
 """
-    extract_zt_output(ψ_out::zTMPS) -> Matrix{ComplexF64}
+    extract_zt_output(ψ_out::ZTMPS) -> Matrix{ComplexF64}
 
-Extract the Z-transform output matrix from a zTMPS for any n.
+Extract the Z-transform output matrix from a ZTMPS for any n.
 Returns a 2^n x 2^n matrix where rows correspond to main register (k)
 and columns correspond to copy register (ℓ).
 """
-function extract_zt_output(ψ_out::zTMPS)
+function extract_zt_output(ψ_out::ZTMPS)
     n = length(ψ_out.sites_main)
     ψ2n = _as_signal_2n(ψ_out)
     T = prod(ψ2n.data)
@@ -91,7 +91,7 @@ end
                 # Build reference Z matrix
                 Z_ref = analytical_zt(x; ωr=ωr, ωi=ωi, Δt=Δt, normalize=true)
 
-                # Build zTMPS input and apply ZT MPO
+                # Build ZTMPS input and apply ZT MPO
                 ψ_in = signal_ztmps(x)
                 mpo = build_zt_mpo(ψ_in, ωr)
                 ψ_out = apply(mpo, ψ_in)

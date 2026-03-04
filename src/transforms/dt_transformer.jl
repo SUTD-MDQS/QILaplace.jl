@@ -1,6 +1,6 @@
 # src/transforms/dt_transform.jl
 # This module builds the Damping Transform MPO that acts on a given MPS to apply the damping transform circuit. 
-# It uses the dt_gates from DTGates to build the full DT MPO as a PairedSiteMPO that acts on zTMPS representations of signals.
+# It uses the dt_gates from DTGates to build the full DT MPO as a PairedSiteMPO that acts on ZTMPS representations of signals.
 
 # The DT transform has two parts:
 # - Part 1: control_damping_mpo blocks with control on main site m, targets on main sites 1..m-1
@@ -11,7 +11,7 @@
 module DTTransform
 using ITensors, Printf, LinearAlgebra
 using ..Mpo: PairedSiteMPO
-using ..Mps: zTMPS
+using ..Mps: ZTMPS
 using ..DTGates: control_damping_mpo, control_damping_copy_mpo
 
 export build_dt_mpo
@@ -367,11 +367,11 @@ function build_dt_mpo(
 end
 
 """
-    build_dt_mpo(ψ::zTMPS, ωr::Real; cutoff=1e-14, maxdim=1000)
+    build_dt_mpo(ψ::ZTMPS, ωr::Real; cutoff=1e-14, maxdim=1000)
 
-Build the DT MPO for a zTMPS signal.
+Build the DT MPO for a ZTMPS signal.
 """
-function build_dt_mpo(ψ::zTMPS, ωr::Real; cutoff=1e-14, maxdim=1000)
+function build_dt_mpo(ψ::ZTMPS, ωr::Real; cutoff=1e-14, maxdim=1000)
     n = length(ψ.sites_main)
     return build_dt_mpo(n, ωr, ψ.sites_main, ψ.sites_copy; cutoff=cutoff, maxdim=maxdim)
 end

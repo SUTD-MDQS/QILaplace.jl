@@ -7,7 +7,7 @@ using ITensors, Random, Printf
 include("mps.jl")
 using .Mps:
     SignalMPS,
-    zTMPS,
+    ZTMPS,
     nsite,
     siteindices,
     bondindices,
@@ -19,7 +19,7 @@ using .Mps:
     mps_to_vector
 
 export SignalMPS,
-    zTMPS,
+    ZTMPS,
     nsite,
     siteindices,
     bondindices,

@@ -7,7 +7,7 @@ import Base: getindex
 import LinearAlgebra: norm
 
 export SignalMPS,
-    zTMPS,
+    ZTMPS,
     nsite,
     siteindices,
     bondindices,
@@ -22,7 +22,7 @@ export SignalMPS,
 
 abstract type AbstractMPS end
 
-# Core structure for storing the two-leg zTMPS tensors
+# Core structure for storing the two-leg ZTMPS tensors
 mutable struct PairCore
     Amain::ITensor
     Acopy::ITensor
@@ -54,7 +54,7 @@ mutable struct SignalMPS{I<:Index} <: AbstractMPS
     end
 end
 
-mutable struct zTMPS{I<:Index} <: AbstractMPS
+mutable struct ZTMPS{I<:Index} <: AbstractMPS
     data::Vector{PairCore}
     bonds_main::Vector{I}
     bonds_copy::Vector{I}
@@ -62,7 +62,7 @@ mutable struct zTMPS{I<:Index} <: AbstractMPS
     sites_copy::Vector{I}
     amplitude::Float64
 
-    function zTMPS(
+    function ZTMPS(
         cores::Vector{PairCore},
         bonds_main::Vector{I},
         bonds_copy::Vector{I},
@@ -104,7 +104,7 @@ SignalMPS(n::Int) = begin
     SignalMPS(sites, bonds)
 end
 
-function zTMPS(sites_main::Vector{I}, sites_copy::Vector{I}) where {I}
+function ZTMPS(sites_main::Vector{I}, sites_copy::Vector{I}) where {I}
     n = length(sites_main)
     n == length(sites_copy) ||
         throw(ArgumentError("sites_main and sites_copy must have same length"))
@@ -133,13 +133,13 @@ function zTMPS(sites_main::Vector{I}, sites_copy::Vector{I}) where {I}
         data[i] = PairCore(Amain, Acopy, c)
     end
 
-    return zTMPS(data, bonds_main, bonds_copy, sites_main, sites_copy)
+    return ZTMPS(data, bonds_main, bonds_copy, sites_main, sites_copy)
 end
 
-zTMPS(n::Int) = begin
+ZTMPS(n::Int) = begin
     sites_main = [Index(2, @sprintf("site-main-%d", i)) for i in 1:n]
     sites_copy = [Index(2, @sprintf("site-copy-%d", i)) for i in 1:n]
-    zTMPS(sites_main, sites_copy)
+    ZTMPS(sites_main, sites_copy)
 end
 
 ##################################### MPS VALIDATION #########################################
@@ -208,10 +208,11 @@ end
 
 check_mps(ψ::SignalMPS) = check_mps(ψ.data, ψ.sites, ψ.bonds)
 
-# Length and iteration protocol for SignalMPS
-Base.length(ψ::SignalMPS) = length(ψ.data)
+# Iteration protocol for AbstractMPS
 Base.iterate(ψ::SignalMPS) = iterate(ψ.data)
 Base.iterate(ψ::SignalMPS, s) = iterate(ψ.data, s)
+Base.iterate(ψ::ZTMPS) = iterate(ψ.data)
+Base.iterate(ψ::ZTMPS, s) = iterate(ψ.data, s)
 
 function check_ztmps(
     data::Vector{PairCore},
@@ -222,23 +223,23 @@ function check_ztmps(
 ) where {I}
     N = length(data)
 
-    length(sites_main) == N || throw(ArgumentError("zTMPS: sites_main must have length n"))
-    length(sites_copy) == N || throw(ArgumentError("zTMPS: sites_copy must have length n"))
+    length(sites_main) == N || throw(ArgumentError("ZTMPS: sites_main must have length n"))
+    length(sites_copy) == N || throw(ArgumentError("ZTMPS: sites_copy must have length n"))
     length(bonds_copy) == N ||
-        throw(ArgumentError("zTMPS: bonds_copy (intra bonds) must have length N"))
+        throw(ArgumentError("ZTMPS: bonds_copy (intra bonds) must have length N"))
     length(bonds_main) == max(N - 1, 0) ||
-        throw(ArgumentError("zTMPS: bonds_main (inter bonds) must have length N-1"))
+        throw(ArgumentError("ZTMPS: bonds_main (inter bonds) must have length N-1"))
 
     # Optional uniqueness checks (can relax if needed)
     length(unique(sites_main)) == N ||
-        throw(ArgumentError("zTMPS: sites_main must be unique"))
+        throw(ArgumentError("ZTMPS: sites_main must be unique"))
     length(unique(sites_copy)) == N ||
-        throw(ArgumentError("zTMPS: sites_copy must be unique"))
+        throw(ArgumentError("ZTMPS: sites_copy must be unique"))
     length(unique(bonds_copy)) == N ||
-        throw(ArgumentError("zTMPS: bonds_copy (intra) must be unique"))
+        throw(ArgumentError("ZTMPS: bonds_copy (intra) must be unique"))
     if N > 1
         length(unique(bonds_main)) == length(bonds_main) ||
-            throw(ArgumentError("zTMPS: bonds_main (inter) must be unique"))
+            throw(ArgumentError("ZTMPS: bonds_main (inter) must be unique"))
     end
 
     for i in 1:N
@@ -248,26 +249,26 @@ function check_ztmps(
 
         # site indices present
         sites_main[i] in isA ||
-            throw(ArgumentError("zTMPS: s_main[$i] missing in Amain[$i]"))
+            throw(ArgumentError("ZTMPS: s_main[$i] missing in Amain[$i]"))
         sites_copy[i] in isB ||
-            throw(ArgumentError("zTMPS: s_copy[$i] missing in Acopy[$i]"))
+            throw(ArgumentError("ZTMPS: s_copy[$i] missing in Acopy[$i]"))
 
         # intra bond consistency
         bonds_copy[i] == core.c ||
-            throw(ArgumentError("zTMPS: bonds_copy[$i] ≠ core.c at site $i"))
+            throw(ArgumentError("ZTMPS: bonds_copy[$i] ≠ core.c at site $i"))
         core.c in isA ||
-            throw(ArgumentError("zTMPS: intra bond c[$i] missing in Amain[$i]"))
+            throw(ArgumentError("ZTMPS: intra bond c[$i] missing in Amain[$i]"))
         core.c in isB ||
-            throw(ArgumentError("zTMPS: intra bond c[$i] missing in Acopy[$i]"))
+            throw(ArgumentError("ZTMPS: intra bond c[$i] missing in Acopy[$i]"))
 
         # left inter-site bond: copy(i-1) ↔ main(i)
         if i > 1
             bL = bonds_main[i-1]
             bL in isA || throw(
-                ArgumentError("zTMPS: left inter bond b_main[$(i-1)] missing in Amain[$i]"),
+                ArgumentError("ZTMPS: left inter bond b_main[$(i-1)] missing in Amain[$i]"),
             )
             bL in inds(data[i-1].Acopy) || throw(
-                ArgumentError("zTMPS: left inter bond b_main[$(i-1)] not in Acopy[$(i-1)]"),
+                ArgumentError("ZTMPS: left inter bond b_main[$(i-1)] not in Acopy[$(i-1)]"),
             )
         end
 
@@ -275,7 +276,7 @@ function check_ztmps(
         if i < N
             bR = bonds_main[i]
             bR in isB || throw(
-                ArgumentError("zTMPS: right inter bond b_main[$i] missing in Acopy[$i]")
+                ArgumentError("ZTMPS: right inter bond b_main[$i] missing in Acopy[$i]")
             )
         end
     end
@@ -283,24 +284,25 @@ function check_ztmps(
     return nothing
 end
 
-function check_ztmps(ψ::zTMPS)
+function check_ztmps(ψ::ZTMPS)
     check_ztmps(ψ.data, ψ.bonds_main, ψ.bonds_copy, ψ.sites_main, ψ.sites_copy)
 end
 
 ##################################### LIGHTWEIGHT API HELPERS #########################################
 
-nsite(ψ::SignalMPS) = length(ψ.sites)
-nsite(ψ::zTMPS) = length(ψ.sites_main)
+@deprecate nsite(ψ::AbstractMPS) length(ψ)
+Base.length(ψ::SignalMPS) = length(ψ.data)
+Base.length(ψ::ZTMPS) = length(ψ.data)
 
 siteindices(ψ::SignalMPS) = (main=ψ.sites, copy=Vector{eltype(ψ.sites)}())
-siteindices(ψ::zTMPS) = (main=ψ.sites_main, copy=ψ.sites_copy)
+siteindices(ψ::ZTMPS) = (main=ψ.sites_main, copy=ψ.sites_copy)
 
 bondindices(ψ::SignalMPS) = (main=ψ.bonds, copy=Vector{eltype(ψ.bonds)}())
-bondindices(ψ::zTMPS) = (main=ψ.bonds_main, copy=ψ.bonds_copy)
+bondindices(ψ::ZTMPS) = (main=ψ.bonds_main, copy=ψ.bonds_copy)
 
 #################################### DISPLAY UTILS #########################################
 function Base.show(io::IO, ψ::SignalMPS)
-    N = nsite(ψ)
+    N = length(ψ)
     println(io, "SignalMPS with $N sites:")
     for n in 1:N
         t = ψ.data[n]
@@ -320,9 +322,9 @@ function Base.show(io::IO, ψ::SignalMPS)
     end
 end
 
-function Base.show(io::IO, ψ::zTMPS)
-    N = nsite(ψ)
-    println(io, "zTMPS with $N sites:")
+function Base.show(io::IO, ψ::ZTMPS)
+    N = length(ψ)
+    println(io, "ZTMPS with $N sites:")
     for n in 1:N
         core = ψ.data[n]
         println(io, "  Site $n:")
@@ -362,9 +364,9 @@ end
 ##################################### MPS UTILS #########################################
 
 """
-    _as_signal_2n(ψ::zTMPS)
+    _as_signal_2n(ψ::ZTMPS)
 
-Return a `SignalMPS` with `2N` sites that represents the paired `zTMPS` as a single
+Return a `SignalMPS` with `2N` sites that represents the paired `ZTMPS` as a single
 linear MPS. The mapping is:
 
 - data[2i-1] = Amain(i)
@@ -376,9 +378,9 @@ linear MPS. The mapping is:
 
 Invariants:
 - The intra-site bond `PairCore.c` is preserved as `bonds[2i-1]`.
-- Use `_writeback_signal_2n` to convert back to `zTMPS` when needed; both functions are internal plumbing and not part of the top-level public API.
+- Use `_writeback_signal_2n` to convert back to `ZTMPS` when needed; both functions are internal plumbing and not part of the top-level public API.
 """
-function _as_signal_2n(ψ::zTMPS{I}) where {I}
+function _as_signal_2n(ψ::ZTMPS{I}) where {I}
     N = length(ψ.data)
     data = Vector{ITensor}(undef, 2N)
     sites = Vector{I}(undef, 2N)
@@ -404,15 +406,15 @@ function _as_signal_2n(ψ::zTMPS{I}) where {I}
 end
 
 """
-    writeback_signal_2n(ψ2n::SignalMPS) -> zTMPS
+    writeback_signal_2n(ψ2n::SignalMPS) -> ZTMPS
 
-Create a `zTMPS` from a `2N`-site `SignalMPS` produced by `_as_signal_2n`.
-This function is non-mutating: it returns a new `zTMPS` instance rather than modifying
+Create a `ZTMPS` from a `2N`-site `SignalMPS` produced by `_as_signal_2n`.
+This function is non-mutating: it returns a new `ZTMPS` instance rather than modifying
 an existing one. Use it as the inverse of `as_signal_2n` when you need a paired
 site representation.
 """
 function _writeback_signal_2n(ψ2n::SignalMPS{I}) where {I}
-    N = nsite(ψ2n) ÷ 2
+    N = length(ψ2n) ÷ 2
     length(ψ2n.sites) == 2N ||
         throw(ArgumentError("_writeback_signal_2n: 2n-sites mismatch."))
     length(ψ2n.bonds) == 2N - 1 ||
@@ -432,7 +434,7 @@ function _writeback_signal_2n(ψ2n::SignalMPS{I}) where {I}
             zt_bonds_main[i] = ψ2n.bonds[2i]
         end
     end
-    return zTMPS(
+    return ZTMPS(
         zt_paircore_arr, zt_bonds_main, zt_bonds_copy, zt_sites_main, zt_sites_copy;
         amplitude=ψ2n.amplitude,
     )
@@ -492,7 +494,7 @@ function update_bond!(ψ::SignalMPS, old_bond_index::I, new_bond_index::I) where
     return ψ
 end
 
-function update_site!(ψ::zTMPS, old_site_index::I, new_site_index::I) where {I<:Index}
+function update_site!(ψ::ZTMPS, old_site_index::I, new_site_index::I) where {I<:Index}
     # search main sites
     m = findfirst(x -> x == old_site_index, ψ.sites_main)
     if m !== nothing
@@ -519,10 +521,10 @@ function update_site!(ψ::zTMPS, old_site_index::I, new_site_index::I) where {I<
         ψ.sites_copy[c] = new_site_index
         return ψ
     end
-    throw(ArgumentError("update_site!: old site index not found in zTMPS"))
+    throw(ArgumentError("update_site!: old site index not found in ZTMPS"))
 end
 
-function update_bond!(ψ::zTMPS, old_bond_index::I, new_bond_index::I) where {I<:Index}
+function update_bond!(ψ::ZTMPS, old_bond_index::I, new_bond_index::I) where {I<:Index}
     # search main bonds (inter-site bonds): bonds_main[k] connects copy(k) and main(k+1)
     k = findfirst(x -> x == old_bond_index, ψ.bonds_main)
     if k !== nothing
@@ -553,7 +555,7 @@ function update_bond!(ψ::zTMPS, old_bond_index::I, new_bond_index::I) where {I<
         return ψ
     end
 
-    throw(ArgumentError("update_bond!: old bond index not found in zTMPS"))
+    throw(ArgumentError("update_bond!: old bond index not found in ZTMPS"))
 end
 
 ##################################### COEFFICIENT ACCESSORS #########################################
@@ -623,13 +625,13 @@ function coefficient(ψ::SignalMPS, value::Integer)
     coefficient(ψ, _bits_from_integer(value, length(ψ.data)))
 end
 
-function coefficient(ψ::zTMPS, config)
+function coefficient(ψ::ZTMPS, config)
     ψ_2n = _as_signal_2n(ψ)
     return coefficient(ψ_2n, config)
 end
 
 getindex(ψ::SignalMPS, config::Vararg{Integer}) = coefficient(ψ, collect(config))
-getindex(ψ::zTMPS, config::Vararg{Integer}) = coefficient(ψ, collect(config))
+getindex(ψ::ZTMPS, config::Vararg{Integer}) = coefficient(ψ, collect(config))
 
 ##################################### MPS TO VECTOR #########################################
 
@@ -667,16 +669,16 @@ function mps_to_vector(ψ::SignalMPS; reverse::Bool=false)
 end
 
 """
-    mps_to_vector(ψ::zTMPS; reverse::Bool=false)
+    mps_to_vector(ψ::ZTMPS; reverse::Bool=false)
 
-Extract the dense state vector from a `zTMPS` by first converting to its
+Extract the dense state vector from a `ZTMPS` by first converting to its
 `2N`-site `SignalMPS` representation, then extracting as a flat vector.
 Scaled by the stored `amplitude`.
 
 # Arguments
 - `reverse::Bool=false`: Controls bit ordering (see `mps_to_vector(::SignalMPS)`).
 """
-function mps_to_vector(ψ::zTMPS; reverse::Bool=false)
+function mps_to_vector(ψ::ZTMPS; reverse::Bool=false)
     ψ2n = _as_signal_2n(ψ)
     return mps_to_vector(ψ2n; reverse=reverse)
 end
@@ -702,11 +704,11 @@ function norm(ψ::SignalMPS)
 end
 
 """
-    norm(ψ::zTMPS)
+    norm(ψ::ZTMPS)
 
-Compute the norm of a zTMPS by contracting it with its conjugate √⟨ψ|ψ⟩.
+Compute the norm of a ZTMPS by contracting it with its conjugate √⟨ψ|ψ⟩.
 """
-function norm(ψ::zTMPS)
+function norm(ψ::ZTMPS)
     ψ = _as_signal_2n(ψ)
     return norm(ψ)
 end
@@ -793,13 +795,13 @@ function canonicalize!(ψ::SignalMPS, direction::Symbol, cutoff::Float64, maxdim
 end
 
 """
-    canonicalize!(ψ::zTMPS, direction::Symbol; center::Union{Nothing,Int}=nothing,
+    canonicalize!(ψ::ZTMPS, direction::Symbol; center::Union{Nothing,Int}=nothing,
                   cutoff::Float64=1e-12, maxdim::Int=typemax(Int))
 
-Bring zTMPS into canonical form by sweeping through PairCore structures.
+Bring ZTMPS into canonical form by sweeping through PairCore structures.
 
 # Arguments
-- `ψ`: zTMPS to canonicalize in-place
+- `ψ`: ZTMPS to canonicalize in-place
 - `direction`: `:right` (left-to-right) or `:left` (right-to-left)
 - `center`: orthogonality center pair index (defaults to n for `:right`, 1 for `:left`)
 - `cutoff`: truncation threshold for singular values
@@ -810,7 +812,7 @@ For each pair, canonicalizes both Amain and Acopy tensors while maintaining
 the PairCore structure. Sweeps through pairs in the specified direction.
 """
 function canonicalize!(
-    ψ::zTMPS,
+    ψ::ZTMPS,
     direction::Symbol;
     center::Union{Nothing,Int}=nothing,
     cutoff::Float64=1e-12,
@@ -842,7 +844,7 @@ function canonicalize!(
 end
 
 # Convenience wrapper with automatic center selection
-function canonicalize!(ψ::zTMPS, direction::Symbol, cutoff::Float64, maxdim::Int)
+function canonicalize!(ψ::ZTMPS, direction::Symbol, cutoff::Float64, maxdim::Int)
     canonicalize!(ψ, direction; center=nothing, cutoff=cutoff, maxdim=maxdim)
 end
 
@@ -910,14 +912,14 @@ function compress!(
 end
 
 function compress!(
-    ψ::zTMPS{I}; maxdim::Int=typemax(Int), tol::Float64=1e-12, sweeps::Int=1
+    ψ::ZTMPS{I}; maxdim::Int=typemax(Int), tol::Float64=1e-12, sweeps::Int=1
 ) where {I}
     # Convert to 2N SignalMPS, compress, then write back in-place
     ψ2n = _as_signal_2n(ψ)
     compress!(ψ2n; maxdim=maxdim, tol=tol, sweeps=sweeps)
     ψ_back = _writeback_signal_2n(ψ2n)
 
-    # Mutate input zTMPS to reflect compressed tensors
+    # Mutate input ZTMPS to reflect compressed tensors
     N = length(ψ.data)
     for i in 1:N
         ψ.data[i].Amain = ψ_back.data[i].Amain

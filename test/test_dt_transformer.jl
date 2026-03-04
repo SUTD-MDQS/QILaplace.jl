@@ -13,10 +13,10 @@ ITensors.disable_warn_order()
 # ----------------------------
 
 """
-Extract main-register state vector from zTMPS by projecting copy register to given bits.
+Extract main-register state vector from ZTMPS by projecting copy register to given bits.
 Returns the flattened vector with optional bit ordering (reverse_bits=true for LSB-first).
 """
-function ztmps_to_main_vector(ψ::zTMPS, copy_bits::Vector{Int}; reverse_bits::Bool=false)
+function ztmps_to_main_vector(ψ::ZTMPS, copy_bits::Vector{Int}; reverse_bits::Bool=false)
     n = length(ψ.sites_main)
     length(copy_bits) == n || throw(ArgumentError("copy_bits must match number of sites"))
 
@@ -221,7 +221,7 @@ end
             # Analytical result
             expected = analytical_dt(vec, ωr)
 
-            # Create zTMPS and build MPO using its sites
+            # Create ZTMPS and build MPO using its sites
             ψ = signal_ztmps(vec)
             mpo = build_dt_mpo(ψ, ωr)
 

@@ -7,7 +7,7 @@ using ITensors, Random, Printf
 using LinearAlgebra: norm
 using ..RSVD: rsvd
 
-using ..Mps: AbstractMPS, SignalMPS, zTMPS, PairCore, nsite, siteindices, bondindices
+using ..Mps: AbstractMPS, SignalMPS, ZTMPS, PairCore, nsite, siteindices, bondindices
 
 export signal_mps, signal_ztmps
 
@@ -223,7 +223,7 @@ function signal_ztmps(
 )
     # The SignalMPS to be copied
     ψ_signal = signal_mps(x; cutoff=cutoff, maxdim=maxdim)
-    n = nsite(ψ_signal)
+    n = length(ψ_signal)
 
     sites_main = sim.(ψ_signal.sites)
     sites_copy = [Index(dim(sites_main[i]); tags=@sprintf("site-copy-%d", i)) for i in 1:n]
@@ -251,7 +251,7 @@ function signal_ztmps(
         bonds_copy[i] = new_bond
     end
 
-    zt = zTMPS(paircores, bonds_main, bonds_copy, sites_main, sites_copy;
+    zt = ZTMPS(paircores, bonds_main, bonds_copy, sites_main, sites_copy;
         amplitude=ψ_signal.amplitude)
     return zt
 end

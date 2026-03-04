@@ -96,7 +96,7 @@ function control_damping_mpo(
                 )
             end
         end
-        3
+
         # copy site tensor: identity gate
         data[2l] = (
             I(sites_copy[l]) * onehot(bonds_copy[l], 1, bonds_main[l], 1) +

@@ -278,7 +278,7 @@ end
     @testset "Identity PairedSiteMPO" begin
         n = 3
         W = PairedSiteMPO(n)
-        ψ = zTMPS(W.sites_main, W.sites_copy)
+        ψ = ZTMPS(W.sites_main, W.sites_copy)
 
         # Randomize ψ
         for core in ψ.data
@@ -386,7 +386,7 @@ end
         W1 = PairedSiteMPO(data1, sites_main, sites_copy, bonds_main1, bonds_copy1)
         W2 = PairedSiteMPO(data2, sites_main, sites_copy, bonds_main2, bonds_copy2)
 
-        ψ = zTMPS(sites_main, sites_copy)
+        ψ = ZTMPS(sites_main, sites_copy)
         for core in ψ.data
             randn!(core.Amain)
             randn!(core.Acopy)
