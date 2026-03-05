@@ -13,8 +13,6 @@ CurrentModule = QILaplace
 
 Links to the other sections of this page. Go to the Introduction to know the basic concepts used in this repository, tutorials to know more about blablabla, and benchmarking to see how well the quantum-inspired algorithms work on your computer!
 
-```@index
-```
 
 ```@autodocs
 Modules = [QILaplace]

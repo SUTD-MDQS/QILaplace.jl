@@ -27,12 +27,12 @@ function _array_to_tensor(x::AbstractVector; sites=undef)
             x = x_filled
         end
         @assert length(x) == 2^n ||
-            "_array_to_tensor: Length of signal vector must be a power of 2"
+                "_array_to_tensor: Length of signal vector must be a power of 2"
         if sites === undef
             sites = [Index(2; tags=@sprintf("site-%d", i)) for i in 1:n]
         end
         @assert length(sites) == n ||
-            "_array_to_tensor: Number of provided sites must match log2(length(x))"
+                "_array_to_tensor: Number of provided sites must match log2(length(x))"
         normalisation_const = norm(x)
         x /= normalisation_const
 
@@ -45,7 +45,7 @@ function _array_to_tensor(x::AbstractVector; sites=undef)
     end
 end
 
-# Convert an ITensor to MPS with given tol. TODO: test this with a vector of [1 2 3 ... 64] and see if it transforms as expected
+# Convert an ITensor to MPS with given tol
 function _tensor_to_mps_svd(ψ::ITensor; cutoff::Real=1e-15, maxdim::Int=typemax(Int))
     ITensors.disable_warn_order()
     try
@@ -74,17 +74,17 @@ function _tensor_to_mps_svd(ψ::ITensor; cutoff::Real=1e-15, maxdim::Int=typemax
         bonds = Vector{I}(undef, N - 1)
         current_ψ = ψ
 
-        for i in 1:(N - 1)
+        for i in 1:(N-1)
             if i == 1
                 left_inds = sites[i]
             else
-                left_inds = (sites[i], bonds[i - 1])
+                left_inds = (sites[i], bonds[i-1])
             end
 
             U, S, V = svd(current_ψ, left_inds; cutoff=cutoff, maxdim=maxdim)
             old_bond = commonind(U, S)
             @assert !isnothing(old_bond) ||
-                error("No shared bond index between U and S at site $i")
+                    error("No shared bond index between U and S at site $i")
             new_bond = Index(dim(old_bond); tags=@sprintf("bond-%d", i))
 
             replaceind!(U, old_bond, new_bond)
@@ -103,12 +103,7 @@ function _tensor_to_mps_svd(ψ::ITensor; cutoff::Real=1e-15, maxdim::Int=typemax
     end
 end
 
-"""
-    _tensor_to_mps_rsvd(ψ::ITensor; cutoff=1e-15, maxdim=typemax(Int), kwargs...)
-
-Convert a tensor `ψ` to an MPS using a divide-and-conquer Randomized SVD (RSVD) approach.
-Recursively splits the tensor into left and right halves, applying RSVD at the cut to reduce bond dimensions.
-"""
+# Convert an ITensor to MPS with given tol using divide-and-conquer Randomized SVD (RSVD)
 function _tensor_to_mps_rsvd(
     ψ::ITensor; cutoff::Real=1e-15, maxdim::Int=typemax(Int), kwargs...
 )
@@ -211,11 +206,41 @@ function _tensor_to_mps(ψ::ITensor; method::Symbol=:svd, kwargs...)
     end
 end
 
+"""
+    signal_mps(x::AbstractVector{<:Number}; method=:svd, kwargs...) -> SignalMPS
+
+Convert a dense signal vector `x` into a [`SignalMPS`](@ref QILaplace.Mps.SignalMPS). The vector is
+zero-padded to the next power of 2 if necessary, normalised, and decomposed
+into an MPS via SVD (or randomised SVD with `method=:rsvd`).
+
+The original Euclidean norm is stored in `.amplitude`.
+
+# Keyword Arguments
+- `method::Symbol=:svd` — `:svd` or `:rsvd`.
+- `cutoff`, `maxdim` — truncation parameters forwarded to the decomposition.
+
+# Examples
+```julia
+ψ = signal_mps([1.0, 2.0, 3.0, 4.0])
+ψ.amplitude ≈ norm([1,2,3,4])   # true
+```
+"""
 function signal_mps(x::AbstractVector{<:Number}; method::Symbol=:svd, kwargs...)
     ψ, normalisation_const = _array_to_tensor(x)
     return _tensor_to_mps(ψ; method=method, kwargs...), normalisation_const
 end
 
+"""
+    signal_ztmps(x::AbstractVector{<:Number}; cutoff=1e-10, maxdim=typemax(Int)) -> zTMPS
+
+Convert a dense signal vector `x` into a [`zTMPS`](@ref QILaplace.Mps.zTMPS) paired-register
+representation. This duplicates the signal onto a \"main\" and \"copy\" register,
+which is required for non-unitary transforms (Damping Transform, z-Transform).
+
+# Keyword Arguments
+- `cutoff::Real=1e-10` — SVD truncation cutoff.
+- `maxdim::Int`        — maximum bond dimension.
+"""
 function signal_ztmps(
     x::AbstractVector{<:Number}; cutoff::Real=1e-10, maxdim::Int=typemax(Int)
 )
@@ -234,13 +259,13 @@ function signal_ztmps(
         # Build fused site tensors (project |σ⟩ -> |σ_main⟩ ⊗ |σ_copy⟩)
         T_core = ψ_signal.data[i] * delta(ψ_signal.sites[i], sites_main[i], sites_copy[i])
 
-        left_inds = i == 1 ? (sites_main[i],) : (bonds_main[i - 1], sites_main[i])
+        left_inds = i == 1 ? (sites_main[i],) : (bonds_main[i-1], sites_main[i])
         U, S, V = svd(T_core, left_inds...; cutoff=cutoff, maxdim=maxdim)
         core_main, core_copy = U, S * V
 
         old_bond = commonind(core_main, core_copy)
         @assert !isnothing(old_bond) ||
-            error("No shared bond index between main and copy cores at site $i")
+                error("No shared bond index between main and copy cores at site $i")
         new_bond = Index(dim(old_bond); tags=@sprintf("bond-copy-%d", i))
         replaceind!(core_main, old_bond, new_bond)
         replaceind!(core_copy, old_bond, new_bond)

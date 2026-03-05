@@ -31,7 +31,7 @@ function zip_up_mpos(mpo1::SingleSiteMPO, mpo2::SingleSiteMPO, oc::Int)
     T = ITensor(1.0)
 
     # Loop using i_rev from 0 to length(mpo2) - 1
-    for i_rev in 0:(L2 - 1)
+    for i_rev in 0:(L2-1)
         idx1 = L1 - i_rev
         idx2 = L2 - i_rev
 
@@ -43,10 +43,10 @@ function zip_up_mpos(mpo1::SingleSiteMPO, mpo2::SingleSiteMPO, oc::Int)
 
         left_inds = Index[]
         if idx1 > 1
-            push!(left_inds, mpo1.bonds[idx1 - 1])
+            push!(left_inds, mpo1.bonds[idx1-1])
         end
         if idx2 > 1
-            push!(left_inds, mpo2.bonds[idx2 - 1])
+            push!(left_inds, mpo2.bonds[idx2-1])
         end
 
         T, V = factorize(
@@ -55,12 +55,12 @@ function zip_up_mpos(mpo1::SingleSiteMPO, mpo2::SingleSiteMPO, oc::Int)
 
         new_data[idx1] = V
         if idx1 > 1
-            new_bonds[idx1 - 1] = commonind(T, V)
+            new_bonds[idx1-1] = commonind(T, V)
         end
     end
 
     # The last remainder T becomes the first core
-    new_data[L1 - L2] *= T
+    new_data[L1-L2] *= T
 
     return SingleSiteMPO(new_data, mpo1.sites, new_bonds), L1 - L2
 end
@@ -72,7 +72,7 @@ function zip_down_mpos(mpo::SingleSiteMPO, oc::Int; cutoff=1e-14, maxdim=1000)
     new_bonds = copy(mpo.bonds)
 
     # We sweep from site oc down to L-1.
-    for k in oc:(L - 1)
+    for k in oc:(L-1)
         T = new_data[k]
 
         bond_to_next = new_bonds[k]
@@ -94,13 +94,30 @@ function zip_down_mpos(mpo::SingleSiteMPO, oc::Int; cutoff=1e-14, maxdim=1000)
 
         # Pass remainder to next site
         remainder = S * V
-        new_data[k + 1] *= remainder
+        new_data[k+1] *= remainder
     end
 
     return SingleSiteMPO(new_data, mpo.sites, new_bonds), L
 end
 
 # Build the full QFT MPO for 'n' qubits using zip-up and zip-down algorithms
+"""
+    build_qft_mpo(n, sites; cutoff=1e-14, maxdim=1000) -> SingleSiteMPO
+    build_qft_mpo(ψ::SignalMPS; cutoff=1e-14, maxdim=1000)
+
+Build the Quantum Fourier Transform MPO for `n` qubits. The MPO is composed
+from controlled-Hadamard-phase gates assembled via the zip-up / zip-down
+compression algorithm. The cutoff tells the error threshold of the compressed MPO. 
+
+When called with a `SignalMPS`, the site indices are taken from the MPS itself.
+
+# Examples
+```julia
+ψ = signal_mps(rand(16))
+W_qft = build_qft_mpo(ψ)
+ψ_freq = apply(W_qft, ψ)   # frequency-domain MPS
+```
+"""
 function build_qft_mpo(
     n::Int, sites::Vector{IType}; cutoff=1e-14, maxdim=1000
 ) where {IType<:Index}
@@ -121,9 +138,9 @@ function build_qft_mpo(
     oc = n
 
     # Apply the consevutive controlled phase gates
-    for iter in 1:(n - 1)
+    for iter in 1:(n-1)
         # mpo2 acts on the subset of sites (iter+1):n
-        subset_sites = sites[(iter + 1):end]
+        subset_sites = sites[(iter+1):end]
         mpo2 = control_Hphase_mpo(n - iter, subset_sites)
 
         # Prepare the indices to contract inside the zip-up algo

@@ -20,6 +20,27 @@ using ..DTTransform: zip_to_combine_mpos, zip_to_compress_mpo
 
 export build_zt_mpo
 
+"""
+    build_zt_mpo(n, ωr, sites_main, sites_copy; cutoff=1e-14, maxdim=1000) -> PairedSiteMPO
+    build_zt_mpo(ψ::zTMPS, ωr; cutoff=1e-14, maxdim=1000)
+
+Build the discrete Laplace transform (z-Transform) MPO for `n` qubits at
+damping parameter `ωr`. The cutoff tells the error threshold of the compressed MPO. The z-Transform is the composition of the Damping
+Transform (DT) and the Quantum Fourier Transform (QFT):
+
+1. **Part 1** — control-damping blocks on main sites.
+2. **Part 2** — control-damping-copy blocks on copy sites.
+3. **Part 3** — controlled-Hadamard-phase (QFT) blocks on copy sites.
+
+When called with a `zTMPS`, site indices are taken from the MPS itself.
+
+# Examples
+```julia
+ψ_z = signal_ztmps(x)
+W_zt = build_zt_mpo(ψ_z, ωr)
+ψ_out = apply(W_zt, ψ_z)
+```
+"""
 function build_zt_mpo(
     n::Int,
     ωr::Real,
@@ -43,7 +64,7 @@ function build_zt_mpo(
     # Interleave sites: [main[1], copy[1], main[2], copy[2], ...]
     all_sites = Vector{I}(undef, 2n)
     for i in 1:n
-        all_sites[2i - 1] = sites_main[i]
+        all_sites[2i-1] = sites_main[i]
         all_sites[2i] = sites_copy[i]
     end
 
@@ -67,8 +88,8 @@ function build_zt_mpo(
         # This is necessary because block_k acts on 1:k, while mpo_part1 currently acts on 1:k-1
         if length(mpo_part1.sites_main) < k
             # Get new sites
-            s_main = all_sites[2 * k - 1]
-            s_copy = all_sites[2 * k]
+            s_main = all_sites[2*k-1]
+            s_copy = all_sites[2*k]
 
             # Create new bonds
             b_main = Index(1, "bond-main-$(k-1)")
@@ -109,10 +130,10 @@ function build_zt_mpo(
     # Part 2: Build copy tensor train from ℓ = k+1 to n for k = 1 down to n-1
     # =====================================================
     # Zip-combine blocks from k = 1 to n-1
-    for k in 1:(n - 1)
+    for k in 1:(n-1)
         # Block for control on main[k], acts on sites 2k+1:2n
         L = n - k
-        block_k = control_damping_copy_mpo(n, k, ωr, all_sites[(2k - 1):2n])
+        block_k = control_damping_copy_mpo(n, k, ωr, all_sites[(2k-1):2n])
 
         # Combine with current MPO (zip-up since they share last sites)
         mpo_part1, oc = zip_to_combine_mpos(mpo_part1, block_k, oc)

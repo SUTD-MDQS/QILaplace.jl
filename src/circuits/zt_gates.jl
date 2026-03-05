@@ -8,7 +8,7 @@ using ..QFTGates: H, P, I, Π
 
 ################################# CONTROLLED PHASE GATE MPO in 2n #####################################
 
-# Control phase gate for qubit depth 'k' on PairedSiteMPO. In a k-qubit control gate, the QFT acts only on the copy branch while the main branch remains identity. The applicaton is similar to control_Hphase_mpo in QFTGates but only on the copy sites.
+# Control phase gate from the main qubits. Copies the qubit from main1 and applies it to all qubits below. 
 function control_Hphase_ztmps_mpo(k::Int, sites::Vector{IType}) where {IType<:Index}
     k ≥ 1 || throw(
         ArgumentError(
@@ -29,12 +29,12 @@ function control_Hphase_ztmps_mpo(k::Int, sites::Vector{IType}) where {IType<:In
     # one-hot tensor embedding for bond indices
     onehot(b::Index, k::Int) = begin
         T = ITensor(b)
-        T[b => k] = 1
+        T[b=>k] = 1
         return T
     end
     onehot(bL::Index, r::Int, bR::Index, c::Int) = begin
         T = ITensor(bL, bR)
-        T[bL => r, bR => c] = 1
+        T[bL=>r, bR=>c] = 1
         return T
     end
 
@@ -53,7 +53,7 @@ function control_Hphase_ztmps_mpo(k::Int, sites::Vector{IType}) where {IType<:In
     data = Vector{ITensor}(undef, 2k)
     sites_main = sites[1:2:end]
     sites_copy = sites[2:2:end]
-    bonds_main = [Index(2; tags=@sprintf("zqft-bond-main-%d", i)) for i in 1:(k - 1)]
+    bonds_main = [Index(2; tags=@sprintf("zqft-bond-main-%d", i)) for i in 1:(k-1)]
     bonds_copy = [Index(2; tags=@sprintf("zqft-bond-copy-%d", i)) for i in 1:k]
 
     # 1. Main 1 (Site 1)
@@ -72,18 +72,18 @@ function control_Hphase_ztmps_mpo(k::Int, sites::Vector{IType}) where {IType<:In
         P(θ, sites_copy[1]) * onehot(bonds_copy[1], 2, bonds_main[1], 2)
 
     # 3. Intermediate sites
-    for j in 2:(k - 1)
+    for j in 2:(k-1)
         # Main j (Site 2j-1)
         # Connects bonds_main[j-1] (Left) and bonds_copy[j] (Right)
         # Pass through
-        data[2j - 1] =
-            I(sites_main[j]) * onehot(bonds_main[j - 1], 1, bonds_copy[j], 1) +
-            I(sites_main[j]) * onehot(bonds_main[j - 1], 2, bonds_copy[j], 2)
+        data[2j-1] =
+            I(sites_main[j]) * onehot(bonds_main[j-1], 1, bonds_copy[j], 1) +
+            I(sites_main[j]) * onehot(bonds_main[j-1], 2, bonds_copy[j], 2)
 
         # Copy j (Site 2j)
         # Connects bonds_copy[j] (Left) and bonds_main[j] (Right)
         # Phase if bond=2
-        θ = -2π / 2.0^(k-j+1)
+        θ = -2π / 2.0^(k - j + 1)
         data[2j] =
             I(sites_copy[j]) * onehot(bonds_copy[j], 1, bonds_main[j], 1) +
             P(θ, sites_copy[j]) * onehot(bonds_copy[j], 2, bonds_main[j], 2)
@@ -92,9 +92,9 @@ function control_Hphase_ztmps_mpo(k::Int, sites::Vector{IType}) where {IType<:In
     # 4. Main k (Site 2k-1)
     # Connects bonds_main[k-1] (Left) and bonds_copy[k] (Right)
     # Pass through
-    data[2k - 1] =
-        I(sites_main[k]) * onehot(bonds_main[k - 1], 1, bonds_copy[k], 1) +
-        I(sites_main[k]) * onehot(bonds_main[k - 1], 2, bonds_copy[k], 2)
+    data[2k-1] =
+        I(sites_main[k]) * onehot(bonds_main[k-1], 1, bonds_copy[k], 1) +
+        I(sites_main[k]) * onehot(bonds_main[k-1], 2, bonds_copy[k], 2)
 
     # 5. Copy k (Site 2k)
     # Connects bonds_copy[k] (Left)

@@ -18,7 +18,7 @@ function _generate_signal(
     noise_level::Float64=0.0,
     kwargs...,
 )
-    jvals = 0:(2 ^ n - 1)
+    jvals = 0:(2^n-1)
     return [sin(freq * dt * j + phase) + noise_level * randn() for j in jvals]
 end
 
@@ -31,7 +31,7 @@ function _generate_signal(
     noise_level::Float64=0.0,
     kwargs...,
 )
-    jvals = 0:(2 ^ n - 1)
+    jvals = 0:(2^n-1)
     length(freq) == length(phase) ||
         throw(ArgumentError("Frequency and phase vectors must be of the same length."))
     return [
@@ -56,7 +56,7 @@ function _generate_signal(
     phase::Float64=0.0,
     kwargs...,
 )
-    jvals = 0:(2 ^ n - 1)
+    jvals = 0:(2^n-1)
     return [sin(freq * dt * j + phase) * exp(-decay_rate * dt * j) for j in jvals]
 end
 
@@ -69,7 +69,7 @@ function _generate_signal(
     phase::Union{Vector{Float64},Nothing}=nothing,
     kwargs...,
 )
-    jvals = 0:(2 ^ n - 1)
+    jvals = 0:(2^n-1)
     length(freq) == length(decay_rate) ||
         throw(ArgumentError("Frequency and decay_rate vectors must be of the same length."))
 
@@ -94,10 +94,45 @@ end
 """
     generate_signal(n; kind=:sin, dt=nothing, freq=nothing, kwargs...)
 
-Generate a length-2^n real signal.
-- `freq`: Scalar or Vector. Defaults to 2π.
-- `dt`: Time step. Automatically computed from `freq` if not provided.
-- `kwargs`: `phase`, `decay_rate`, `noise_level`, `seed` depending on `kind`.
+Generate a length-`2^n` real signal of a specified type.
+
+# Arguments
+- `n::Int`: The exponent determining the length of the signal. The signal will have `2^n` points.
+
+# Keyword Arguments
+- `kind::Symbol`: The type of signal to generate. Defaults to `:sin`. Supported kinds include:
+    - `:sin`: A sinusoidal signal.
+    - `:cos`: A cosine signal.
+    - `:decay`: An exponentially decaying sinusoidal signal.
+    - `:noise`: A purely random noise signal.
+- `dt::Union{Nothing, Float64}`: The time step between samples. If `nothing`, it is automatically 
+   computed from `freq` as `dt = 1 / (freq * 2^n)`. Defaults to `nothing`.
+- `freq::Union{Nothing, Float64, Vector{Float64}}`: The frequency or frequencies of the signal. 
+   Can be a scalar or a vector of frequencies. Defaults to `2π` if not provided.
+
+# kwargs (kind-dependent)
+- `phase::Float64`: The phase offset of the signal in radians. Applicable to `:sin` and `:cos` kinds. 
+   Defaults to `0.0`.
+- `decay_rate::Float64`: The rate of exponential decay. Only applicable to the `:decay` kind. 
+   A higher value results in faster decay. Defaults to `1.0`.
+- `noise_level::Float64`: The amplitude of random noise added to the signal. Applicable to all kinds. 
+   Defaults to `0.0` (no noise).
+- `seed::Int`: The random seed for reproducibility of noise generation. Applicable when `noise_level > 0`. 
+   Defaults to `nothing` (random seed).
+
+# Returns
+- `signal::Vector{Float64}`: A real-valued vector of length `2^n` representing the generated signal.
+
+# Examples
+```julia
+n = 5
+
+# simple sine wave with frequency 1.0
+x = generate_signal(n, kind=:sin, freq=1.0) 
+
+# multi-frequency decaying sine wave
+x = generate_signal(n, kind=:sin_decay, freq=[1.0, 2.0], decay_rate=[0.1, 0.2])
+```
 """
 function generate_signal(
     n::Int;

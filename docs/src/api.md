@@ -1,5 +1,54 @@
 # API
 
-This page will contain all the functions exported and made available in this library. Only document the public functions and avoid mentioning private functions unless absolutely needed!
+This page documents the public interface of QILaplace.jl.
 
-You can automatically generate this section by having the autodocs work out the strings of documentation you added for each function in each module, and then display it here properly. 
+## MPS Representation
+
+```@docs
+QILaplace.SignalMPS
+QILaplace.zTMPS
+QILaplace.Mps.PairCore
+```
+
+### Construction
+```@docs
+QILaplace.generate_signal
+QILaplace.signal_mps
+QILaplace.signal_ztmps
+```
+
+### Extraction & Indexing
+```@docs
+QILaplace.coefficient
+```
+
+### Manipulation
+```@docs
+QILaplace.canonicalize!
+QILaplace.compress!
+QILaplace.update_site!
+QILaplace.update_bond!
+QILaplace.Mps.norm
+```
+
+## MPO Representation
+
+```@docs
+QILaplace.SingleSiteMPO
+QILaplace.PairedSiteMPO
+```
+
+## Transformers
+
+```@docs
+QILaplace.build_qft_mpo
+QILaplace.build_dt_mpo
+QILaplace.build_zt_mpo
+```
+
+## Linear Algebra Utilities
+
+```@docs
+QILaplace.apply
+QILaplace.RSVD.rsvd
+```

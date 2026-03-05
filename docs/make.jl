@@ -15,7 +15,7 @@ for tutorial in TUTORIALS
         Literate.markdown(
             file_path,
             TUTORIALS_DIR;
-            execute = true,
+            execute=true,
         )
     else
         @warn "Tutorial source file not found: $file_path"
@@ -23,7 +23,17 @@ for tutorial in TUTORIALS
 end
 
 makedocs(;
-    modules=[QILaplace],
+    modules=[
+        QILaplace,
+        QILaplace.Mps,
+        QILaplace.Mpo,
+        QILaplace.RSVD,
+        QILaplace.ApplyMPO,
+        QILaplace.SignalConverters,
+        QILaplace.QFTTransform,
+        QILaplace.DTTransform,
+        QILaplace.ZTTransformer
+    ],
     authors="Gauthameshwar S., Noufal Jaseem",
     sitename="QILaplace.jl",
     format=Documenter.HTML(;
@@ -40,7 +50,7 @@ makedocs(;
             "Discrete Fourier Transform" => "tutorials/dft.md",
             "Damping Transform" => "tutorials/dt.md",
             "Discrete Laplace Transform" => "tutorials/zt.md",
-        ], 
+        ],
         "Benchmarking Runs" => "benchmarking.md",
         "API" => "api.md",
     ],
