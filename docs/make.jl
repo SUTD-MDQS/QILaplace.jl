@@ -41,6 +41,7 @@ makedocs(;
         edit_link="master",
         assets=[
             "assets/sidebar-logo.css",
+            "assets/dark-theme.css",
         ],
     ),
     pages=[
