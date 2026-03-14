@@ -22,7 +22,7 @@ class SVDRMPSConversion(Scene):
         BOND_COLOR = COLOR_ORANGE_RED
         LEG_COLOR = "#DDDDDD"
         U_WIDTH = 1.2
-        SPLIT_GAP = 1.2 * U_WIDTH
+        SPLIT_GAP = 1.0 * U_WIDTH
         SPLIT_SHIFT = SPLIT_GAP / 2
         BASE_Y = 0.0
         S_SQUASH_Y = 0.06
@@ -63,7 +63,7 @@ class SVDRMPSConversion(Scene):
             return group
 
         def make_bond(start_point, end_point, split=True):
-            thickness = 16 if split else 5
+            thickness = 24 if split else 5
             bond_color = BOND_COLOR if split else COLOR_LIGHT_BLUE
             return Line(
                 start=start_point,
@@ -170,7 +170,7 @@ class SVDRMPSConversion(Scene):
             ReplacementTransform(b_mid, b1_full),
             Transform(s1, s1_collapsed),
             FadeIn(chi1),
-            run_time=1
+            run_time=0.5
         )
         self.remove(s1)
         self.wait(0.5)
@@ -242,7 +242,7 @@ class SVDRMPSConversion(Scene):
             ReplacementTransform(b2_mid, b2_full),
             Transform(s2, s2_collapsed),
             FadeIn(chi2),
-            run_time=1
+            run_time=0.5
         )
         self.remove(s2)
         self.wait(0.5)
@@ -313,7 +313,7 @@ class SVDRMPSConversion(Scene):
             ReplacementTransform(b3_mid, b3_full),
             Transform(s3, s3_collapsed),
             FadeIn(chi3),
-            run_time=1
+            run_time=0.5
         )
         self.remove(s3)
         self.wait(1.5)
