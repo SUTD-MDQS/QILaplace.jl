@@ -17,12 +17,12 @@ class SVDRMPSConversion(Scene):
         COLOR_PURPLE = "#D24AD4"
         COLOR_YELLOW = "#E7C74A"
         COLOR_DARK_BLUE = "#0D1747"
-        COLOR_LIGHT_BLUE = "#5DADE2"
+        COLOR_LIGHT_BLUE = "#297DB5"
         COLOR_BLACK = BLACK
-        BOND_COLOR = COLOR_DARK_BLUE
+        BOND_COLOR = COLOR_LIGHT_BLUE
         LEG_COLOR = BLACK
         U_WIDTH = 1.2
-        SPLIT_GAP = 1.2 * U_WIDTH
+        SPLIT_GAP = 1.0 * U_WIDTH
         SPLIT_SHIFT = SPLIT_GAP / 2
         BASE_Y = 0.0
         S_SQUASH_Y = 0.06
@@ -62,7 +62,7 @@ class SVDRMPSConversion(Scene):
             return group
 
         def make_bond(start_point, end_point, split=True):
-            thickness = 16 if split else 5
+            thickness = 24 if split else 5
             bond_color = BOND_COLOR if split else COLOR_LIGHT_BLUE
             return Line(
                 start=start_point,
@@ -125,7 +125,7 @@ class SVDRMPSConversion(Scene):
         u1 = make_tensor_rect(U_WIDTH, COLOR_YELLOW, "U_1").move_to(at_x(u1_x))
         v1 = make_tensor_rect(3.6, COLOR_PURPLE, "V_1").move_to(at_x(v1_x))
         s1_x = 0.5 * (u1[0].get_right()[0] + v1[0].get_left()[0])
-        s1_target = make_s_node(COLOR_DARK_BLUE, "S_1").move_to(at_x(s1_x))
+        s1_target = make_s_node(COLOR_LIGHT_BLUE, "S_1").move_to(at_x(s1_x))
         s1 = s1_target.copy().stretch(S_SQUASH_Y, dim=1)
         self.add(s1)
         
@@ -168,7 +168,7 @@ class SVDRMPSConversion(Scene):
             FadeOut(b1R),
             Transform(s1, s1_collapsed),
             FadeIn(chi1),
-            run_time=1
+            run_time=0.5
         )
         self.remove(s1)
         self.wait(0.5)
@@ -194,7 +194,7 @@ class SVDRMPSConversion(Scene):
         u2 = make_tensor_rect(U_WIDTH, COLOR_YELLOW, "U_2").move_to(at_x(u2_x))
         v2 = make_tensor_rect(2.4, COLOR_PURPLE, "V_2").move_to(at_x(v2_x))
         s2_x = 0.5 * (u2[0].get_right()[0] + v2[0].get_left()[0])
-        s2_target = make_s_node(COLOR_DARK_BLUE, "S_2").move_to(at_x(s2_x))
+        s2_target = make_s_node(COLOR_LIGHT_BLUE, "S_2").move_to(at_x(s2_x))
         s2 = s2_target.copy().stretch(S_SQUASH_Y, dim=1)
         self.add(s2)
         
@@ -239,7 +239,7 @@ class SVDRMPSConversion(Scene):
             FadeOut(b2R),
             Transform(s2, s2_collapsed),
             FadeIn(chi2),
-            run_time=1
+            run_time=0.5
         )
         self.remove(s2)
         self.wait(0.5)
@@ -265,7 +265,7 @@ class SVDRMPSConversion(Scene):
         u3 = make_tensor_rect(U_WIDTH, COLOR_YELLOW, "U_3").move_to(at_x(u3_x))
         v3 = make_tensor_rect(U_WIDTH, COLOR_PURPLE, "V_3").move_to(at_x(v3_x))
         s3_x = 0.5 * (u3[0].get_right()[0] + v3[0].get_left()[0])
-        s3_target = make_s_node(COLOR_DARK_BLUE, "S_3").move_to(at_x(s3_x))
+        s3_target = make_s_node(COLOR_LIGHT_BLUE, "S_3").move_to(at_x(s3_x))
         s3 = s3_target.copy().stretch(S_SQUASH_Y, dim=1)
         self.add(s3)
         
@@ -309,7 +309,7 @@ class SVDRMPSConversion(Scene):
             FadeOut(b3R),
             Transform(s3, s3_collapsed),
             FadeIn(chi3),
-            run_time=1
+            run_time=0.5
         )
         self.remove(s3)
         self.wait(1.5)
