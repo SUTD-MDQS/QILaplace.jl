@@ -4,338 +4,397 @@ EditURL = "dft.jl"
 
 # Discrete Fourier Transform Tutorial
 
-This walkthrough shows how to use QILaplace.jl to compute the DFT.
+This walkthrough shows how to use `QILaplace.jl` to compute the DFT.
+
+The Quantum Fourier Transform (QFT) is the unitary transform underlying several
+quantum algorithms. In modern form it was formalized in early quantum computing
+work (notably Coppersmith, 1994) and popularized by Shor's factoring algorithm.
+In this tutorial, we use the same linear map on a *classical* tensor-network state.
+
+For a register of $n$ qubits ($N = 2^n$ basis states), the QFT is defined by
+
+```math
+\mathrm{QFT}_N\,|x\rangle = \frac{1}{\sqrt{N}}\sum_{k=0}^{N-1}
+e^{2\pi ixk/N}|k\rangle,
+```
+
+where $x,k\in\{0,\dots,N-1\}$ and $|x\rangle$ denotes the computational basis
+state corresponding to the binary encoding of index $x$: $|x\rangle = |x_1x_2\dots x_n\rangle$.
+
+In `QILaplace.jl`, we first encode a length-$N$ signal into an MPS,
+$\sum_{x=0}^{N-1} a_x |x\rangle$, then apply a compressed QFT MPO built from
+Hadamard and controlled-phase gates.
+
+![QFT circuit for $n=4$ qubits](../animations/circuit_diagram.svg)
+
+*Figure 1. Four-qubit QFT circuit in product form: each wire receives a Hadamard gate followed by controlled-phase gates from less significant wires, and the unswapped output is in bit-reversed order.*
+
+In the product-form circuit, the output wires are naturally ordered from least
+significant to most significant bit. Therefore, the raw QFT output appears in
+**bit-reversed order** relative to the usual DFT indexing. Equivalently, if
+$k = k_{n-1}\dots k_1k_0$ is the binary index, the unswapped circuit returns
+amplitudes indexed by $\operatorname{rev}(k)=k_0k_1\dots k_{n-1}$.
+
+This is why we either (i) append explicit SWAP gates at the end of the QFT
+circuit, (ii) sample the MPS by keeping the bit-reversed ordering in mind, or
+(iii) account for reversal when converting the transformed MPS to a dense
+vector for comparison with FFT-based reference implementations.
 
 ````julia
 using QILaplace, ITensors
+using FFTW, LinearAlgebra
 ````
 
 ## Setting up the signal
-Create an 8-point signal:
+Create a $2^n$-point signal (here $n=4$, so $N=16$):
 
 ````julia
-n = 8
+n = 4
 x = generate_signal(n, kind=:sin, freq=1.0)
 ````
 
 ````
-256-element Vector{Float64}:
+16-element Vector{Float64}:
   0.0
-  0.24740395925452294
   0.479425538604203
-  0.6816387600233341
   0.8414709848078965
-  0.9489846193555862
   0.9974949866040544
-  0.9839859468739369
   0.9092974268256817
-  0.7780731968879212
   0.5984721441039564
-  0.38166099205233167
   0.1411200080598672
- -0.10819513453010837
  -0.35078322768961984
- -0.5715613187423437
  -0.7568024953079282
- -0.8949893582285835
  -0.977530117665097
- -0.999292788975378
  -0.9589242746631385
- -0.858934493426592
  -0.7055403255703919
- -0.5082790774992584
  -0.27941549819892586
- -0.03317921654755682
   0.21511998808781552
-  0.4500440737806176
   0.6569865987187891
-  0.8230808790115055
   0.9379999767747389
-  0.9945987791111761
-  0.9893582466233818
-  0.9226042102393402
-  0.7984871126234903
-  0.6247239537541924
-  0.4121184852417566
-  0.17388948538043356
- -0.0751511204618093
- -0.31951919362227366
- -0.5440211108893698
- -0.7346984304047954
- -0.87969575997167
- -0.9699978679206785
- -0.9999902065507035
- -0.9678079975112615
- -0.8754521746884285
- -0.72866497582717
- -0.5365729180004349
- -0.3111193549811273
- -0.06632189735120068
-  0.182599134631134
-  0.4201670368266409
-  0.6316109877182386
-  0.803784426551621
-  0.9259824428086272
-  0.9906073556948704
-  0.9936411011327626
-  0.934895055524683
-  0.8180217634546941
-  0.6502878401571168
-  0.4421221685765394
-  0.2064674819377966
- -0.04202435271884079
- -0.2879033166650653
- -0.5158818468181093
- -0.711785342369123
- -0.8634334728079056
- -0.9613974918795568
- -0.9995864713592172
- -0.9756260054681576
- -0.8910058399248534
- -0.7509872467716762
- -0.5642759039618552
- -0.34248061846961253
- -0.09939154689884817
-  0.14987720966295234
-  0.3898273272463786
-  0.605539869719601
-  0.7836028759783553
-  0.9129452507276277
-  0.9855251115651197
-  0.9968297942787993
-  0.9461564284508708
-  0.8366556385360561
-  0.675135653292801
-  0.47163900309419615
-  0.23881812402958275
- -0.008851309290403876
- -0.25597041106933305
- -0.4871745124605095
- -0.6880884622582969
- -0.8462204041751706
- -0.9517384599623535
- -0.9980820279793963
- -0.9823696896284233
- -0.9055783620066239
- -0.7724825579327705
- -0.5913575298651244
- -0.3734647547841147
- -0.13235175009777303
-  0.11699024537436405
-  0.3590583540221683
-  0.5788019532877502
-  0.7625584504796027
-  0.8989027566124672
-  0.979357643103917
-  0.9989208147888241
-  0.956375928404503
-  0.8543682189235223
-  0.6992400316550977
-  0.500636485932415
-  0.27090578830786904
-  0.02433148087720227
- -0.22375564018679642
- -0.45793071928681145
- -0.6636338842129675
- -0.8280755084772445
- -0.9410314083429535
- -0.9954785330494551
- -0.9880316240928618
- -0.9191536942035773
- -0.7931272394572851
- -0.617787974410896
- -0.404037645323065
- -0.165166212373579
-  0.08397445569174683
-  0.3278939988258263
-  0.5514266812416906
-  0.740674323409674
-  0.8838704235458307
-  0.9721117417027341
-  0.9999118601072672
-  0.9655423020447212
-  0.8711400001691764
-  0.7225744323811351
-  0.5290826861200238
-  0.30269514100631545
-  0.057487478104924564
- -0.1912944777489552
- -0.428182669496151
- -0.6384485367231334
- -0.8090187662119065
- -0.929288127236339
- -0.9917788534431158
- -0.9926055741456128
- -0.9317168878547055
- -0.8128985581744033
- -0.6435381333569995
- -0.4341656243337532
- -0.19779879963646227
-  0.050866196399306694
-  0.2963685787093853
-  0.523444198233198
-  0.7179745927716441
-  0.8678648045849774
-  0.9637953862840878
-  0.9998018389311463
-  0.9736454556949781
-  0.8869525137988248
-  0.7451131604793488
-  0.5569462797382114
-  0.33415117684842055
-  0.09058017221711874
- -0.158622668804709
- -0.397963120556671
- -0.6125601529754698
- -0.78907116196914
- -0.9165215479156338
- -0.9869870631127111
- -0.996086503119594
- -0.943254108829076
- -0.8317747426285983
- -0.6685796515669709
- -0.46381551598382736
- -0.23021357807075407
-  0.017701925105413577
-  0.2645168083164075
-  0.4948853175526281
-  0.6944842546815092
-  0.8509035245341184
-  0.9544177345154423
-  0.9985908724117705
-  0.9806764664578257
-  0.9017883476488092
-  0.7668313971238714
-  0.5841965844132856
-  0.365239257594056
-  0.123573122745224
- -0.1257761903592125
- -0.36730534913419133
- -0.5859972403145538
- -0.7682546613236668
- -0.9027457284726567
- -0.981108438603097
- -0.9984705779426957
- -0.9537526527594719
- -0.8497350070535673
- -0.6928849542336957
- -0.4929546708933114
- -0.26237485370392877
- -0.015481838903188173
-  0.23237376165548454
-  0.46578148719844353
-  0.6702291758433747
-  0.833005260536624
-  0.9439891127251193
-  0.9962802940213323
-  0.9866275920404853
-  0.9156311650396451
-  0.7877052269841179
-  0.6108035931029845
-  0.39592515018183416
-  0.15642999905467883
- -0.09279121175730869
- -0.3362431144491573
- -0.5587890488516163
- -0.7465921866472573
- -0.8879758383376634
- -0.9741494532413135
- -0.9997551733586199
- -0.9632009590319782
- -0.8667595742607592
- -0.7164272772437812
- -0.5215510020869119
- -0.2942472117115055
- -0.04864855487508726
-  0.19997483347801748
-  0.43616475524782494
-  0.645236065065984
-  0.8141897215084345
-  0.9325210045313215
-  0.9928726480845371
-  0.9914922792803779
-  0.9284657227653786
-  0.8077116645594764
-  0.6367380071391379
-  0.42617506442530745
-  0.18911462035089152
- -0.05970405485516448
- -0.3048106211022167
- -0.5309655392553846
- -0.7241075918674496
- -0.8722281415753229
- -0.9661177700083929
- -0.9999388748177166
- -0.9715886235161092
- -0.8828296974172939
- -0.7391806966492228
- -0.5495730203270262
- -0.32579555541456173
- -0.08176170083154903
-  0.16735570030280691
-  0.4060677345664961
-  0.6195324438519512
-  0.79447762643532
 ````
 
-## Constructing the 'SignalMPS' from the data vector
+## Constructing the SignalMPS from the data vector
 
 ````julia
 sites = [Index(2, "site-$i") for i in 1:n]
-psi_test, _ = signal_mps(x)
+psi_test, x_norm = signal_mps(x)
 ````
 
 ````
-(SignalMPS with 8 sites:
+(SignalMPS with 4 sites:
   Site 1: dim=2, tags="site-1" | dim=2, tags="bond-1"
   Site 2: dim=2, tags="bond-1" | dim=2, tags="site-2" | dim=2, tags="bond-2"
   Site 3: dim=2, tags="bond-2" | dim=2, tags="site-3" | dim=2, tags="bond-3"
-  Site 4: dim=2, tags="bond-3" | dim=2, tags="site-4" | dim=2, tags="bond-4"
-  Site 5: dim=2, tags="bond-4" | dim=2, tags="site-5" | dim=2, tags="bond-5"
-  Site 6: dim=2, tags="bond-5" | dim=2, tags="site-6" | dim=2, tags="bond-6"
-  Site 7: dim=2, tags="bond-6" | dim=2, tags="site-7" | dim=2, tags="bond-7"
-  Site 8: dim=2, tags="bond-7" | dim=2, tags="site-8"
-, 11.263694905224009)
+  Site 4: dim=2, tags="bond-3" | dim=2, tags="site-4"
+, 2.7644775277560276)
 ````
+
+Coefficient-level validation and signal-compression diagnostics are now covered
+in the dedicated `signal.jl` tutorial so that this page stays focused on DFT/QFT.
 
 ## Constructing the QFT circuit
 
 ````julia
-qft_mpo = build_qft_mpo(psi_test; cutoff=1e-14, maxdim=1000)
+qft_mpo = build_qft_mpo(psi_test; cutoff=1e-14, maxdim=100)
 ````
 
 ````
-SingleSiteMPO with 8 sites:
+SingleSiteMPO with 4 sites:
   Site 1: dim=2, tags="site-1" | dim=2, tags="site-1" | dim=2, tags="bond-1"
   Site 2: dim=2, tags="site-2" | dim=2, tags="site-2" | dim=2, tags="bond-1" | dim=4, tags="bond-2"
-  Site 3: dim=2, tags="site-3" | dim=2, tags="site-3" | dim=4, tags="bond-2" | dim=7, tags="bond-3"
-  Site 4: dim=2, tags="site-4" | dim=2, tags="site-4" | dim=7, tags="bond-3" | dim=8, tags="bond-4"
-  Site 5: dim=2, tags="site-5" | dim=2, tags="site-5" | dim=8, tags="bond-4" | dim=7, tags="bond-5"
-  Site 6: dim=2, tags="site-6" | dim=2, tags="site-6" | dim=7, tags="bond-5" | dim=4, tags="bond-6"
-  Site 7: dim=2, tags="site-7" | dim=2, tags="site-7" | dim=4, tags="bond-6" | dim=2, tags="bond-7"
-  Site 8: dim=2, tags="site-8" | dim=2, tags="site-8" | dim=2, tags="bond-7"
+  Site 3: dim=2, tags="site-3" | dim=2, tags="site-3" | dim=4, tags="bond-2" | dim=2, tags="bond-3"
+  Site 4: dim=2, tags="site-4" | dim=2, tags="site-4" | dim=2, tags="bond-3"
 
 ````
 
-Ensure your MPS and MPO have the same site indices before applying. (note!)
-## Doing the Fourier Transform
+Ensure MPS and MPO use exactly the same site indices before applying.
 
 ````julia
-result = apply(qft_mpo, psi_test)
+qft_mpo.sites == psi_test.sites # true
 ````
 
 ````
-SignalMPS with 8 sites:
+true
+````
+
+## Performing the Fourier Transform
+
+````julia
+psi_qn = apply(qft_mpo, psi_test)
+````
+
+````
+SignalMPS with 4 sites:
   Site 1: dim=2, tags="site-1" | dim=4, tags="bond-1"
   Site 2: dim=4, tags="bond-1" | dim=2, tags="site-2" | dim=8, tags="bond-2"
-  Site 3: dim=8, tags="bond-2" | dim=2, tags="site-3" | dim=14, tags="bond-3"
-  Site 4: dim=14, tags="bond-3" | dim=2, tags="site-4" | dim=16, tags="bond-4"
-  Site 5: dim=16, tags="bond-4" | dim=2, tags="site-5" | dim=14, tags="bond-5"
-  Site 6: dim=14, tags="bond-5" | dim=2, tags="site-6" | dim=8, tags="bond-6"
-  Site 7: dim=8, tags="bond-6" | dim=2, tags="site-7" | dim=4, tags="bond-7"
-  Site 8: dim=4, tags="bond-7" | dim=2, tags="site-8"
+  Site 3: dim=8, tags="bond-2" | dim=2, tags="site-3" | dim=4, tags="bond-3"
+  Site 4: dim=4, tags="bond-3" | dim=2, tags="site-4"
 
 ````
+
+You can also simply multiply the QFT MPO with the SignalMPS using `qft_mpo * psi_test`.
+
+To compare the results of our transform, we use `FFTW.jl` as the reference to verify our transform results.
+FFTW conventions are:
+
+```math
+\mathrm{fft}(x)_k = \sum_{x=0}^{N-1} x_x\,e^{-2\pi i xk/N},
+\qquad
+\mathrm{bfft}(x)_k = \sum_{x=0}^{N-1} x_x\,e^{+2\pi i xk/N}.
+```
+
+Our QFT convention uses the $+2\pi i$ phase and includes $1/\sqrt{N}$, so for
+normalized input $\hat{x}=x/\|x\|_2$ we expect
+
+```math
+QFT_N\hat{x} = \frac{\mathrm{bfft}(\hat{x})}{\sqrt{N}}.
+```
+
+We now need a helper that contracts a `SignalMPS` back to a dense vector. The
+option `rev=true` applies output-index bit reversal, so the returned vector is
+in the usual DFT ordering.
+
+````julia
+function bitreverse_int(v::Integer, n::Int)
+	bits_lsb = digits(v; base=2, pad=n)
+	return sum(bits_lsb[i] << (n - i) for i in 1:n)
+end
+
+function mps_to_vector(psi::SignalMPS; rev::Bool=false)
+	nsites = length(psi.sites)
+	N = 2^nsites
+
+	T = prod(psi.data)
+	arr = Array(T, reverse(psi.sites)...)
+	vec_qn = reshape(arr, N)
+
+	if !rev
+		return vec_qn
+	end
+
+	perm = [bitreverse_int(k, nsites) + 1 for k in 0:(N - 1)]
+	return vec_qn[perm]
+end
+````
+
+````
+mps_to_vector (generic function with 1 method)
+````
+
+`mps_to_vector` is practical for small to moderate $n$ and debugging. For very
+large systems, dense reconstruction is exponentially expensive in memory/time.
+We recommend sampling the spectrum directly from the MPS form for systems with $n>15$.
+
+Next we compare QILaplace output with FFTW and sample a few indices.
+
+````julia
+N = length(x)
+x_hat = x / x_norm
+
+qft_qn = mps_to_vector(psi_qn; rev=false)
+qft_fn = mps_to_vector(psi_qn; rev=true)
+fftw_ref = bfft(x_hat) / sqrt(N)
+
+comparison_error = norm(qft_fn - fftw_ref)
+@show comparison_error
+
+sample_k = [1, 4, 7]
+for k_idx in sample_k
+	idx_fn = k_idx + 1
+	idx_qn = bitreverse_int(k_idx, n) + 1
+    qft_val_idx = round(qft_qn[idx_qn];digits=5)
+    fftw_val_idx = round(fftw_ref[idx_fn];digits=5)
+	@show k_idx qft_val_idx fftw_val_idx abs(qft_val_idx - fftw_val_idx)
+    println()
+end
+````
+
+````
+comparison_error = 1.5387862583322824e-15
+k_idx = 1
+qft_val_idx = 0.49163 + 0.36978im
+fftw_val_idx = 0.49163 + 0.36978im
+abs(qft_val_idx - fftw_val_idx) = 0.0
+
+k_idx = 4
+qft_val_idx = -0.07303 - 0.05098im
+fftw_val_idx = -0.07303 - 0.05098im
+abs(qft_val_idx - fftw_val_idx) = 0.0
+
+k_idx = 7
+qft_val_idx = -0.05852 - 0.0095im
+fftw_val_idx = -0.05852 - 0.0095im
+abs(qft_val_idx - fftw_val_idx) = 0.0
+
+
+````
+
+For a moderately larger signal, we compare the QFT spectrum against FFTW and plot the
+absolute error on a secondary (right) y-axis with a distinct linestyle.
+
+````julia
+using Plots, LaTeXStrings
+
+n_big = 8
+x_big = generate_signal(n_big, kind=:sin, freq=[4.0, 17.0], phase=[0.0, 0.3])
+psi_big, x_big_norm = signal_mps(x_big)
+
+qft_big_mpo = build_qft_mpo(psi_big; cutoff=1e-12, maxdim=1000)
+psi_big_qn = apply(qft_big_mpo, psi_big)
+
+qft_big = mps_to_vector(psi_big_qn; rev=true)
+fftw_big = bfft(x_big / x_big_norm) / sqrt(length(x_big))
+abs_err_big = abs.(qft_big .- fftw_big)
+
+N_big = length(x_big)
+````
+
+````
+256
+````
+
+For this generated signal, we can predict where peaks should appear, and what the DC value $(at \omega=0$) is analytically.
+
+The signal generator uses
+
+```math
+x_j = \sum_r \sin(\Omega_r j + \phi_r),\quad \Omega_r = \omega_r\,dt,
+```
+
+and for vector frequencies it sets
+
+```math
+dt = \frac{2\pi}{\omega_{\max}\,n}.
+```
+
+With `freq=[4,17]`, `phase=[0,0.3]`, and `n=8`, we get
+
+```math
+\Omega_1 = \frac{\pi}{17},\qquad \Omega_2 = \frac{\pi}{4}.
+```
+
+So the spectrum should show symmetric peaks near
+$\omega\approx\pm\pi/17$ and $\omega=\pm\pi/4$.
+
+The DC value (at $\omega=0$) for the normalized transform
+$\mathrm{bfft}(x/\|x\|_2)/\sqrt{N}$ equals
+
+```math
+X(0) = \frac{1}{\sqrt{N}\,\|x\|_2}\sum_{j=0}^{N-1}x_j.
+```
+
+For each sinusoid, the finite sum is
+
+```math
+S(\Omega,\phi)=\sum_{j=0}^{N-1}\sin(\Omega j+\phi)
+=\frac{\sin\!\left(\frac{N\Omega}{2}\right)
+\sin\!\left(\phi+\frac{(N-1)\Omega}{2}\right)}{\sin\!\left(\frac{\Omega}{2}\right)}.
+```
+
+````julia
+freq_big = [4.0, 17.0]
+phase_big = [0.0, 0.3]
+dt_big = (2π / maximum(abs, freq_big) / n_big)
+Ω_big = freq_big .* dt_big
+
+@show Ω_big Ω_big ./ π
+
+function sine_sum_closed_form(Ω::Real, ϕ::Real, N::Int)
+	return sin(N * Ω / 2) * sin(ϕ + (N - 1) * Ω / 2) / sin(Ω / 2)
+end
+
+dc_pred = sum(sine_sum_closed_form(Ω, ϕ, N_big) for (Ω, ϕ) in zip(Ω_big, phase_big)) / (x_big_norm * sqrt(N_big))
+````
+
+````
+0.04218697405728838
+````
+
+Shift spectra so frequency runs from approximately -$\pi$ to $\pi$.
+
+````julia
+qft_big_shift = fftshift(qft_big)
+fftw_big_shift = fftshift(fftw_big)
+
+ω_axis = (2π / N_big) .* collect(-div(N_big, 2):(div(N_big, 2) - 1))
+peak_marks = [-π / 4, -π / 17, π / 17, π / 4]
+
+xtick_vals = sort(unique(vcat([-π, -π / 2], peak_marks, [0.0, π / 2, π])))
+xtick_labels = map(xtick_vals) do ω
+	if isapprox(ω, -π / 4; atol=1e-10)
+		L"-\frac{\pi}{4}"
+	elseif isapprox(ω, -π / 17; atol=1e-10)
+		L"-\frac{\pi}{17}"
+	elseif isapprox(ω, π / 17; atol=1e-10)
+		L"\frac{\pi}{17}"
+	elseif isapprox(ω, π / 4; atol=1e-10)
+		L"\frac{\pi}{4}"
+	elseif isapprox(ω, -π / 2; atol=1e-10)
+		L"-\frac{\pi}{2}"
+	elseif isapprox(ω, π / 2; atol=1e-10)
+		L"\frac{\pi}{2}"
+	elseif isapprox(ω, -π; atol=1e-10)
+		L"-\pi"
+	elseif isapprox(ω, π; atol=1e-10)
+		L"\pi"
+	else
+		""
+	end
+end
+
+zero_idx = findfirst(==(0.0), ω_axis)
+dc_numeric = isnothing(zero_idx) ? NaN + NaN * im : fftw_big_shift[zero_idx]
+@show dc_pred dc_numeric abs(dc_pred - dc_numeric)
+
+p = plot(
+	ω_axis,
+	abs.(qft_big_shift);
+    label="|QILaplace QFT|",
+    linewidth=2,
+	xlabel=L"\omega",
+    ylabel="Magnitude",
+	xticks=(xtick_vals, xtick_labels),
+	legend=:topleft,
+)
+plot!(p, ω_axis, abs.(fftw_big_shift); label="|FFTW bfft|", linewidth=2, linestyle=:dash)
+vline!(p, peak_marks; color=:grey, linestyle=:dashdot, linewidth=1.0, label=false)
+
+p_err = twinx(p)
+abs_err_big_shift = fftshift(abs_err_big)
+err_max = maximum(abs_err_big_shift)
+err_ylim = max(2 * err_max, eps())
+plot!(
+    p_err,
+	ω_axis,
+	abs_err_big_shift;
+    label="|error|",
+	linewidth=1.5,
+    linestyle=:dot,
+    color=:grey,
+    ylabel="Absolute error",
+	legend=:topright,
+)
+ylims!(p_err, (0.0, err_ylim))
+
+plot_path = joinpath(@__DIR__, "..", "assets", "dft_spectrum_comparison.svg");
+mkpath(dirname(plot_path));
+savefig(p, plot_path);
+````
+
+````
+dc_pred = 0.04218697405728838
+dc_numeric = 0.042186974057288114 + 0.0im
+abs(dc_pred - dc_numeric) = 2.636779683484747e-16
+
+````
+
+The generated spectrum comparison plot is embedded below.
+
+![QFT spectrum vs FFTW with absolute error](../assets/dft_spectrum_comparison.svg)
+
+*Figure 2. Shifted spectrum comparison in angular frequency $\omega\in[-\pi,\pi)$ for $n=8$: the QILaplace QFT and FFTW reference overlap at the expected peak locations near $\omega\approx\pm\pi/17$ and $\omega=\pm\pi/4$, while the dotted error curve (right axis) remains small throughout the band.*
+
+Currently we don't have the inverse QFT available in `QILaplace.jl`, but it is straightforward to implement since QFT is a unitary, hence invertible transform. If you want this support as well, feel free to leave a request in our [main GutHub repo](https://github.com/SUTD-MDQS/QILaplace.jl/issues) :)
 
 ---
 

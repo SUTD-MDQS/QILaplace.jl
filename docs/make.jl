@@ -6,6 +6,7 @@ DocMeta.setdocmeta!(QILaplace, :DocTestSetup, :(using QILaplace); recursive=true
 # Generate tutorials
 const TUTORIALS_DIR = joinpath(@__DIR__, "src", "tutorials")
 const TUTORIALS = [
+    "signal",
     "dft",
 ]
 
@@ -47,6 +48,7 @@ makedocs(;
         "Home" => "index.md",
         "Getting Started" => "getting_started.md",
         "Tutorials" => [
+            "Signal Encoding and Compression" => "tutorials/signal.md",
             "Discrete Fourier Transform" => "tutorials/dft.md",
             "Damping Transform" => "tutorials/dt.md",
             "Discrete Laplace Transform" => "tutorials/zt.md",

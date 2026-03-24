@@ -13,6 +13,11 @@ CurrentModule = QILaplace
 
 Links to the other sections of this page. Go to the Introduction to know the basic concepts used in this repository, tutorials to know more about blablabla, and benchmarking to see how well the quantum-inspired algorithms work on your computer!
 
+## Tutorials
+
+- [Signal Encoding and Compression Tutorial](tutorials/signal.md)
+- [Discrete Fourier Transform Tutorial](tutorials/dft.md)
+
 
 ```@autodocs
 Modules = [QILaplace]
