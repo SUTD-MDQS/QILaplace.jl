@@ -36,6 +36,7 @@
 # (iii) account for reversal when converting the transformed MPS to a dense
 # vector for comparison with FFT-based reference implementations.
 
+# TODO: Give the gates in their matrix form to the users. 
 using QILaplace, ITensors
 using FFTW, LinearAlgebra
 
