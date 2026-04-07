@@ -47,7 +47,7 @@ makedocs(;
     ),
     pages=[
         "Home" => "index.md",
-        "Getting Started" => "getting_started.md",
+        "Core Concepts" => "core_concepts.md",
         "Tutorials" => [
             "Signal Encoding and Compression" => "tutorials/signal.md",
             "Discrete Fourier Transform" => "tutorials/dft.md",

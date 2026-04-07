@@ -27,13 +27,16 @@ The bridge between a standard 1D signal and a compressed MPS is a process called
 
 ### Binary-encoding of Signal
 To process a signal of length $N = 2^n$, we treat the index of each data point as a binary string of length $n$. We then reshape the vector into an $n$-dimensional tensor of shape $(2, 2, \dots, 2)$.
-In QILaplace.jl, we follow a big-endian encoding convention. For a signal vector $x$ where we want to access the element $x_j$:
 
-1. We represent the index $j$ as a bit-string: $j = (b_1, b_2, \dots, b_n)_2$.
-2. The first bit $b_1$ corresponds to the "slowest" changing index (leftmost in the tensor chain).
-3. The last bit $b_n$ corresponds to the "fastest" changing index (rightmost).
+In QILaplace.jl, we follow a big-endian encoding convention. For a signal vector $x$, the index $j$ is represented as a bit-string $j = (b_1, b_2, \dots, b_n)$. 
 
-In the animation below, you can see an array of 8 entries ($x_0$ to $x_7$) getting rearranged into a 3-dimensional cube. Each axis of this cube corresponds to one of the three indices of our new tensor. By looping through the tensor indices (using the $1, 2$ convention), we can map every point in the high-dimensional space back to its original location in the flat signal array.
+This mapping is such that:
+
+- **Slow index** $b_1$ is assigned to the first tensor, representing the "coarse" global structure of the signal.
+- **Fast index** $b_n$ is assigned to the last tensor, capturing the "fine" high-frequency details.
+
+This big-endian layout ensures that long-range correlations in the signal map directly to the physical structure of the tensor chain. In the animation below, you can see an array of 8 entries ($x_0$ to $x_7$) being reshaped into a 3D tensor. By following the $j = (b_1, b_2, b_3)$ indexing, every element in this high-dimensional space corresponds to a unique point in the original signal.
+
 
 ```@raw html
 <div style="display: flex; justify-content: center;">
@@ -58,7 +61,7 @@ To perform this decomposition, QILaplace.jl provides two primary algorithms, eac
 The standard approach involves a sequential sweep from one end of the tensor chain to the other.
 
 - Mechanism: At each site, the algorithm performs a Singular Value Decomposition (SVD) to split the current tensor into a local MPS site and a remainder that is passed to the next site.
-- Cost: The bottleneck occurs at the central bond of the chain (where the matricized tensor is largest). For an $n$-qubit system, the complexity at the center is $O(2^{3n/2})$, as it requires computing the full singular value spectrum of a $2^{n/2} \times 2^{n/2}$ matrix.
+- Cost: The bottleneck occurs at the central bond of the chain (where the matricized tensor is largest). For an $n$-qubit system, the complexity at the center is $O(2^{3n/2})$, as it requires computing the full singular value spectrum of a $2^{n/2} \times 2^{n/2}$ matrix in the worst case.
 - Best for: Small to medium $n$ where the exact spectrum is needed for high-fidelity representation.
 
 ```@raw html
@@ -75,7 +78,7 @@ The Randomized SVD (RSVD) algorithm uses a "divide-and-conquer" strategy to sign
 
 - Mechanism: Instead of sweeping linearly, RSVD divides the tensor at the middle into a "left" and "right" block. It then "conquers" by iteratively splitting these blocks into single-site tensors.
 - Approximation: Unlike standard SVD, RSVD finds an approximation of the top-$k$ singular values using random projections. This avoids the need to find the full spectrum.
-- Cost: By targeting only the relevant $k$ singular values (where $k \approx \chi$), the complexity at the central bond is reduced to $O(k \cdot 2^{n})$, offering a massive speedup for large signals.
+- Cost: By targeting only the relevant $k$ singular values (where $k \approx \chi$), the complexity at the central bond is reduced to $O(k \cdot 2^{n})$ in the worst case, offering a massive speedup for large signals.
 - Best for: Large-scale signals (e.g., $n > 20$) where the signal is known to have a low rank ($k \ll N$).
 
 ```@raw html
@@ -100,7 +103,9 @@ By "zipping" circuit gates into an MPO, we can compress an entire transformation
 
 - Non-Unitary Transforms ($\hat{DT}$): QILaplace.jl extends this by incorporating non-unitary maps. The Discrete Laplace Transform requires exponential damping, which we implement via a Damping Transform ($\hat{DT}$). This circuit uses non-unitary damping gates that are likewise compressed into an efficient MPO.
 
-By operating on classical hardware, we gain a unique "digital advantage." We can merge the $\hat{DT}$ and $Q\hat{F}T$ into a single, combined $z\hat{T}$ MPO. This unified operator allows us to probe the complex $z$-plane and identify the poles and zeros of a signal at scales reaching $M = 2^{60}$ points—far exceeding the limits of standard FFT-based methods.
+By operating on classical hardware, we gain a unique "digital advantage." We can merge the $\hat{DT}$ and $Q\hat{F}T$ into a single, combined $z\hat{T}$ MPO. This unified operator allows us to probe the complex $z$-plane and identify the poles and zeros of a signal at scales reaching $M = 2^{60}$ points, far exceeding the limits of traditional FFT-based methods.
+
+Check out the [Tutorials](tutorials/signal.md) to get hands-on with constructing these MPS and MPOs, and refer to the [Benchmarking](benchmarking.md) page to see the actual performance results verified on a MacBook M2 Pro and reproducible on your own hardware.
 
 ```@raw html
 <div style="background-color: #fff8e8; border: 1px solid #e7a747ff; border-radius: 10px; padding: 14px 16px; margin: 20px 0;">
@@ -119,9 +124,9 @@ The process follows a specific sequence as seen in the animation below:
 
 **Gate Combination:** Tensors representing individual gates are combined sequentially across the qubits. These gates lie in the same qubit line.
 
-**QR & SVD Truncation:** At each step, a Singular Value Decomposition (SVD) is performed on the bonds. This identifies the "entanglement" the operator introduces between sites and zips up two adjacent tensor trains.
+**SVD with Truncation:** At each step, a Singular Value Decomposition (SVD) is performed on the bonds. This identifies the "entanglement" the operator introduces between sites and zips up two adjacent tensor trains. Since at every point in the algorithm, the SVD is performed at the OC, any truncations performed here will **not** affect the global properties of the operator upto the defined tolerance.
 
-**Compression:** We move down the chain, truncating small singular values at the OC.
+**Orthogonality Center Sweep:** We move down the chain to set the OC to the last site and repeat the process of SVD with truncation on the next controlled-phase gate.
 
 ```@raw html
 <div style="display: flex; justify-content: center;">
@@ -134,8 +139,57 @@ The process follows a specific sequence as seen in the animation below:
 
 Theoretical Guarantee: The efficiency of this compression relies on the fact that the singular values $\sigma_k$ for the QFT and Laplace operators decay exponentially with distance. Specifically, the singular values at a bond often follow the relationship:
 
-
 $$\sigma_k \sim e^{-\alpha k}$$
 
-
 where $k$ is the index of the singular value and $\alpha > 0$ is a decay constant. This ensure that our QFT circuit is represented in an MPO that does not scale with system size. Without this guarantee, we could attempt to compress any arbitrary quantum circuit, but the bond dimensions would grow uncontrollably with qubit size and circuit depth.
+
+### Damping Transform Circuit
+
+While the QFT handles the oscillatory (phase) components of a signal, the discrete Laplace transform also requires exponential damping. To capture this, QILaplace.jl introduces the Damping Transform ($\hat{DT}$).
+
+Unlike the QFT algorithm, the Damping Transform is a non-unitary circuit. This fundamental difference changes how we approach the compression process. For a unitary circuit, the intermediate zip-up steps can naturally maintain a canonical form, allowing for safe truncation. However, because the damping gates are non-unitary, zipping them together does not inherently construct a canonical MPO at each step. If we attempted to truncate the bonds at these intermediate, non-canonical steps, we would introduce uncontrolled global errors and the resulting bond dimension would not correspond to a properly minimized state.
+
+Furthermore, because the real exponent in the Laplace transform lacks the periodicity of the Fourier transform, the $\hat{DT}$ requires a specialized paired-register layout (occupying $2n$ qubits). By encoding the signal on two registers ($|j\rangle|j'\rangle$, where $j=j'$), the second register serves as a static copy that provides the necessary controls for all bits $m$ ($m<l$ and $m>l$) without the exponential bond dimension growth associated with long-range correlations in a single register.
+
+To combine non-unitary controlled damping gates (and the local damping $H_d$ operations) into a well-behaved MPO, we rely on a specialized two-pass algorithm:
+
+**QR Zipping (Forward Pass):** As we combine the gates, we perform sequential QR decompositions to move the Orthogonality Center (OC) from one end of the chain to the other. Crucially, we do not perform any truncation at this stage. The QR sweep ensures the MPO is placed into a strict canonical form.
+
+**SVD Truncation (Backward Pass):** Once the correct canonical form is established, we perform an SVD sweep to move the OC back to the initial site. Because the MPO is now canonical, we can safely apply truncations based on the singular values.
+
+In the animation below, you can watch the sequential QR and SVD sweeps compress the damping circuit into a canonical MPO. The non-unitary gates are marked as hatched squares. As you watch, keep track of the following elements:
+
+- **Site** $T_i$: Represents the Orthogonality Center (OC).
+- **Matrix** $Q_i$: The matrices generated during the QR decomposition sweep.
+- **Isometries** $U_i$ and $V_i$: The left and right isometries generated during the SVD truncation sweep. The left isometries are colored yellow, while the right isometries are colored purple.
+- Red Bonds: Untruncated, intermediate bonds that grow large during the QR pass.
+- Blue Bonds: Truncated bonds that are compressed during the SVD pass.
+
+```@raw html
+<div style="display: flex; justify-content: center;">
+    <video controls width="800" style="border: 1px solid #3B4252; border-radius: 15px; margin: 20px 0;">
+        <source src="../animations/assets/DTCircuitCompression.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
+</div>
+```
+
+### Theoretical Guarantee
+
+The efficiency of this compression relies on the fact that the singular values $\sigma_k$ for these non-unitary operators also decay exponentially with distance, similar to the QFT. For more details, refer to the original paper [Noufal Jaseem _et al._ (2026)](https://arxiv.org/abs/2601.17724).
+As a result, the final compressed MPO is guaranteed to have a bond dimension that saturates with system size for a given error threshold, leading to highly efficient and well-behaved memory scaling.
+
+
+### The Discrete Laplace Transform
+
+The discrete Laplace transform (or $z$-transform) is achieved by the sequential application of the damping and phase transformations. In the quantum-inspired framework of QILaplace.jl, this is formulated as:
+
+$$z\hat{T} \equiv Q\hat{F}T \circ \hat{DT}$$
+
+The transformation is executed on the paired-register layout $|j\rangle |j'\rangle$:
+
+1. **The Damping Stage ($\hat{DT}$):** The Damping Transform implements the real-valued exponential damping of the signal ($e^{-(\omega_r k / N) j}$), which corresponds to the radial factors ($r_k^{-j}$) in the transform. This is achieved by applying the local damping operators $H_d$ and controlled-damping gates to the main register ($|j\rangle$). During this phase, the copy register ($|j'\rangle$) serves as a control, facilitating the necessary interactions for the non-periodic damping gates without increasing bond complexity.
+
+2. **The Phase Stage ($Q\hat{F}T$):** The Quantum Fourier Transform is then applied to the copy register ($|j'\rangle$). This stage implements the oscillatory components ($e^{-i(\omega_i l / N) j'}$) of the transform, using standard unitary Hadamard ($H$) and controlled-phase ($P_{lm}$) gates.
+
+By composing these two MPOs and performing a final truncation sweep, we produce a single, highly compressed $z\hat{T}$ MPO. This operator allows for the direct evaluation of a signal on a dense polar grid in the $z$-plane, enabling efficient pole identification and system analysis for signals of unprecedented scale.

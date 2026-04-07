@@ -11,7 +11,7 @@ CurrentModule = QILaplace
 
 (When QILaplace can do good signal processing and when does it not)
 
-Links to the other sections of this page. Go to the Introduction to know the basic concepts used in this repository, tutorials to know more about blablabla, and benchmarking to see how well the quantum-inspired algorithms work on your computer!
+Links to the other sections of this page. Explore [Core Concepts](core_concepts.md) to understand the theoretical foundations of the library, head to the [Tutorials](tutorials/signal.md) for hands-on coding examples, and check [Benchmarking](benchmarking.md) to see how these quantum-inspired algorithms perform on your hardware.
 
 ## Tutorials
 
