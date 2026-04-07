@@ -1,7 +1,7 @@
 # # Discrete Fourier Transform Tutorial
 #
 # This walkthrough shows how to use QILaplace.jl to compute the DFT.
-
+# Give the gates in their matrix form to the users. 
 using QILaplace, ITensors
 
 # ## Setting up the signal
