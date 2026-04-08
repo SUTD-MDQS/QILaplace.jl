@@ -21,22 +21,29 @@
 # $\sum_{x=0}^{N-1} a_x |x\rangle$, then apply a compressed QFT MPO built from
 # Hadamard and controlled-phase gates.
 #
-# ![QFT circuit for $n=4$ qubits](../animations/circuit_diagram.svg)
+# ![QFT circuit for $n=4$ qubits](../animations/assets/qft_circuit.png)
 #
-# *Figure 1. Four-qubit QFT circuit in product form: each wire receives a Hadamard gate followed by controlled-phase gates from less significant wires, and the unswapped output is in bit-reversed order.*
+# *Figure 1. Four-qubit QFT circuit in product form: Each wire receives a Hadamard gate followed by controlled-phase gates ($P_{ij}$) from less significant wires. The unswapped output is in bit-reversed order.*
 #
-# In the product-form circuit, the output wires are naturally ordered from least
-# significant to most significant bit. Therefore, the raw QFT output appears in
-# **bit-reversed order** relative to the usual DFT indexing. Equivalently, if
-# $k = k_{n-1}\dots k_1k_0$ is the binary index, the unswapped circuit returns
-# amplitudes indexed by $\operatorname{rev}(k)=k_0k_1\dots k_{n-1}$.
+# In the product-form circuit, outputs come out in **bit-reversed order** relative
+# to standard DFT indexing: if $k = k_{n-1}\dots k_1k_0$, the unswapped output is
+# indexed by $\operatorname{rev}(k)=k_0k_1\dots k_{n-1}$.
 #
 # This is why we either (i) append explicit SWAP gates at the end of the QFT
 # circuit, (ii) sample the MPS by keeping the bit-reversed ordering in mind, or
 # (iii) account for reversal when converting the transformed MPS to a dense
 # vector for comparison with FFT-based reference implementations.
+#
+# In this QFT circuit, the Hadamard Gate ($H$) and the Phase gate ($P_{ij}$) are defined as:
+# ```math
+# H = \frac{1}{\sqrt{2}} \begin{pmatrix} 1 & 1 \\ 1 & -1 \end{pmatrix} \quad
+# P_{ij} = \begin{pmatrix} 1 & 0 \\ 0 & e^{2\pi i / 2^{j-i+1}} \end{pmatrix}
+# ```
+# Controlled-phase action:
+# - If the control qubit is $|0\rangle$, nothing happens to the target.
+# - If the control qubit is $|1\rangle$, the target picks up the phase defined by $P_{ij}$.
+#
 
-# TODO: Give the gates in their matrix form to the users. 
 using QILaplace, ITensors
 using FFTW, LinearAlgebra
 
@@ -59,7 +66,7 @@ psi_test, x_norm = signal_mps(x)
 qft_mpo = build_qft_mpo(psi_test; cutoff=1e-14, maxdim=100)
 
 # Ensure MPS and MPO use exactly the same site indices before applying.
-qft_mpo.sites == psi_test.sites # true
+qft_mpo.sites == psi_test.sites # true #hide
 
 # ## Performing the Fourier Transform
 psi_qn = apply(qft_mpo, psi_test)
@@ -87,30 +94,31 @@ psi_qn = apply(qft_mpo, psi_test)
 # option `rev=true` applies output-index bit reversal, so the returned vector is
 # in the usual DFT ordering.
 
-function bitreverse_int(v::Integer, n::Int)
-	bits_lsb = digits(v; base=2, pad=n)
-	return sum(bits_lsb[i] << (n - i) for i in 1:n)
-end
+function bitreverse_int(v::Integer, n::Int) #hide
+	bits_lsb = digits(v; base=2, pad=n) #hide
+	return sum(bits_lsb[i] << (n - i) for i in 1:n) #hide
+end #hide
+#
+function mps_to_vector(psi::SignalMPS; rev::Bool=false) #hide
+	nsites = length(psi.sites) #hide
+	N = 2^nsites #hide
 
-function mps_to_vector(psi::SignalMPS; rev::Bool=false)
-	nsites = length(psi.sites)
-	N = 2^nsites
+	T = prod(psi.data) #hide
+	arr = Array(T, reverse(psi.sites)...) #hide
+	vec_qn = reshape(arr, N) #hide
 
-	T = prod(psi.data)
-	arr = Array(T, reverse(psi.sites)...)
-	vec_qn = reshape(arr, N)
+	if !rev #hide
+		return vec_qn #hide
+	end #hide
 
-	if !rev
-		return vec_qn
-	end
-
-	perm = [bitreverse_int(k, nsites) + 1 for k in 0:(N - 1)]
-	return vec_qn[perm]
-end
+	perm = [bitreverse_int(k, nsites) + 1 for k in 0:(N - 1)] #hide
+	return vec_qn[perm] #hide
+end #hide
+nothing #hide
 
 # `mps_to_vector` is practical for small to moderate $n$ and debugging. For very
 # large systems, dense reconstruction is exponentially expensive in memory/time.
-# We recommend sampling the spectrum directly from the MPS form insuch cases. 
+# We recommend sampling the spectrum directly from the MPS form in such cases. 
 #
 # Next we compare QILaplace output with FFTW and sample a few indices.
 
@@ -121,18 +129,32 @@ qft_qn = mps_to_vector(psi_qn; rev=false)
 qft_fn = mps_to_vector(psi_qn; rev=true)
 fftw_ref = bfft(x_hat) / sqrt(N)
 
+println("\nQFT coefficients in circuit order (unswapped):")
+println(round.(qft_qn; digits=5))
+
+println("\nQFT coefficients in FFT order (bit-reversed):")
+println(round.(qft_fn; digits=5))
+
 comparison_error = norm(qft_fn - fftw_ref)
 @show comparison_error
 
-sample_k = [1, 4, 7]
-for k_idx in sample_k
-	idx_fn = k_idx + 1
-	idx_qn = bitreverse_int(k_idx, n) + 1
-    qft_val_idx = round(qft_qn[idx_qn];digits=5)
-    fftw_val_idx = round(fftw_ref[idx_fn];digits=5)
-	@show k_idx qft_val_idx fftw_val_idx abs(qft_val_idx - fftw_val_idx)
-    println()
-end
+# Explicit sampling for k = 1 and k = 7.
+# n=4:
+# - k=1  -> binary 0001 -> reversed 1000 -> index 8 in 0-based -> 9 in Julia.
+# - k=7  -> binary 0111 -> reversed 1110 -> index 14 in 0-based -> 15 in Julia.
+k1 = 1
+idx_fn_k1 = k1 + 1
+idx_qn_k1 = 9
+qft_val_k1 = round(qft_qn[idx_qn_k1]; digits=5)
+fftw_val_k1 = round(fftw_ref[idx_fn_k1]; digits=5)
+@show k1 qft_val_k1 fftw_val_k1 abs(qft_val_k1 - fftw_val_k1)
+
+k2 = 7
+idx_fn_k2 = k2 + 1
+idx_qn_k2 = 15
+qft_val_k2 = round(qft_qn[idx_qn_k2]; digits=5)
+fftw_val_k2 = round(fftw_ref[idx_fn_k2]; digits=5)
+@show k2 qft_val_k2 fftw_val_k2 abs(qft_val_k2 - fftw_val_k2)
 
 # For a moderately larger signal, we compare the QFT spectrum against FFTW and plot the
 # absolute error on a secondary (right) y-axis with a distinct linestyle.
@@ -208,68 +230,69 @@ qft_big_shift = fftshift(qft_big)
 fftw_big_shift = fftshift(fftw_big)
 
 ω_axis = (2π / N_big) .* collect(-div(N_big, 2):(div(N_big, 2) - 1))
-peak_marks = [-π / 4, -π / 17, π / 17, π / 4]
-
-xtick_vals = sort(unique(vcat([-π, -π / 2], peak_marks, [0.0, π / 2, π])))
-xtick_labels = map(xtick_vals) do ω
-	if isapprox(ω, -π / 4; atol=1e-10)
-		L"-\frac{\pi}{4}"
-	elseif isapprox(ω, -π / 17; atol=1e-10)
-		L"-\frac{\pi}{17}"
-	elseif isapprox(ω, π / 17; atol=1e-10)
-		L"\frac{\pi}{17}"
-	elseif isapprox(ω, π / 4; atol=1e-10)
-		L"\frac{\pi}{4}"
-	elseif isapprox(ω, -π / 2; atol=1e-10)
-		L"-\frac{\pi}{2}"
-	elseif isapprox(ω, π / 2; atol=1e-10)
-		L"\frac{\pi}{2}"
-	elseif isapprox(ω, -π; atol=1e-10)
-		L"-\pi"
-	elseif isapprox(ω, π; atol=1e-10)
-		L"\pi"
-	else
-		""
-	end
-end
+peak_marks = [-π / 4, -π / 17, π / 17, π / 4];
+#
+xtick_vals = sort(unique(vcat([-π, -π / 2], peak_marks, [0.0, π / 2, π]))) #hide
+xtick_labels = map(xtick_vals) do ω #hide
+	if isapprox(ω, -π / 4; atol=1e-10) #hide
+		L"-\frac{\pi}{4}" #hide
+	elseif isapprox(ω, -π / 17; atol=1e-10) #hide
+		L"-\frac{\pi}{17}" #hide
+	elseif isapprox(ω, π / 17; atol=1e-10) #hide
+		L"\frac{\pi}{17}" #hide
+	elseif isapprox(ω, π / 4; atol=1e-10) #hide
+		L"\frac{\pi}{4}" #hide
+	elseif isapprox(ω, -π / 2; atol=1e-10) #hide
+		L"-\frac{\pi}{2}" #hide
+	elseif isapprox(ω, π / 2; atol=1e-10) #hide
+		L"\frac{\pi}{2}" #hide
+	elseif isapprox(ω, -π; atol=1e-10) #hide
+		L"-\pi" #hide
+	elseif isapprox(ω, π; atol=1e-10) #hide
+		L"\pi" #hide
+	else #hide
+		"" #hide
+	end #hide
+end #hide
+nothing #hide
+p = plot( #hide
+	ω_axis, #hide
+	abs.(qft_big_shift); #hide
+    label="|QILaplace QFT|", #hide
+    linewidth=2, #hide
+	xlabel=L"\omega", #hide
+    ylabel="Magnitude", #hide
+	xticks=(xtick_vals, xtick_labels), #hide
+	legend=:topleft, #hide
+); #hide
+plot!(p, ω_axis, abs.(fftw_big_shift); label="|FFTW bfft|", linewidth=2, linestyle=:dash); #hide
+vline!(p, peak_marks; color=:grey, linestyle=:dashdot, linewidth=1.0, label=false); #hide
+#
+p_err = twinx(p); #hide
+abs_err_big_shift = fftshift(abs_err_big); #hide
+err_max = maximum(abs_err_big_shift); #hide
+err_ylim = max(2 * err_max, eps()); #hide
+plot!( #hide
+    p_err, #hide
+	ω_axis, #hide
+	abs_err_big_shift; #hide
+    label="|error|", #hide
+	linewidth=1.5, #hide
+    linestyle=:dot, #hide
+    color=:grey, #hide
+    ylabel="Absolute error", #hide
+	legend=:topright, #hide
+); #hide
+ylims!(p_err, (0.0, err_ylim)); #hide
+#
+plot_path = joinpath(@__DIR__, "..", "assets", "dft_spectrum_comparison.svg"); #hide
+mkpath(dirname(plot_path)); #hide
+savefig(p, plot_path); #hide
+nothing #hide
 
 zero_idx = findfirst(==(0.0), ω_axis)
 dc_numeric = isnothing(zero_idx) ? NaN + NaN * im : fftw_big_shift[zero_idx]
 @show dc_pred dc_numeric abs(dc_pred - dc_numeric)
-
-p = plot(
-	ω_axis,
-	abs.(qft_big_shift);
-    label="|QILaplace QFT|",
-    linewidth=2,
-	xlabel=L"\omega",
-    ylabel="Magnitude",
-	xticks=(xtick_vals, xtick_labels),
-	legend=:topleft,
-)
-plot!(p, ω_axis, abs.(fftw_big_shift); label="|FFTW bfft|", linewidth=2, linestyle=:dash)
-vline!(p, peak_marks; color=:grey, linestyle=:dashdot, linewidth=1.0, label=false)
-
-p_err = twinx(p)
-abs_err_big_shift = fftshift(abs_err_big)
-err_max = maximum(abs_err_big_shift)
-err_ylim = max(2 * err_max, eps())
-plot!(
-    p_err,
-	ω_axis,
-	abs_err_big_shift;
-    label="|error|",
-	linewidth=1.5,
-    linestyle=:dot,
-    color=:grey,
-    ylabel="Absolute error",
-	legend=:topright,
-)
-ylims!(p_err, (0.0, err_ylim))
-
-plot_path = joinpath(@__DIR__, "..", "assets", "dft_spectrum_comparison.svg");
-mkpath(dirname(plot_path));
-savefig(p, plot_path);
 
 # The generated spectrum comparison plot is embedded below.
 #
