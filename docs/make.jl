@@ -10,18 +10,18 @@ const TUTORIALS = [
     "dft",
 ]
 
-# for tutorial in TUTORIALS
-#     file_path = joinpath(TUTORIALS_DIR, "$(tutorial).jl")
-#     if isfile(file_path)
-#         Literate.markdown(
-#             file_path,
-#             TUTORIALS_DIR;
-#             execute=true,
-#         )
-#     else
-#         @warn "Tutorial source file not found: $file_path"
-#     end
-# end
+for tutorial in TUTORIALS
+    file_path = joinpath(TUTORIALS_DIR, "$(tutorial).jl")
+    if isfile(file_path)
+        Literate.markdown(
+            file_path,
+            TUTORIALS_DIR;
+            execute=true,
+        )
+    else
+        @warn "Tutorial source file not found: $file_path"
+    end
+end
 
 makedocs(;
     modules=[

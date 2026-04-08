@@ -17,3 +17,4 @@ docs/Manifest.toml
 *.swo
 .vscode/
 .idea/
+TODO*
