@@ -165,7 +165,9 @@ mkpath(dirname(structured_plot_path)); #hide
 savefig(p_struct, structured_plot_path); #hide
 nothing #hide
 
-# ![Structured signal compression comparison](../assets/signal_structured_comparison.svg)
+# ```@raw html
+# <img src="../assets/signal_structured_comparison.svg" alt="Structured signal compression comparison">
+# ```
 #
 # *Figure 1: Both SVD and RSVD accurately track the original structured signal.*
 
@@ -250,7 +252,9 @@ mkpath(dirname(noisy_plot_path)); #hide
 savefig(p_noisy, noisy_plot_path); #hide
 nothing #hide
 
-# ![Noisy signal compression comparison](../assets/signal_noisy_comparison.svg)
+# ```@raw html
+# <img src="../assets/signal_noisy_comparison.svg" alt="Noisy signal compression comparison">
+# ```
 #
 # *Figure 2: SVD tries to fit the noise, resulting in a messy reconstruction. RSVD captures the underlying structure, effectively filtering out the noise.*
 #

@@ -225,12 +225,12 @@ println("  Rel Error:  ", round(relative_l2(x_struct_rsvd, x_structured), sigdig
 
 ````
 SVD Performance:
-  Time:       12.0128 seconds
+  Time:       12.0618 seconds
   Max Bond:   6
   Rel Error:  5.91e-15
 
 RSVD Performance:
-  Time:       3.3436 seconds
+  Time:       3.3782 seconds
   Max Bond:   6
   Rel Error:  1.09e-13
 
@@ -240,7 +240,9 @@ Both algorithms captured the structure perfectly, but let's visualize
 the reconstruction to be sure.
 
 
-![Structured signal compression comparison](../assets/signal_structured_comparison.svg)
+```@raw html
+<img src="../assets/signal_structured_comparison.svg" alt="Structured signal compression comparison">
+```
 
 *Figure 1: Both SVD and RSVD accurately track the original structured signal.*
 
@@ -314,12 +316,12 @@ println("  Rel Error:  ", round(err_noisy_rsvd, sigdigits=3), " (Higher, but acc
 
 ````
 Noisy SVD Performance:
-  Time:       0.3316 seconds
+  Time:       0.3389 seconds
   Max Bond:   32 (Massive blow-up!)
   Rel Error:  2.17e-15
 
 Noisy RSVD Performance:
-  Time:       0.0022 seconds
+  Time:       0.0023 seconds
   Max Bond:   10 (Constrained)
   Rel Error:  0.188 (Higher, but acceptable)
 
@@ -331,7 +333,9 @@ the noise and retained the core physical signal!
 
 
 
-![Noisy signal compression comparison](../assets/signal_noisy_comparison.svg)
+```@raw html
+<img src="../assets/signal_noisy_comparison.svg" alt="Noisy signal compression comparison">
+```
 
 *Figure 2: SVD tries to fit the noise, resulting in a messy reconstruction. RSVD captures the underlying structure, effectively filtering out the noise.*
 

@@ -296,7 +296,9 @@ dc_numeric = isnothing(zero_idx) ? NaN + NaN * im : fftw_big_shift[zero_idx]
 
 # The generated spectrum comparison plot is embedded below.
 #
-# ![QFT spectrum vs FFTW with absolute error](../assets/dft_spectrum_comparison.svg)
+# ```@raw html
+# <img src="../../assets/dft_spectrum_comparison.svg" alt="QFT spectrum vs FFTW with absolute error">
+# ```
 #
 # *Figure 2. Shifted spectrum comparison in angular frequency $\omega\in[-\pi,\pi)$ for $n=8$: the QILaplace QFT and FFTW reference overlap at the expected peak locations near $\omega\approx\pm\pi/17$ and $\omega=\pm\pi/4$, while the dotted error curve (right axis) remains small throughout the band.*
 # 

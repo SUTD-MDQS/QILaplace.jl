@@ -8,6 +8,7 @@ const TUTORIALS_DIR = joinpath(@__DIR__, "src", "tutorials")
 const TUTORIALS = [
     "signal",
     "dft",
+    "dt",
 ]
 
 for tutorial in TUTORIALS
