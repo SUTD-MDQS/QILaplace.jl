@@ -93,7 +93,7 @@ end
 
                 # Build zTMPS input and apply ZT MPO
                 ψ_in, _ = signal_ztmps(x)
-                mpo = build_zt_mpo(ψ_in, ωr)
+                mpo = build_zt_mpo(ψ_in, ωr; cutoff=1e-15, maxdim=typemax(Int))
                 ψ_out = apply(mpo, ψ_in)
 
                 # Extract output Z matrix
@@ -101,7 +101,8 @@ end
 
                 # Evaluate error
                 err = LinearAlgebra.norm(Z_mpo - Z_ref)
-                @test err ≤ 1e-7
+                # Tight Frobenius bound; SVD + `apply` fusion stays below ~1e-8 for n≤4 at cutoff 1e-15.
+                @test err ≤ 5e-8
             end
         end
     end

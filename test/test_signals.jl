@@ -24,7 +24,15 @@ using QILaplace.Signals
     s5 = generate_signal(n, kind=:sin_decay, freq=[1.0, 2.0], decay_rate=[0.1, 0.2])
     @test length(s5) == 2^n
 
-    # 6. Error handling
+    # 6. Multi-sine benchmark families
+    s6 = generate_signal(n, kind=:multi_sin)
+    @test length(s6) == 2^n
+    s7 = generate_signal(n, kind=:multi_sin_exp)
+    @test length(s7) == 2^n
+    s8 = generate_signal(n, kind=:abs_cos_power_p8)
+    @test length(s8) == 2^n
+
+    # 7. Error handling
     @test_throws ArgumentError generate_signal(
         n, kind=:sin_decay, freq=[1.0], decay_rate=[0.1, 0.2]
     ) # Mismatch
@@ -74,4 +82,12 @@ end
     sint = generate_signal(n, kind=:sin, dt=dt, freq=1)
     sfloat = generate_signal(n, kind=:sin, dt=dt, freq=1.0)
     @test all(isapprox.(sint, sfloat; atol=1e-12, rtol=0))
+
+    # default dt should follow documented 1/(|freq|*2^n)
+    nd = 4
+    fd = 2.0
+    s_default = generate_signal(nd, kind=:sin, freq=fd, phase=0.0, noise_level=0.0)
+    dt_default = 1.0 / (abs(fd) * 2^nd)
+    s_expected = [sin(fd * dt_default * j) for j in 0:(2^nd - 1)]
+    @test all(isapprox.(s_default, s_expected; atol=1e-12, rtol=0))
 end

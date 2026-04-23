@@ -240,12 +240,13 @@ which is required for non-unitary transforms (Damping Transform, z-Transform).
 # Keyword Arguments
 - `cutoff::Real=1e-10` — SVD truncation cutoff.
 - `maxdim::Int`        — maximum bond dimension.
+- Additional keywords (e.g. `method=:rsvd`, `k`, `p`, `q`) are forwarded to [`signal_mps`](@ref).
 """
 function signal_ztmps(
-    x::AbstractVector{<:Number}; cutoff::Real=1e-10, maxdim::Int=typemax(Int)
+    x::AbstractVector{<:Number}; cutoff::Real=1e-10, maxdim::Int=typemax(Int), kwargs...
 )
     # The SignalMPS to be copied
-    ψ_signal, normalisation_const = signal_mps(x; cutoff=cutoff, maxdim=maxdim)
+    ψ_signal, normalisation_const = signal_mps(x; cutoff=cutoff, maxdim=maxdim, kwargs...)
     n = nsite(ψ_signal)
 
     sites_main = sim.(ψ_signal.sites)

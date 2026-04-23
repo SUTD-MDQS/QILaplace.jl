@@ -9,7 +9,7 @@
 # The algorithm composes these blocks using zip-up and zip-down compression.
 
 module DTTransform
-using ITensors, Printf, LinearAlgebra
+using ITensors
 using ..Mpo: PairedSiteMPO
 using ..Mps: zTMPS
 using ..DTGates: control_damping_mpo, control_damping_copy_mpo
@@ -70,13 +70,12 @@ function zip_to_combine_mpos(mpo1::PairedSiteMPO, mpo2::PairedSiteMPO, oc::Int)
                 append!(left_inds, common_bonds)
             end
 
-            U, S, V = svd(core, left_inds...; cutoff=1e-14, maxdim=1000)
-
-            new_data[idx1] = U
-            T = S * V
+            Q, R = qr(core, left_inds...)
+            new_data[idx1] = Q
+            T = R
 
             # Update bonds
-            bond = commonind(U, S)
+            bond = commonind(new_data[idx1], T)
             if is_main
                 # main[i] -> copy[i]
                 new_bonds_copy[site_idx] = bond
@@ -129,14 +128,12 @@ function zip_to_combine_mpos(mpo1::PairedSiteMPO, mpo2::PairedSiteMPO, oc::Int)
 
             # Factorize core -> T * V (T is remainder to left, V is site tensor)
             # We want V to have right_inds.
-            rem_inds = uniqueinds(core, right_inds)
-            U, S, V = svd(core, rem_inds...; cutoff=1e-14, maxdim=1000)
-
-            new_data[idx1] = V
-            T = U * S
+            Q, R = qr(core, right_inds...)
+            new_data[idx1] = Q
+            T = R
 
             # Update bonds
-            bond = commonind(S, V)
+            bond = commonind(new_data[idx1], T)
             if !is_main # copy[i]
                 # main[i] <- copy[i]
                 new_bonds_copy[site_idx] = bond
@@ -159,42 +156,41 @@ function zip_to_combine_mpos(mpo1::PairedSiteMPO, mpo2::PairedSiteMPO, oc::Int)
         throw(ArgumentError("zip_to_combine_mpos: Unable to determine zip direction."))
     end
 
-    oc = L1 - L2 # This is just a placeholder, OC tracking needs to be consistent with usage
-    return PairedSiteMPO(
+    oc_out = direction == "down" ? min(2 * L2, 2 * L1) : max(1, 2 * L1 - 2 * L2 + 1)
+    out = PairedSiteMPO(
         new_data, new_sites_main, new_sites_copy, new_bonds_main, new_bonds_copy
-    ),
-    oc,
-    direction
+    )
+    return out, oc_out, direction
 end
 
 # Function to compress the zipped MPO starting from the given oc
 function zip_to_compress_mpo(
-    mpo::PairedSiteMPO, oc::Int, direction::String; cutoff=1e-14, maxdim=1000
+    mpo::PairedSiteMPO,
+    oc::Int,
+    direction::String;
+    cutoff=1e-14,
+    maxdim=1000,
+    active_first::Int=1,
+    active_last::Int=length(mpo.data),
 )
     L = length(mpo.data) # Total tensors (2n)
+    active_first = max(1, active_first)
+    active_last = min(L, active_last)
+    active_last > active_first || return mpo, oc
     new_data = copy(mpo.data)
     new_bonds_main = copy(mpo.bonds_main)
     new_bonds_copy = copy(mpo.bonds_copy)
 
+    # First, enforce canonical gauge by QR so OC moves with QR (legacy-style).
     if direction == "down"
-        # Move OC to the end (sweep 1 -> L)
-        for i in 1:(L-1)
-            # Contract i and i+1
-            core = new_data[i] * new_data[i+1]
-
-            # SVD
-            # Left indices: unique indices of i (excluding bond to i+1)
-            left_inds = uniqueinds(new_data[i], new_data[i+1])
-            U, S, V = svd(core, left_inds...; cutoff=cutoff, maxdim=maxdim)
-
-            new_data[i] = U
-            new_data[i+1] = S * V
-
-            # Update bond
-            bond = commonind(U, S)
-            # i is index in data (1..2n)
-            # If i is odd (main[m]), bond is bonds_copy[m]
-            # If i is even (copy[c]), bond is bonds_main[c]
+        for i in active_first:(active_last - 1)
+            A = new_data[i]
+            B = new_data[i + 1]
+            keep = uniqueinds(A, B)
+            Q, R = qr(A, keep)
+            new_data[i] = Q
+            new_data[i + 1] = R * B
+            bond = commonind(new_data[i], new_data[i + 1])
             if isodd(i)
                 m = (i + 1) ÷ 2
                 new_bonds_copy[m] = bond
@@ -205,26 +201,21 @@ function zip_to_compress_mpo(
                 end
             end
         end
-        oc = L
+        oc = active_last
 
-    elseif direction == "up"
-        # Move OC to the start (sweep L -> 1)
-        for i in L:-1:2
-            # Contract i and i-1
-            core = new_data[i] * new_data[i-1]
+        # Then truncate by sweeping opposite direction (right -> left).
+        for i in active_last:-1:(active_first + 1)
+            # Contract i and i+1
+            core = new_data[i] * new_data[i - 1]
 
             # SVD
-            # Right indices: unique indices of i (excluding bond to i-1)
-            right_inds = uniqueinds(new_data[i], new_data[i-1])
+            right_inds = uniqueinds(new_data[i], new_data[i - 1])
             U, S, V = svd(core, right_inds...; cutoff=cutoff, maxdim=maxdim)
-
             new_data[i] = U
-            new_data[i-1] = S * V
+            new_data[i - 1] = S * V
 
             # Update bond
             bond = commonind(U, S)
-            # Bond is between i and i-1.
-            # i-1 is the left tensor.
             idx_left = i - 1
             if isodd(idx_left)
                 m = (idx_left + 1) ÷ 2
@@ -236,7 +227,54 @@ function zip_to_compress_mpo(
                 end
             end
         end
-        oc = 1
+        oc = active_first
+
+    elseif direction == "up"
+        for i in active_last:-1:(active_first + 1)
+            A = new_data[i]
+            B = new_data[i - 1]
+            keep = uniqueinds(A, B)
+            Q, R = qr(A, keep)
+            new_data[i] = Q
+            new_data[i - 1] = B * R
+            bond = commonind(new_data[i], new_data[i - 1])
+            idx_left = i - 1
+            if isodd(idx_left)
+                m = (idx_left + 1) ÷ 2
+                new_bonds_copy[m] = bond
+            else
+                c = idx_left ÷ 2
+                if c <= length(new_bonds_main)
+                    new_bonds_main[c] = bond
+                end
+            end
+        end
+        oc = active_first
+
+        # Then truncate by sweeping opposite direction (left -> right).
+        for i in active_first:(active_last - 1)
+            # Contract i and i-1
+            core = new_data[i] * new_data[i + 1]
+
+            # SVD
+            left_inds = uniqueinds(new_data[i], new_data[i + 1])
+            U, S, V = svd(core, left_inds...; cutoff=cutoff, maxdim=maxdim)
+            new_data[i] = U
+            new_data[i + 1] = S * V
+
+            # Update bond
+            bond = commonind(U, S)
+            if isodd(i)
+                m = (i + 1) ÷ 2
+                new_bonds_copy[m] = bond
+            else
+                c = i ÷ 2
+                if c <= length(new_bonds_main)
+                    new_bonds_main[c] = bond
+                end
+            end
+        end
+        oc = active_last
     else
         throw(
             ArgumentError(
@@ -245,10 +283,8 @@ function zip_to_compress_mpo(
         )
     end
 
-    return PairedSiteMPO(
-        new_data, mpo.sites_main, mpo.sites_copy, new_bonds_main, new_bonds_copy
-    ),
-    oc
+    out_mpo = PairedSiteMPO(new_data, mpo.sites_main, mpo.sites_copy, new_bonds_main, new_bonds_copy)
+    return out_mpo, oc
 end
 
 """
@@ -349,10 +385,8 @@ function build_dt_mpo(
         # Combine with current MPO (zip-down since they share first sites)
         mpo_part1, oc, _ = zip_to_combine_mpos(mpo_part1, block_k, oc)
 
-        # Compress
-        mpo_part1, oc = zip_to_compress_mpo(
-            mpo_part1, oc, "down"; cutoff=cutoff, maxdim=maxdim
-        )
+        # Compress (full 2n chain — partial windows left tail bonds untruncated and inflated DT bonds)
+        mpo_part1, oc = zip_to_compress_mpo(mpo_part1, oc, "down"; cutoff=cutoff, maxdim=maxdim)
     end
 
     # =====================================================
@@ -367,10 +401,7 @@ function build_dt_mpo(
         # Combine with current MPO (zip-up since they share last sites)
         mpo_part1, oc, _ = zip_to_combine_mpos(mpo_part1, block_k, oc)
 
-        # Compress
-        mpo_part1, oc = zip_to_compress_mpo(
-            mpo_part1, oc, "up"; cutoff=cutoff, maxdim=maxdim
-        )
+        mpo_part1, oc = zip_to_compress_mpo(mpo_part1, oc, "up"; cutoff=cutoff, maxdim=maxdim)
     end
     return mpo_part1
 end

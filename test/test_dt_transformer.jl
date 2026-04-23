@@ -134,7 +134,7 @@ end
             @test isapprox(
                 Array(expected_array, inds(expected_array)...),
                 Array(combined_array, inds(combined_array)...);
-                atol=1e-10,
+                atol=1e-12,
             )
         end
 
@@ -172,10 +172,10 @@ end
             combined, oc, _ = zip_to_combine_mpos(mpo_long, mpo_short, 0)
 
             # Compress down
-            compressed_down, _ = zip_to_compress_mpo(combined, oc, "down"; cutoff=1e-10)
+            compressed_down, _ = zip_to_compress_mpo(combined, oc, "down"; cutoff=1e-14)
 
             # Compress up
-            compressed_up, _ = zip_to_compress_mpo(combined, oc, "up"; cutoff=1e-10)
+            compressed_up, _ = zip_to_compress_mpo(combined, oc, "up"; cutoff=1e-14)
 
             # Verify fidelity
             T_combined = prod(combined.data)
@@ -185,12 +185,12 @@ end
             @test isapprox(
                 Array(T_combined, inds(T_combined)...),
                 Array(T_down, inds(T_down)...);
-                atol=1e-10,
+                atol=1e-12,
             )
             @test isapprox(
                 Array(T_combined, inds(T_combined)...),
                 Array(T_up, inds(T_up)...);
-                atol=1e-10,
+                atol=1e-12,
             )
 
             compressed_down_bonds = vcat(
@@ -223,14 +223,16 @@ end
 
             # Create zTMPS and build MPO using its sites
             ψ, = signal_ztmps(vec)
-            mpo = build_dt_mpo(ψ, ωr)
+            mpo = build_dt_mpo(ψ, ωr; cutoff=1e-15, maxdim=typemax(Int))
 
             ψ_out = apply(mpo, ψ)
 
             # Project copy register to input bits and extract main-register vector
             actual = ztmps_to_main_vector(ψ_out, bits; reverse_bits=true) # DT output has bit-reversed ordering (LSB-first)
 
-            @test isapprox(actual, expected; atol=1e-7)
+            # Frobenius norm — qualify `LinearAlgebra.norm`: `QILaplace` exports `norm` only for MPS types.
+            @test LinearAlgebra.norm(actual - expected) ≤
+                1e-7 * max(1.0, LinearAlgebra.norm(expected))
         end
     end
 end
