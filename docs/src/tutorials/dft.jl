@@ -11,7 +11,7 @@
 #
 # ```math
 # \mathrm{QFT}_N\,|x\rangle = \frac{1}{\sqrt{N}}\sum_{k=0}^{N-1}
-# e^{2\pi ixk/N}|k\rangle,
+# e^{-2\pi ixk/N}|k\rangle,
 # ```
 #
 # where $x,k\in\{0,\dots,N-1\}$ and $|x\rangle$ denotes the computational basis
@@ -37,7 +37,7 @@
 # In this QFT circuit, the Hadamard Gate ($H$) and the Phase gate ($P_{ij}$) are defined as:
 # ```math
 # H = \frac{1}{\sqrt{2}} \begin{pmatrix} 1 & 1 \\ 1 & -1 \end{pmatrix} \quad
-# P_{ij} = \begin{pmatrix} 1 & 0 \\ 0 & e^{2\pi i / 2^{j-i+1}} \end{pmatrix}
+# P_{ij} = \begin{pmatrix} 1 & 0 \\ 0 & e^{-2\pi i / 2^{j-i+1}} \end{pmatrix}
 # ```
 # Controlled-phase action:
 # - If the control qubit is $|0\rangle$, nothing happens to the target.
@@ -80,16 +80,14 @@ psi_qn = apply(qft_mpo, psi_test)
 # FFTW conventions are:
 #
 # ```math
-# \mathrm{fft}(x)_k = \sum_{x=0}^{N-1} x_x\,e^{-2\pi i xk/N},
-# \qquad
-# \mathrm{bfft}(x)_k = \sum_{x=0}^{N-1} x_x\,e^{+2\pi i xk/N}.
+# \mathrm{fft}(x)_k = \sum_{x=0}^{N-1} x_x\,e^{-2\pi i xk/N}.
 # ```
 #
-# Our QFT convention uses the $+2\pi i$ phase and includes $1/\sqrt{N}$, so for
+# Our QFT convention uses the $-2\pi i$ phase and includes $1/\sqrt{N}$, so for
 # normalized input $\hat{x}=x/\|x\|_2$ we expect
 #
 # ```math
-# \mathrm{QFT}_N\hat{x} = \frac{\mathrm{bfft}(\hat{x})}{\sqrt{N}}.
+# \mathrm{QFT}_N\hat{x} = \frac{\mathrm{fft}(\hat{x})}{\sqrt{N}}.
 # ```
 
 # We can use the package utility `mps_to_vector` directly. With
@@ -105,7 +103,7 @@ N = length(x)
 
 qft_qn = mps_to_vector(psi_qn; reverse=false)
 qft_fn = mps_to_vector(psi_qn; reverse=true)
-fftw_ref = bfft(x) / sqrt(N)
+fftw_ref = fft(x) / sqrt(N)
 
 println("\nQFT coefficients in circuit order (unswapped):")
 println(round.(qft_qn; digits=5))
@@ -157,7 +155,7 @@ qft_big_mpo = build_qft_mpo(psi_big; cutoff=1e-12, maxdim=1000)
 psi_big_qn = apply(qft_big_mpo, psi_big)
 
 qft_big = mps_to_vector(psi_big_qn; reverse=true)
-fftw_big = bfft(x_big) / sqrt(length(x_big))
+fftw_big = fft(x_big) / sqrt(length(x_big))
 abs_err_big = abs.(qft_big .- fftw_big)
 
 N_big = length(x_big)
@@ -192,7 +190,7 @@ N_big = length(x_big)
 # $\omega\approx\pm\Omega_1$ and $\omega\approx\pm\Omega_2$.
 #
 # The DC value (at $\omega=0$) for the physical-scale transform
-# $\mathrm{bfft}(x)/\sqrt{N}$ equals
+# $\mathrm{fft}(x)/\sqrt{N}$ equals
 #
 # ```math
 # X(0) = \frac{1}{\sqrt{N}}\sum_{j=0}^{N-1}x_j.
@@ -245,7 +243,7 @@ p = plot( #hide
 	xticks=(xtick_vals, xtick_labels), #hide
 	legend=:topleft, #hide
 ); #hide
-plot!(p, ω_axis, abs.(fftw_big_shift); label="|FFTW bfft|", linewidth=2, linestyle=:dash); #hide
+plot!(p, ω_axis, abs.(fftw_big_shift); label="|FFTW fft|", linewidth=2, linestyle=:dash); #hide
 vline!(p, peak_marks; color=:black, linestyle=:dashdot, linewidth=1.0, label=false); #hide
 #
 p_err = twinx(p); #hide

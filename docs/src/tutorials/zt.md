@@ -430,12 +430,14 @@ z_pole_pos = (1 / a_big) * exp( im * ω0_big)
 z_pole_neg = (1 / a_big) * exp(-im * ω0_big)
 @show z_pole_pos z_pole_neg;
 
-γ_pos = a_big * exp( im * ω0_big)
-γ_neg = a_big * exp(-im * ω0_big)
+γ_pos = a_big * exp( im * ω0_big);
+γ_neg = a_big * exp(-im * ω0_big);
 ````
 
 ````
-1.0001415937510256 - 0.0041006035114532985im
+z_pole_pos = 0.9998416187689586 + 0.004099373607135251im
+z_pole_neg = 0.9998172225959715 - 0.00809869662229722im
+
 ````
 
 ### Coarse-grained scan

@@ -24,7 +24,7 @@ end
 P(θ, site_index::IType) where {IType<:Index} = begin
     Pmat = [
         1 0;
-        0 exp(im * θ)
+        0 exp(-im * θ)
     ]
     ITensor(Pmat, site_index', site_index)
 end

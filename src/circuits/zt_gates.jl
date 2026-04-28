@@ -65,8 +65,8 @@ function control_Hphase_ztmps_mpo(k::Int, sites::Vector{IType}) where {IType<:In
     # 2. Copy 1 (Site 2)
     # Connects bonds_copy[1] (Left) and bonds_main[1] (Right)
     # Phase if bond=2
-    # Note: We use negative angle to implement exp(-i * 2π * ...) for Z-transform/DFT
-    θ = -2π / 2.0^(k)
+    # P(θ) already applies exp(-im * θ), so pass a positive θ here.
+    θ = 2π / 2.0^(k)
     data[2] =
         I(sites_copy[1]) * onehot(bonds_copy[1], 1, bonds_main[1], 1) +
         P(θ, sites_copy[1]) * onehot(bonds_copy[1], 2, bonds_main[1], 2)
@@ -83,7 +83,7 @@ function control_Hphase_ztmps_mpo(k::Int, sites::Vector{IType}) where {IType<:In
         # Copy j (Site 2j)
         # Connects bonds_copy[j] (Left) and bonds_main[j] (Right)
         # Phase if bond=2
-        θ = -2π / 2.0^(k - j + 1)
+        θ = 2π / 2.0^(k - j + 1)
         data[2j] =
             I(sites_copy[j]) * onehot(bonds_copy[j], 1, bonds_main[j], 1) +
             P(θ, sites_copy[j]) * onehot(bonds_copy[j], 2, bonds_main[j], 2)

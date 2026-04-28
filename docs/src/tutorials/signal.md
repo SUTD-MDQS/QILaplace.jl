@@ -54,8 +54,12 @@ x_structured = generate_signal(
 ````
 
 Now, we compress this signal into an MPS. The `signal_mps` function returns
-a `SignalMPS` whose `amplitude` stores the original vector norm while
-coefficient accessors already return physical-scale values.
+a `SignalMPS` that contains the `amplitude` of the original signal. This is
+necessary because when we binary-encode the signal onto a wavefunction, we store
+the normalized signal. However, in order to retrieve the original signal, we need to
+multiply the coefficient by the amplitude (the norm). The SignalMPS does this by storing
+amplitude as an internal field separately, and multiplies the normalised MPS cores
+with the amplitude when we retrieve the coefficients of the SignalMPS.
 
 ````julia
 
@@ -235,12 +239,12 @@ println("  Rel Error:  ", round(relative_l2(x_struct_rsvd, x_structured), sigdig
 
 ````
 SVD Performance:
-  Time:       12.9468 seconds
+  Time:       12.2793 seconds
   Max Bond:   6
   Rel Error:  3.63e-5
 
 RSVD Performance:
-  Time:       3.7444 seconds
+  Time:       3.4569 seconds
   Max Bond:   6
   Rel Error:  2.54e-5
 
@@ -326,12 +330,12 @@ println("  Rel Error:  ", round(err_noisy_rsvd, sigdigits=3), " (Higher, but acc
 
 ````
 Noisy SVD Performance:
-  Time:       0.2914 seconds
+  Time:       0.2712 seconds
   Max Bond:   31 (Massive blow-up!)
   Rel Error:  2.14e-5
 
 Noisy RSVD Performance:
-  Time:       0.002 seconds
+  Time:       0.0022 seconds
   Max Bond:   10 (Constrained)
   Rel Error:  0.204 (Higher, but acceptable)
 

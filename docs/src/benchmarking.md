@@ -241,7 +241,7 @@ the prefactor but not the asymptotic form above. For bounded $\chi_m$, this is
 $O(N)=O(2^n)$ for input compression. The apply stage then contributes
 $O(n\chi_c^2\chi_s^2)=O(\chi_s^2\log N)$ with bounded $\chi_c$. The honest
 comparison against a dense FFT must include the encoding cost, because
-`FFTW.bfft` already operates on a dense array. [scripts/benchmark/qft_vs_fftw.jl](https://github.com/SUTD-MDQS/QILaplace.jl/blob/master/scripts/benchmark/qft_vs_fftw.jl)
+`FFTW.fft` already operates on a dense array. [scripts/benchmark/qft_vs_fftw.jl](https://github.com/SUTD-MDQS/QILaplace.jl/blob/master/scripts/benchmark/qft_vs_fftw.jl)
 does this for four signal families at fixed `cutoff = 1e-12` and plots QFT
 only (`apply(W, ψ)` with a pre-built MPS, solid), RSVD encoding + QFT
 (`signal_mps(:rsvd)` followed by `apply`, dash-dotted), and the FFTW baseline
@@ -251,7 +251,7 @@ on the random signal (black diamonds).
 
 **Figure 5.** *End-to-end QFT runtime vs. FFTW. Solid curves: `apply(W, ψ)`
 with a pre-built MPS (QFT-only step). Dash-dotted curves: full pipeline,
-`signal_mps(:rsvd)` + `apply`. Black diamonds: FFTW `bfft` on the random
+`signal_mps(:rsvd)` + `apply`. Black diamonds: FFTW `fft` on the random
 signal, shown once as the dense baseline. Vertical axis is log-scale.
 
 For **compressible** inputs (`:sin`, `:sine20`, `:sin_cusp`) the QFT-only

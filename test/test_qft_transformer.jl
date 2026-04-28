@@ -2,16 +2,16 @@ import QILaplace.QFTTransform: zip_up_mpos, zip_down_mpos
 
 # ======================== HELPER FUNCTIONS ========================
 
-# Helper for DFT (Unitary QFT with +2πi convention)
+# Helper for DFT (Unitary QFT with -2πi convention)
 function dft(v::Vector)
     N = length(v)
     out = zeros(ComplexF64, N)
     for k in 0:(N-1)
         sum_val = 0.0 + 0.0im
         for j in 0:(N-1)
-            # QFT definition: |j> -> 1/sqrt(N) sum_k exp(2pi i j k / N) |k>
+            # QFT definition: |j> -> 1/sqrt(N) sum_k exp(-2pi i j k / N) |k>
             angle = 2 * π * j * k / N
-            sum_val += v[j+1] * exp(im * angle)
+            sum_val += v[j+1] * exp(-im * angle)
         end
         out[k+1] = sum_val / sqrt(N)
     end
@@ -19,7 +19,7 @@ function dft(v::Vector)
 end
 
 # The bit-reversed Fourier transform Q_n matrix
-# Q_n[j, k] = exp(2πi * bitrev(j) * k / N) / sqrt(N)
+# Q_n[j, k] = exp(-2πi * bitrev(j) * k / N) / sqrt(N)
 function qn_matrix(n::Int)
     N = 2^n
     M = zeros(ComplexF64, N, N)
@@ -27,7 +27,7 @@ function qn_matrix(n::Int)
         j_rev = bits_to_int(int_to_bits(j, n; order=:lsb); order=:msb)
         for k in 0:(N-1)
             angle = 2 * π * j_rev * k / N
-            M[j+1, k+1] = exp(im * angle) / sqrt(N)
+            M[j+1, k+1] = exp(-im * angle) / sqrt(N)
         end
     end
     return M
@@ -426,11 +426,10 @@ end
 
 @testset "qft_transformer.jl: FFTW comparison on random signal" begin
     # Test that the full DFT (Rn * Qn) matches FFTW output
-    # FFTW conventions:
-    #   fft(x)[k]  = sum_j x[j] * exp(-2πi * j * k / N)   (forward, -2πi)
-    #   bfft(x)[k] = sum_j x[j] * exp(+2πi * j * k / N)   (backward, +2πi)
-    # Our QFT convention: Fn[j,k] = exp(+2πi * j * k / N) / sqrt(N)
-    # So: Our Fn * x = bfft(x) / sqrt(N)
+    # FFTW convention:
+    #   fft(x)[k] = sum_j x[j] * exp(-2πi * j * k / N)   (forward, -2πi)
+    # Our QFT convention: Fn[j,k] = exp(-2πi * j * k / N) / sqrt(N)
+    # So: Our Fn * x = fft(x) / sqrt(N)
 
     for n in 2:5
         N = 2^n
@@ -457,8 +456,8 @@ end
             fn_result[r+1] = qn_result[i+1]
         end
 
-        # Compare with FFTW (bfft uses +2πi convention like our QFT)
-        result_fftw = bfft(sig) / sqrt(N)
+        # Compare with FFTW (fft uses -2πi convention like our QFT)
+        result_fftw = fft(sig) / sqrt(N)
         err = LinearAlgebra.norm(fn_result - result_fftw)
         @test isapprox(err, 0.0; atol=1e-10)
     end

@@ -256,9 +256,6 @@ L(s_k) \approx \Delta t\,\sqrt{N}
 \sum_{j=0}^{N-1}\langle k_{\mathrm{LSB}},j \,|\, \psi_{\mathrm{out}}\rangle.
 ```
 
-Here `coefficient(ψ, ...)` is already on the physical scale (it includes
-the stored `.amplitude`), so no extra `\|x\|_2` factor is applied.
-
 ````julia
 function laplace_coefficient(ψ::ZTMPS, k::Int, Δt::Real)
     n = length(ψ.sites_main)
@@ -382,7 +379,7 @@ L_mps_poly = [
     real(laplace_coefficient(ψout_poly, k, Δt_ex)) for k in 0:(N_ex - 1)
 ]
 L_disc_poly = discrete_texp(s_ex, a_poly, Δt_ex, N_ex)
-rel_poly = abs.(L_mps_poly .- L_disc_poly) ./ max.(abs.(L_disc_poly), eps(Float64))
+rel_poly = abs.(L_mps_poly .- L_disc_poly)
 
 @printf("  max relative error = %.3e\n", maximum(rel_poly))
 
@@ -390,7 +387,7 @@ rel_poly = abs.(L_mps_poly .- L_disc_poly) ./ max.(abs.(L_disc_poly), eps(Float6
 ````
 
 ````
-  max relative error = 1.025e-05
+  max relative error = 3.005e-07
 
 ````
 
@@ -442,14 +439,14 @@ L_mps_cos = [
     real(laplace_coefficient(ψout_cos, k, Δt_ex)) for k in 0:(N_ex - 1)
 ]
 L_disc_cos = discrete_cosexp(s_ex, a_cos, b_cos, Δt_ex, N_ex)
-rel_cos = abs.(L_mps_cos .- L_disc_cos) ./ max.(abs.(L_disc_cos), eps(Float64))
+rel_cos = abs.(L_mps_cos .- L_disc_cos)
 
 @printf("  max relative error = %.3e\n", maximum(rel_cos))
 
 ````
 
 ````
-  max relative error = 7.077e-06
+  max relative error = 5.463e-07
 
 ````
 

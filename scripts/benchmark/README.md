@@ -14,7 +14,7 @@ scripts/benchmark/
   svd_rsvd_itensor.jl    # Fig A runner  : SVD vs RSVD on a random ITensor
   tt_decomp.jl           # Fig B runner  : signal_mps(:svd) vs signal_mps(:rsvd)
   mpo_bond_dim.jl        # Fig C runner  : MPO max bond dim for QFT / DT / zT
-  qft_vs_fftw.jl         # Fig D runner  : end-to-end QFT vs FFTW bfft
+  qft_vs_fftw.jl         # Fig D runner  : end-to-end QFT vs FFTW fft
   zt_full_runtime.jl     # Fig E runner  : signal_ztmps + apply(dt_mpo, .) per signal kind
   plot_bench_signals.jl  # Fig 1 plotter : time-domain view of every benchmark signal kind
   plot_svd_rsvd.jl       # Fig A plotter

@@ -20,7 +20,7 @@ import QILaplace.QFTGates: I, H, P, Π, control_Hphase_mpo
     θs = [0.0, π/2, π, 3π/2]
     for θ in θs
         P_gate = P(θ, site)
-        P_expected = [1 0; 0 exp(im * θ)]
+        P_expected = [1 0; 0 exp(-im * θ)]
         for (i, j) in Iterators.product(1:2, 1:2)
             @test isapprox(P_gate[i, j], P_expected[i, j]; atol=1e-12, rtol=1e-12)
         end
@@ -65,7 +65,7 @@ end
             for l in 2:n
                 if site_bits_input[l] == 1  # apply phase when site[l] is |1⟩
                     θ = 2π / 2.0^l
-                    phase_for_1 *= exp(im * θ)
+                    phase_for_1 *= exp(-im * θ)
                 end
             end
 

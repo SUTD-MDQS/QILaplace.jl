@@ -74,7 +74,7 @@ end
 qft_fftw(x::AbstractVector) = begin
     N = length(x)
     xhat = x ./ norm(x)
-    bfft(xhat) ./ sqrt(N)
+    fft(xhat) ./ sqrt(N)
 end
 
 function run()
