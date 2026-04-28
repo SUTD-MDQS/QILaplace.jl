@@ -7,7 +7,7 @@ using ITensors, Random, Printf
 using LinearAlgebra: norm
 using ..RSVD: rsvd
 
-using ..Mps: AbstractMPS, SignalMPS, ZTMPS, PairCore, nsite, siteindices, bondindices
+using ..Mps: SignalMPS, ZTMPS, PairCore
 
 export signal_mps, signal_ztmps
 
@@ -45,7 +45,7 @@ function _array_to_tensor(x::AbstractVector; sites=undef)
     end
 end
 
-# Convert an ITensor to MPS with given tol. TODO: test this with a vector of [1 2 3 ... 64] and see if it transforms as expected
+# Convert an ITensor to MPS with given tol
 function _tensor_to_mps_svd(ψ::ITensor; cutoff::Real=1e-15, maxdim::Int=typemax(Int))
     ITensors.disable_warn_order()
     try
@@ -103,12 +103,7 @@ function _tensor_to_mps_svd(ψ::ITensor; cutoff::Real=1e-15, maxdim::Int=typemax
     end
 end
 
-"""
-    _tensor_to_mps_rsvd(ψ::ITensor; cutoff=1e-15, maxdim=typemax(Int), kwargs...)
-
-Convert a tensor `ψ` to an MPS using a divide-and-conquer Randomized SVD (RSVD) approach.
-Recursively splits the tensor into left and right halves, applying RSVD at the cut to reduce bond dimensions.
-"""
+# Convert an ITensor to MPS with given tol using divide-and-conquer Randomized SVD (RSVD)
 function _tensor_to_mps_rsvd(
     ψ::ITensor; cutoff::Real=1e-15, maxdim::Int=typemax(Int), kwargs...
 )
@@ -211,6 +206,25 @@ function _tensor_to_mps(ψ::ITensor; method::Symbol=:svd, kwargs...)
     end
 end
 
+"""
+    signal_mps(x::AbstractVector{<:Number}; method=:svd, kwargs...) -> SignalMPS
+
+Convert a dense signal vector `x` into a [`SignalMPS`](@ref QILaplace.Mps.SignalMPS). The vector is
+zero-padded to the next power of 2 if necessary, normalised, and decomposed
+into an MPS via SVD (or randomised SVD with `method=:rsvd`).
+
+The original Euclidean norm is stored in `.amplitude`.
+
+# Keyword Arguments
+- `method::Symbol=:svd` — `:svd` or `:rsvd`.
+- `cutoff`, `maxdim` — truncation parameters forwarded to the decomposition.
+
+# Examples
+```julia
+ψ = signal_mps([1.0, 2.0, 3.0, 4.0])
+ψ.amplitude ≈ norm([1,2,3,4])   # true
+```
+"""
 function signal_mps(x::AbstractVector{<:Number}; method::Symbol=:svd, kwargs...)
     ψ, normalisation_const = _array_to_tensor(x)
     mps = _tensor_to_mps(ψ; method=method, kwargs...)
@@ -218,11 +232,23 @@ function signal_mps(x::AbstractVector{<:Number}; method::Symbol=:svd, kwargs...)
     return mps
 end
 
+"""
+    signal_ztmps(x::AbstractVector{<:Number}; cutoff=1e-10, maxdim=typemax(Int)) -> ZTMPS
+
+Convert a dense signal vector `x` into a [`ZTMPS`](@ref QILaplace.Mps.ZTMPS) paired-register
+representation. This duplicates the signal onto a \"main\" and \"copy\" register,
+which is required for non-unitary transforms (Damping Transform, z-Transform).
+
+# Keyword Arguments
+- `cutoff::Real=1e-10` — SVD truncation cutoff.
+- `maxdim::Int`        — maximum bond dimension.
+- Additional keywords (e.g. `method=:rsvd`, `k`, `p`, `q`) are forwarded to [`signal_mps`](@ref).
+"""
 function signal_ztmps(
-    x::AbstractVector{<:Number}; cutoff::Real=1e-10, maxdim::Int=typemax(Int)
+    x::AbstractVector{<:Number}; cutoff::Real=1e-10, maxdim::Int=typemax(Int), kwargs...
 )
     # The SignalMPS to be copied
-    ψ_signal = signal_mps(x; cutoff=cutoff, maxdim=maxdim)
+    ψ_signal = signal_mps(x; cutoff=cutoff, maxdim=maxdim, kwargs...)
     n = length(ψ_signal)
 
     sites_main = sim.(ψ_signal.sites)

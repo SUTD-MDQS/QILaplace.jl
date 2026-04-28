@@ -58,6 +58,20 @@ function _paired_from_single(W::SingleSiteMPO)
 end
 
 # Function to apply an MPO to an MPS
+"""
+    apply(W, ψ; kwargs...) -> ψ_out
+    W * ψ
+
+Contract an MPO `W` with an MPS `ψ`, returning a new MPS.
+
+Supported dispatch combinations:
+- `SingleSiteMPO × SignalMPS`  — standard MPO-MPS contraction.
+- `PairedSiteMPO × ZTMPS`     — paired-register contraction (Damping / z-Transform).
+- `SingleSiteMPO × SingleSiteMPO` — MPO composition.
+- `PairedSiteMPO × PairedSiteMPO` — paired MPO composition.
+
+The `*` operator is an alias for `apply`.
+"""
 function apply(W::SingleSiteMPO, ψ::SignalMPS; kwargs...)
     length(W) == length(ψ) || throw(
         ArgumentError(

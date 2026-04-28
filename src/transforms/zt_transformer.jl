@@ -2,24 +2,42 @@
 # This module builds the discrete Laplace transform aka z-transform that acts on a given MPS to apply the damping transform circuit. 
 # It used the dt_gates from DTGates and zt_gates from ZTGates to build the full zT MPO as a PairedSiteMPO that acts on ZTMPS representations of signals. 
 
-# The zT transformer has three parts: 
-# - Part 1: control_damping_mpo blocks with control on main site k, targets on site 1...k-1
-# - Part 2: control_damping_copy_mpo blocks with control on main site k, targets on site k+1...N
-# Part 3: control_Hphase_ztmps_mpo blocks with control on copy site k, targets on site 1...k-1
-
-# The algorithm composes these blocks using zip-up and zip-down compression. 
+# The zT circuit is the composition of the damping transform (DT) and the paired 2n-site QFT
+# used in ZTMPS (`control_Hphase_ztmps_mpo`). We build `W_dt` and `W_qft` separately, then
+# fuse once (`apply(W_dt, W_qft)`) and run a final compress sweep
 
 module ZTTransformer
 
-using ITensors, Printf
+using ITensors
 using ..Mpo: PairedSiteMPO
 using ..Mps: ZTMPS
 using ..DTGates: control_damping_mpo, control_damping_copy_mpo
 using ..ZTGates: control_Hphase_ztmps_mpo
-using ..DTTransform: zip_to_combine_mpos, zip_to_compress_mpo
+using ..DTTransform: build_dt_mpo, zip_to_combine_mpos, zip_to_compress_mpo
+using ..ApplyMPO: apply
 
 export build_zt_mpo
 
+"""
+    build_zt_mpo(n, ωr, sites_main, sites_copy; cutoff=1e-14, maxdim=1000) -> PairedSiteMPO
+    build_zt_mpo(ψ::ZTMPS, ωr; cutoff=1e-14, maxdim=1000)
+
+Build the discrete Laplace transform (z-Transform) MPO for `n` qubits at
+damping parameter `ωr`. The cutoff tells the error threshold of the compressed MPO.
+
+Operationally, this builds the **DT** (`build_dt_mpo`) and the **paired ZTMPS QFT**
+(`control_Hphase_ztmps_mpo` on all `2n` sites), then fuses them with `apply(W_dt, W_qft)` and
+compresses — same end operator as the legacy interleaved construction, without per-stage DT×QFT growth.
+
+When called with a `ZTMPS`, site indices are taken from the MPS itself.
+
+# Examples
+```julia
+ψ_z = signal_ztmps(x)
+W_zt = build_zt_mpo(ψ_z, ωr)
+ψ_out = apply(W_zt, ψ_z)
+```
+"""
 function build_zt_mpo(
     n::Int,
     ωr::Real,
@@ -43,103 +61,48 @@ function build_zt_mpo(
     # Interleave sites: [main[1], copy[1], main[2], copy[2], ...]
     all_sites = Vector{I}(undef, 2n)
     for i in 1:n
-        all_sites[2i - 1] = sites_main[i]
+        all_sites[2i-1] = sites_main[i]
         all_sites[2i] = sites_copy[i]
     end
 
     if n == 1
-        # For n=1, just part 1 block for k=1 (damped Hadamard on main, identity on copy) and part 3 block for k=1 (identity on main, Hadamard on copy)
-        mpo_part1 = control_damping_mpo(1, 1, ωr, all_sites)
-        mpo_part3 = control_Hphase_ztmps_mpo(1, all_sites)
-
-        full_mpo, _, _ = zip_to_combine_mpos(mpo_part1, mpo_part3, 0)
-        return full_mpo
+        W_dt = build_dt_mpo(1, ωr, sites_main, sites_copy; cutoff=cutoff, maxdim=maxdim)
+        W_qft = control_Hphase_ztmps_mpo(1, all_sites)
+        return apply(W_dt, W_qft)
     end
 
-    # =====================================================
-    # Part 1: Build damping tensor train from l = 1 to k for k = 1 to n
-    # =====================================================
-    mpo_part1 = control_damping_mpo(n, 1, ωr, all_sites[1:2])
-    oc = 0
+    # ---- DT MPO (damping only), same sites as before ----
+    W_dt = build_dt_mpo(n, ωr, sites_main, sites_copy; cutoff=cutoff, maxdim=maxdim)
 
+    # ---- Full paired 2n-site QFT MPO (zT QFT blocks only), then fuse with DT once ----
+    mpo_qft = control_Hphase_ztmps_mpo(1, all_sites[1:2])
+    oc_q = 0
     for k in 2:n
-        # Extend mpo_part1 to include site k (initialized to Identity)
-        # This is necessary because block_k acts on 1:k, while mpo_part1 currently acts on 1:k-1
-        if length(mpo_part1.sites_main) < k
-            # Get new sites
-            s_main = all_sites[2 * k - 1]
-            s_copy = all_sites[2 * k]
-
-            # Create new bonds
+        if length(mpo_qft.sites_main) < k
+            s_main = all_sites[2*k-1]
+            s_copy = all_sites[2*k]
             b_main = Index(1, "bond-main-$(k-1)")
             b_copy = Index(1, "bond-copy-$k")
-
-            # Update last tensor of mpo_part1 (copy[k-1]) to connect to new main[k]
-            mpo_part1.data[end] *= ITensor(1.0, b_main)
-            push!(mpo_part1.bonds_main, b_main)
-
-            # Create new tensors for site k
-            # main[k]: connects to b_main (left) and b_copy (right)
+            mpo_qft.data[end] *= ITensor(1.0, b_main)
+            push!(mpo_qft.bonds_main, b_main)
             T_main = delta(s_main, s_main') * ITensor(1.0, b_main) * ITensor(1.0, b_copy)
-
-            # copy[k]: connects to b_copy (left)
             T_copy = delta(s_copy, s_copy') * ITensor(1.0, b_copy)
-
-            # Update mpo_part1
-            push!(mpo_part1.data, T_main)
-            push!(mpo_part1.data, T_copy)
-            push!(mpo_part1.sites_main, s_main)
-            push!(mpo_part1.sites_copy, s_copy)
-            push!(mpo_part1.bonds_copy, b_copy)
+            push!(mpo_qft.data, T_main)
+            push!(mpo_qft.data, T_copy)
+            push!(mpo_qft.sites_main, s_main)
+            push!(mpo_qft.sites_copy, s_copy)
+            push!(mpo_qft.bonds_copy, b_copy)
         end
-
-        # Block for control on main[k], acts on sites 1:2k
-        block_k = control_damping_mpo(n, k, ωr, all_sites[1:2k])
-
-        # Combine with current MPO (zip-down since they share first sites)
-        mpo_part1, oc, _ = zip_to_combine_mpos(mpo_part1, block_k, oc)
-
-        # Compress
-        mpo_part1, oc = zip_to_compress_mpo(
-            mpo_part1, oc, "down"; cutoff=cutoff, maxdim=maxdim
-        )
+        block_k = control_Hphase_ztmps_mpo(k, all_sites[1:2k])
+        mpo_qft, oc_q, _ = zip_to_combine_mpos(mpo_qft, block_k, oc_q)
+        mpo_qft, oc_q = zip_to_compress_mpo(mpo_qft, oc_q, "down"; cutoff=cutoff, maxdim=maxdim)
     end
 
-    # =====================================================
-    # Part 2: Build copy tensor train from ℓ = k+1 to n for k = 1 down to n-1
-    # =====================================================
-    # Zip-combine blocks from k = 1 to n-1
-    for k in 1:(n - 1)
-        # Block for control on main[k], acts on sites 2k+1:2n
-        L = n - k
-        block_k = control_damping_copy_mpo(n, k, ωr, all_sites[(2k - 1):2n])
-
-        # Combine with current MPO (zip-up since they share last sites)
-        mpo_part1, oc = zip_to_combine_mpos(mpo_part1, block_k, oc)
-
-        # Compress
-        mpo_part1, oc = zip_to_compress_mpo(
-            mpo_part1, oc, "up"; cutoff=cutoff, maxdim=maxdim
-        )
-    end
-
-    # =====================================================
-    # Part 3: Build qft tensor train from k = 1 to n
-    # =====================================================
-    # Zip-combine blocks from k = 1 to n
-    for k in 1:n
-        # Block for control on copy[k], acts on sites 1:2k
-        block_qft_k = control_Hphase_ztmps_mpo(k, all_sites[1:2k])
-
-        # Combine with current MPO (zip-down since they share first sites)
-        mpo_part1, oc = zip_to_combine_mpos(mpo_part1, block_qft_k, oc)
-
-        # Compress
-        mpo_part1, oc = zip_to_compress_mpo(
-            mpo_part1, oc, "down"; cutoff=cutoff, maxdim=maxdim
-        )
-    end
-    return mpo_part1
+    # Paired MPO composition must match the legacy interleaved zip-up; empirically this is `apply(W_dt, W_qft)`
+    # (see `ApplyMPO` `T1 * T2` layout), not `apply(W_qft, W_dt)`.
+    W_zt = apply(W_dt, mpo_qft)
+    W_zt, _ = zip_to_compress_mpo(W_zt, 1, "down"; cutoff=cutoff, maxdim=maxdim)
+    return W_zt
 end
 
 function build_zt_mpo(ψ::ZTMPS, ωr::Real; cutoff=1e-14, maxdim=1000)

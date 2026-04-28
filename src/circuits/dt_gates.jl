@@ -26,7 +26,7 @@ end
 
 ################################# CONTROLLED DAMPING GATE MPO #####################################
 
-# Control damping gate for qubit depth 'k'. In a k-qubit control gate, the first qubit is a control and in the rest, damped Hadamard gates apply with damping factor R: ωr/2^2 to 2^k in the main branch and I in the copy branch
+# Control damping gate from the main qubits. Copies the qubit from k and applies it to all above it.
 function control_damping_mpo(
     n::Int, k::Int, ωr::Real, sites::Vector{IType}
 ) where {IType<:Index}
@@ -129,6 +129,7 @@ function control_damping_mpo(
     return PairedSiteMPO(data, sites_main, sites_copy, bonds_main, bonds_copy)
 end
 
+# Control damping gate from the copy qubits. Copies the qubit from copy1 and applies it to all qubits below. 
 function control_damping_copy_mpo(
     n::Int, k::Int, ωr::Real, sites::Vector{IType}
 ) where {IType<:Index}

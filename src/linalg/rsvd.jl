@@ -9,15 +9,31 @@ using Random
 export rsvd
 
 """
-    rsvd(A::ITensor, Linds...; k, p=10, q=0, random_seed, bondtag, verbose, cutoff, maxdim, mindim)
+    rsvd(A::ITensor, Linds...; k=20, p=10, q=0, random_seed=1234, bondtag="Link,rsvd",
+         verbose=false, cutoff=1e-15, maxdim=k, mindim=1) -> (U, S, V)
 
-Low-allocation Randomized SVD (RSVD) for ITensor using native ITensor operations.
-Returns (U, S, V) such that A ≈ U * S * V.
+Randomised SVD for an `ITensor`, returning factors `A ≈ U * S * V` where `S`
+is diagonal. Uses native ITensor `qr`/`svd` internally to avoid dense matrix
+conversions.
 
-Optimizations:
-  – Uses ITensor native `qr` and `svd` to avoid converting to dense Julia Arrays.
-  – Minimizes allocations by keeping data in ITensor format.
-  – Supports power iteration for better accuracy on decaying spectra.
+# Arguments
+- `A`       — the ITensor to decompose.
+- `Linds`   — indices that should end up on the left factor `U`.
+
+# Keyword Arguments
+- `k::Int=20`          — target rank (number of kept singular values).
+- `p::Int=10`          — oversampling; the projection uses `k + p` random vectors.
+- `q::Int=0`           — number of power iterations (improves accuracy on slowly decaying spectra).
+- `random_seed::Int`   — seed for the random projection.
+- `cutoff::Float64=1e-15` — singular value truncation threshold.
+- `maxdim::Int=k`      — hard cap on bond dimension.
+- `mindim::Int=1`      — minimum bond dimension to keep.
+- `bondtag`            — tag string applied to the SVD bond index.
+- `verbose::Bool`      — print power-iteration progress.
+
+# When to use
+Use `:rsvd` (via `signal_mps(x; method=:rsvd, k=...)`) when the signal is very large
+and you want a fast, low-rank approximation instead of a full SVD.
 """
 function rsvd(
     A::ITensor,

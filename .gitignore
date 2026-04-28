@@ -5,7 +5,11 @@ Manifest.toml
 
 # Docs build artifacts
 docs/build/
-docs/site
+docs/site/
+docs/src/animations/__pycache__/
+docs/src/animations/media/
+docs/src/animations/venv
+docs/Manifest.toml
 
 # OS / editor
 .DS_Store
@@ -13,4 +17,4 @@ docs/site
 *.swo
 .vscode/
 .idea/
-
+TODO*

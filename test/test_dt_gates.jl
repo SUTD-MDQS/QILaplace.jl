@@ -37,8 +37,8 @@ end
 ################################# CONTROL_DAMPING_MPO TESTS #####################################
 
 # NOTE ON BIT ORDERING CONVENTION:
-# signal_ztmps(x) creates a zTMPS from flat vector x where x[b+1] corresponds to basis state |b⟩
-# The zTMPS interleaves main and copy sites: [main[1], copy[1], main[2], copy[2], ...]
+# signal_ztmps(x) creates a ZTMPS from flat vector x where x[b+1] corresponds to basis state |b⟩
+# The ZTMPS interleaves main and copy sites: [main[1], copy[1], main[2], copy[2], ...]
 # When extracted with Array(T, sites...), site[1] is fastest-varying (LSB in flat index).
 #
 # For the 2n-site interleaved representation with sites[2i-1]=main[i], sites[2i]=copy[i]:
@@ -101,7 +101,7 @@ import QILaplace.ApplyMPO: apply, _as_single_site_mpo
                     main_out_bits = copy(target_bits)
                     push!(main_out_bits, hadamard_out)  # Append control qubit output
 
-                    # Convert to zTMPS index (interleaved main/copy)
+                    # Convert to ZTMPS index (interleaved main/copy)
                     idx_out = 0
                     for l in 1:k
                         idx_out += main_out_bits[l] * (1 << (2 * (l - 1)))      # main[l] bit at position 2*(l-1)
@@ -131,7 +131,7 @@ import QILaplace.ApplyMPO: apply, _as_single_site_mpo
                     end
                     push!(main_out_bits, hadamard_out)  # Append control qubit output
 
-                    # Convert to zTMPS index (interleaved main/copy)
+                    # Convert to ZTMPS index (interleaved main/copy)
                     idx_out = 0
                     for l in 1:k
                         idx_out += main_out_bits[l] * (1 << (2 * (l - 1)))      # main[l] bit at position 2*(l-1)

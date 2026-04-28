@@ -12,7 +12,17 @@ export SingleSiteMPO, PairedSiteMPO
 
 abstract type AbstractMPO end
 
-# SingleSiteMPO can contain the Quantum Fourier Transform as an MPO in a n-qubit system
+"""
+    SingleSiteMPO{I<:Index} <: AbstractMPO
+
+A Matrix Product Operator acting on single-register MPS (e.g. QFT).
+Each tensor has physical indices `s` and `s'` plus virtual bond indices.
+
+# Fields
+- `data::Vector{ITensor}` — the MPO tensors.
+- `sites::Vector{I}`      — physical site indices.
+- `bonds::Vector{I}`      — virtual bond indices (length `n-1`).
+"""
 mutable struct SingleSiteMPO{I<:Index} <: AbstractMPO
     data::Vector{ITensor}
     sites::Vector{I}
@@ -29,7 +39,18 @@ mutable struct SingleSiteMPO{I<:Index} <: AbstractMPO
     end
 end
 
-# PairedSiteMPO can contain the z-transform and Exponential Decay Transform as an MPO in a 2n-qubit system
+"""
+    PairedSiteMPO{I<:Index} <: AbstractMPO
+
+A Matrix Product Operator acting on paired-register MPS (`ZTMPS`).
+Used for the Damping Transform and z-Transform. The operator's `2n` tensors
+alternate between main and copy sites.
+
+# Fields
+- `data::Vector{ITensor}` — the MPO tensors (length `2n`).
+- `sites_main`, `sites_copy` — physical site indices on each register.
+- `bonds_main`, `bonds_copy` — inter-site and intra-site bond indices.
+"""
 mutable struct PairedSiteMPO{I<:Index} <: AbstractMPO
     data::Vector{ITensor}
     sites_main::Vector{I}
@@ -416,7 +437,14 @@ end
 
 ###################################### MPO UPDATE HELPERS #########################################
 
-# Update a site by specifying old and new Index values for SingleSiteMPO
+
+"""
+    update_site!(W::SingleSiteMPO, old_site_index::Index, new_site_index::Index)
+    update_site!(W::PairedSiteMPO, old_site_index::Index, new_site_index::Index)
+
+Replace `old_site_index` with `new_site_index` in the MPO `W` (in-place).
+Both indices must have the same dimension.
+"""
 function update_site!(W::SingleSiteMPO, old_site_index::Index, new_site_index::Index)
     # find site position
     i = findfirst(x -> x == old_site_index, W.sites)
@@ -446,7 +474,13 @@ function update_site!(W::SingleSiteMPO, old_site_index::Index, new_site_index::I
     return W
 end
 
-# Update a bond by specifying old and new Index values for SingleSiteMPO
+"""
+    update_bond!(W::SingleSiteMPO, old_bond_index::Index, new_bond_index::Index)
+    update_bond!(W::PairedSiteMPO, old_bond_index::Index, new_bond_index::Index)
+
+Replace `old_bond_index` with `new_bond_index` in the MPO `W` (in-place).
+Both indices must have the same dimension.
+"""
 function update_bond!(W::SingleSiteMPO, old_bond_index::Index, new_bond_index::Index)
     j = findfirst(x -> x == old_bond_index, W.bonds)
     j === nothing &&
@@ -463,7 +497,6 @@ function update_bond!(W::SingleSiteMPO, old_bond_index::Index, new_bond_index::I
     return W
 end
 
-# Update a site by specifying old and new Index values for PairedSiteMPO
 function update_site!(W::PairedSiteMPO, old_site_index::Index, new_site_index::Index)
     m = findfirst(x -> x == old_site_index, W.sites_main)
     if m !== nothing
@@ -496,7 +529,6 @@ function update_site!(W::PairedSiteMPO, old_site_index::Index, new_site_index::I
     throw(ArgumentError("update_site!: old site index not found in PairedSiteMPO"))
 end
 
-# Update a bond by specifying old and new Index values for PairedSiteMPO
 function update_bond!(W::PairedSiteMPO, old_bond_index::Index, new_bond_index::Index)
     # main bonds: connect copy(k) (data[2k]) and main(k+1) (data[2k+1])
     k = findfirst(x -> x == old_bond_index, W.bonds_main)

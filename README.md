@@ -7,7 +7,7 @@
 </h1>
 
 <h4 align="center">Quantum-inspired signal transforms via tensor network representations.</h4>
-<h4 align="center">For the core API features, check the docs folder.</h4>
+<h4 align="center">Read the documentation here!</h4>
 
 <p align="center">
   <a href="https://github.com/SUTD-MDQS/QILaplace.jl/actions/workflows/CI.yml">
@@ -114,7 +114,7 @@ In other words, **when the signal is compressible**, transform costs scale logar
 
 ### Signal generation and representation
 
-- Signals are represented as MPS objects (e.g. `SignalMPS`, `zTMPS`)
+- Signals are represented as MPS objects (e.g. `SignalMPS`, `ZTMPS`)
 - Dense arrays can be compressed using SVD or randomized SVD (rSVD)
 - Built-in utilities generate oscillatory, damped, and structured test signals
 
@@ -160,18 +160,18 @@ n = 10                                            # log2 signal length → 1024 
 signal = generate_signal(n; kind=:sin_decay,
                          freq=[1.0, 2.5], decay_rate=[0.08, 0.03])
 
-ψ, norm = signal_mps(signal; method=:rsvd, cutoff=1e-9, maxdim=64)
+ψ = signal_mps(signal; method=:rsvd, cutoff=1e-9, maxdim=64)
 compress!(ψ; maxdim=64)
 
 Wqft = build_qft_mpo(ψ; cutoff=1e-12, maxdim=128)
 spectrum = Wqft * ψ                                # Apply MPO to MPS
 
-# Extract amplitude at frequency bin (bit-reversed order)
-amplitude = coefficient(spectrum, "0101010110") * norm
+# Extract physical-scale amplitude at frequency bin (bit-reversed order)
+amplitude = coefficient(spectrum, "0101010110")
 ```
 
 ### Damped signals and z-Transform pipeline
-When working with Laplace/zT analyses you need the doubled register representation (`zTMPS`) so that both main and copy wires stay entangled. The snippet below chains the damping transform and the full z-transform MPOs and inspects an amplitude in the z-space directly from the contracted tensor.
+When working with Laplace/zT analyses you need the doubled register representation (`ZTMPS`) so that both main and copy wires stay entangled. The snippet below chains the damping transform and the full z-transform MPOs and inspects an amplitude in the z-space directly from the contracted tensor.
 
 ```julia
 using QILaplace
@@ -179,7 +179,7 @@ using QILaplace
 n = 10
 signal = generate_signal(n; kind=:sin_decay, freq=1.0, decay_rate=0.05)
 
-ψzt, norm = signal_ztmps(signal; method=:svd, cutoff=1e-12)
+ψzt = signal_ztmps(signal; method=:svd, cutoff=1e-12)
 
 Wdt = build_dt_mpo(ψzt, 0.3; maxdim=64)
 damped = Wdt * ψzt                               # Apply damping transform
@@ -187,7 +187,7 @@ damped = Wdt * ψzt                               # Apply damping transform
 Wzt = build_zt_mpo(ψzt, 0.3; maxdim=128)
 response = Wzt * damped                          # Apply full z-transform
 
-amplitude = coefficient(response, "1010101010") * norm  # Extract & denormalize
+amplitude = coefficient(response, "1010101010")  # Physical-scale amplitude
 ```
 
 ### Performance highlight

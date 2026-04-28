@@ -39,7 +39,7 @@ end
 
 ################################# CONTROLLED PHASE GATE MPO #####################################
 
-# Control gate for qubit depth 'k'. In a k-qubit control gate, the first qubit is a control and in the rest, phase gates apply rotation starting from 2π/2^2 to 2π/2^k
+# Control phase gate. Copies the qubit from 1 and applies it to all k qubits below. 
 function control_Hphase_mpo(k::Int, sites::Vector{IType}) where {IType<:Index}
     k ≥ 1 || throw(
         ArgumentError(

@@ -22,7 +22,18 @@ export SignalMPS,
 
 abstract type AbstractMPS end
 
-# Core structure for storing the two-leg ZTMPS tensors
+"""
+    PairCore(Amain::ITensor, Acopy::ITensor, c::Index)
+
+A paired tensor core used inside [`ZTMPS`](@ref QILaplace.Mps.ZTMPS). Each `PairCore` holds two ITensors
+(`Amain` and `Acopy`) that share exactly one common index `c` (the intra-site bond).
+When a `ZTMPS` is printed, each site shows its `PairCore` components.
+
+# Fields
+- `Amain::ITensor` — tensor on the "main" register.
+- `Acopy::ITensor` — tensor on the "copy" register.
+- `c::Index`       — the shared intra-site bond index.
+"""
 mutable struct PairCore
     Amain::ITensor
     Acopy::ITensor
@@ -43,6 +54,19 @@ mutable struct PairCore
     end
 end
 
+"""
+    SignalMPS{I<:Index} <: AbstractMPS
+
+A Matrix Product State representing a 1D signal on `n` qubit sites.
+
+# Fields
+- `data::Vector{ITensor}` — the MPS tensors (one per site).
+- `sites::Vector{I}`      — physical site indices.
+- `bonds::Vector{I}`      — virtual bond indices (length `n-1`).
+- `amplitude::Float64`    — the original Euclidean norm of the signal before normalisation.
+
+Use [`signal_mps`](@ref QILaplace.SignalConverters.signal_mps) to construct a `SignalMPS` from a dense vector.
+"""
 mutable struct SignalMPS{I<:Index} <: AbstractMPS
     data::Vector{ITensor}
     sites::Vector{I}
@@ -54,6 +78,23 @@ mutable struct SignalMPS{I<:Index} <: AbstractMPS
     end
 end
 
+"""
+    ZTMPS{I<:Index} <: AbstractMPS
+
+A paired-register MPS for non-unitary transforms (Damping Transform, z-Transform).
+Each site consists of a [`PairCore`](@ref QILaplace.Mps.PairCore) holding a "main" and a "copy" tensor
+connected by an intra-site bond.
+
+# Fields
+- `data::Vector{PairCore}` — paired tensor cores (one per site).
+- `bonds_main::Vector{I}`  — inter-site bonds (length `n-1`).
+- `bonds_copy::Vector{I}`  — intra-site bonds (length `n`).
+- `sites_main::Vector{I}`  — physical site indices on the main register.
+- `sites_copy::Vector{I}`  — physical site indices on the copy register.
+- `amplitude::Float64`     — the original Euclidean norm of the signal.
+
+Use [`signal_ztmps`](@ref QILaplace.SignalConverters.signal_ztmps) to construct a `ZTMPS` from a dense vector.
+"""
 mutable struct ZTMPS{I<:Index} <: AbstractMPS
     data::Vector{PairCore}
     bonds_main::Vector{I}
@@ -294,9 +335,23 @@ end
 Base.length(ψ::SignalMPS) = length(ψ.data)
 Base.length(ψ::ZTMPS) = length(ψ.data)
 
+"""
+    siteindices(ψ::SignalMPS)
+    siteindices(ψ::ZTMPS)
+
+Return a named tuple `(main=..., copy=...)` containing the physical site
+indices of the MPS. For `SignalMPS`, `copy` is an empty vector.
+"""
 siteindices(ψ::SignalMPS) = (main=ψ.sites, copy=Vector{eltype(ψ.sites)}())
 siteindices(ψ::ZTMPS) = (main=ψ.sites_main, copy=ψ.sites_copy)
 
+"""
+    bondindices(ψ::SignalMPS)
+    bondindices(ψ::ZTMPS)
+
+Return a named tuple `(main=..., copy=...)` containing the virtual bond
+indices of the MPS. For `SignalMPS`, `copy` is an empty vector.
+"""
 bondindices(ψ::SignalMPS) = (main=ψ.bonds, copy=Vector{eltype(ψ.bonds)}())
 bondindices(ψ::ZTMPS) = (main=ψ.bonds_main, copy=ψ.bonds_copy)
 
@@ -362,24 +417,7 @@ function Base.show(io::IO, ψ::ZTMPS)
 end
 
 ##################################### MPS UTILS #########################################
-
-"""
-    _as_signal_2n(ψ::ZTMPS)
-
-Return a `SignalMPS` with `2N` sites that represents the paired `ZTMPS` as a single
-linear MPS. The mapping is:
-
-- data[2i-1] = Amain(i)
-- data[2i]   = Acopy(i)
-- sites[2i-1] = sites_main[i]
-- sites[2i]   = sites_copy[i]
-- bonds[2i-1] = bonds_copy[i]    # intra-site bond (main(i) <-> copy(i))
-- bonds[2i]   = bonds_main[i]    # inter-site bond (copy(i) <-> main(i+1)) for i < N
-
-Invariants:
-- The intra-site bond `PairCore.c` is preserved as `bonds[2i-1]`.
-- Use `_writeback_signal_2n` to convert back to `ZTMPS` when needed; both functions are internal plumbing and not part of the top-level public API.
-"""
+# Internal function for converting ZTMPS to SignalMPS
 function _as_signal_2n(ψ::ZTMPS{I}) where {I}
     N = length(ψ.data)
     data = Vector{ITensor}(undef, 2N)
@@ -405,14 +443,7 @@ function _as_signal_2n(ψ::ZTMPS{I}) where {I}
     return SignalMPS(data, sites, bonds; amplitude=ψ.amplitude)
 end
 
-"""
-    writeback_signal_2n(ψ2n::SignalMPS) -> ZTMPS
-
-Create a `ZTMPS` from a `2N`-site `SignalMPS` produced by `_as_signal_2n`.
-This function is non-mutating: it returns a new `ZTMPS` instance rather than modifying
-an existing one. Use it as the inverse of `as_signal_2n` when you need a paired
-site representation.
-"""
+# Internal function for converting SignalMPS to ZTMPS
 function _writeback_signal_2n(ψ2n::SignalMPS{I}) where {I}
     N = length(ψ2n) ÷ 2
     length(ψ2n.sites) == 2N ||
@@ -440,8 +471,16 @@ function _writeback_signal_2n(ψ2n::SignalMPS{I}) where {I}
     )
 end
 
-##################################### MPS INDEX UPDATE #########################################
-function update_site!(ψ::SignalMPS, old_site_index::I, new_site_index::I) where {I<:Index}
+##################################### INDEX UPDATE FUNCTIONS #########################################
+
+"""
+    update_site!(ψ::SignalMPS, old_site_index::Index, new_site_index::Index)
+    update_site!(ψ::ZTMPS, old_site_index::Index, new_site_index::Index)
+
+Replace `old_site_index` with `new_site_index` in the MPS `ψ` (in-place).
+Both indices must have the same dimension.
+"""
+function update_site!(ψ::SignalMPS{I}, old_site_index::I, new_site_index::I) where {I<:Index}
     # find in declared sites first
     site_idx = findfirst(x -> x == old_site_index, ψ.sites)
     site_idx === nothing && throw(
@@ -468,6 +507,13 @@ function update_site!(ψ::SignalMPS, old_site_index::I, new_site_index::I) where
     return ψ
 end
 
+"""
+    update_bond!(ψ::SignalMPS, old_bond_index::Index, new_bond_index::Index)
+    update_bond!(ψ::ZTMPS, old_bond_index::Index, new_bond_index::Index)
+
+Replace `old_bond_index` with `new_bond_index` in the MPS `ψ` (in-place).
+Both indices must have the same dimension.
+"""
 function update_bond!(ψ::SignalMPS, old_bond_index::I, new_bond_index::I) where {I<:Index}
     bond_idx = findfirst(x -> x == old_bond_index, ψ.bonds)
     bond_idx === nothing && throw(
@@ -600,12 +646,25 @@ end
 
 """
     coefficient(ψ::SignalMPS, config)
+    coefficient(ψ::ZTMPS, config)
 
-Return the amplitude associated with the zero-based bit configuration `config`.
-Accepts vectors/tuples of integers (each entry in `[0, dim(site)-1]`), bit strings
-such as `"1010"` or `"[1,0,1,0]"`, and non-negative integers interpreted as an
-`N`-bit big-endian pattern (`N = length(ψ)`). The length of `config` must match
-the number of sites.
+Return the amplitude ⟨config|ψ⟩ for the given zero-based bit configuration.
+
+`config` can be:
+- A `Vector` or `Tuple` of integers, each in `[0, dim(site)-1]`.
+- A bit string like `"1010"` or `"[1,0,1,0]"`.
+- A non-negative integer interpreted as an `n`-bit big-endian pattern.
+
+You may also use direct indexing: `ψ[0, 1, 0, 1]` is equivalent to
+`coefficient(ψ, (0, 1, 0, 1))`.
+
+# Examples
+```julia
+ψ = signal_mps([1.0, 0.0, 0.0, 0.0])
+coefficient(ψ, [0, 0])   # amplitude of |00⟩
+coefficient(ψ, "00")      # same, via bit string
+ψ[0, 0]                   # same, via indexing
+```
 """
 function coefficient(ψ::SignalMPS, config::AbstractVector{<:Integer})
     N = length(ψ.data)
@@ -687,8 +746,10 @@ end
 
 """
     norm(ψ::SignalMPS)
+    norm(ψ::ZTMPS)
 
-Compute the norm of a SignalMPS by contracting it with its conjugate √⟨ψ|ψ⟩.
+Compute the Euclidean norm √⟨ψ|ψ⟩ of the MPS state by full tensor contraction.
+This extends `LinearAlgebra.norm`.
 """
 function norm(ψ::SignalMPS)
     # Create conjugate with primed bonds to prevent bond contraction
@@ -703,11 +764,7 @@ function norm(ψ::SignalMPS)
     return sqrt(abs(scalar(E)))
 end
 
-"""
-    norm(ψ::ZTMPS)
-
-Compute the norm of a ZTMPS by contracting it with its conjugate √⟨ψ|ψ⟩.
-"""
+# norm(ψ::ZTMPS) — delegates to the SignalMPS method via _as_signal_2n.
 function norm(ψ::ZTMPS)
     ψ = _as_signal_2n(ψ)
     return norm(ψ)
@@ -716,21 +773,16 @@ end
 ##################################### MPS CANONICALIZATION #########################################
 
 """
-    canonicalize!(ψ::SignalMPS, direction::Symbol; center::Union{Nothing,Int}=nothing,
-                  cutoff::Float64=1e-12, maxdim::Int=typemax(Int))
+    canonicalize!(ψ, direction; center=nothing, cutoff=1e-12, maxdim=typemax(Int))
 
-Bring SignalMPS into canonical form by sweeping QR/LQ decompositions.
+Bring the MPS `ψ` into canonical form (in-place) via QR/LQ sweeps.
 
 # Arguments
-- `ψ`: SignalMPS to canonicalize in-place
-- `direction`: `"->"` (left-to-right) or `"<-"` (right-to-left)
-- `center`: orthogonality center (defaults to N for "->", 1 for "<-")
-- `cutoff`: truncation threshold for singular values
-- `maxdim`: maximum bond dimension
+- `direction::String`: `"->"` (left-canonical) or `"<-"` (right-canonical).
+- `center::Int`: orthogonality center site (defaults to `N` for `"->"`, `1` for `"<-"`).
+- `cutoff`, `maxdim`: truncation parameters.
 
-# Direction
-- `"->"`: Makes tensors left-orthogonal up to center, sweeps left→right
-- `"<-"`: Makes tensors right-orthogonal from center, sweeps right→left
+Works for both `SignalMPS` and `ZTMPS`.
 """
 function canonicalize!(
     ψ::SignalMPS,
@@ -849,6 +901,15 @@ function canonicalize!(ψ::ZTMPS, direction::Symbol, cutoff::Float64, maxdim::In
 end
 
 ##################################### MPS COMPRESSION #########################################
+
+"""
+    compress!(ψ; maxdim=typemax(Int), tol=1e-12, sweeps=1)
+
+Truncate bond dimensions of the MPS `ψ` via alternating SVD sweeps (in-place).
+After compression, the MPS is re-normalised to unit norm.
+
+Works for both `SignalMPS` and `ZTMPS`.
+"""
 function compress!(
     ψ::SignalMPS{I}; maxdim::Int=typemax(Int), tol::Float64=1e-12, sweeps::Int=1
 ) where {I}
