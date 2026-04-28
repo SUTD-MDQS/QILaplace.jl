@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Discrete Laplace Transform · QILaplace.jl</title><meta name="title" content="Discrete Laplace Transform · QILaplace.jl"/><meta property="og:title" content="Discrete Laplace Transform · QILaplace.jl"/><meta property="twitter:title" content="Discrete Laplace Transform · QILaplace.jl"/><meta name="description" content="Documentation for QILaplace.jl."/><meta property="og:description" content="Documentation for QILaplace.jl."/><meta property="twitter:description" content="Documentation for QILaplace.jl."/><meta property="og:url" content="https://SUTD-MDQS.github.io/QILaplace.jl/tutorials/zt/"/><meta property="twitter:url" content="https://SUTD-MDQS.github.io/QILaplace.jl/tutorials/zt/"/><link rel="canonical" href="https://SUTD-MDQS.github.io/QILaplace.jl/tutorials/zt/"/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script><link href="../../assets/sidebar-logo.css" rel="stylesheet" type="text/css"/><link href="../../assets/dark-theme.css" rel="stylesheet" type="text/css"/></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../../"><img src="../../assets/logo.svg" alt="QILaplace.jl logo"/></a><div class="docs-package-name"><span class="docs-autofit"><a href="../../">QILaplace.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><a class="tocitem" href="../../core_concepts/">Core Concepts</a></li><li><span class="tocitem">Tutorials</span><ul><li><a class="tocitem" href="../signal/">Signal Encoding and Compression</a></li><li><a class="tocitem" href="../dft/">Discrete Fourier Transform</a></li><li><a class="tocitem" href="../dt/">Damping Transform</a></li><li class="is-active"><a class="tocitem" href>Discrete Laplace Transform</a><ul class="internal"><li><a class="tocitem" href="#Setting-up-the-signal"><span>Setting up the signal</span></a></li><li><a class="tocitem" href="#Constructing-the-ZTMPS"><span>Constructing the ZTMPS</span></a></li><li><a class="tocitem" href="#Constructing-the-zT-circuit"><span>Constructing the zT circuit</span></a></li><li><a class="tocitem" href="#Performing-the-z-Transform"><span>Performing the z-Transform</span></a></li><li><a class="tocitem" href="#Post-transform-coefficient-analysis"><span>Post-transform coefficient analysis</span></a></li><li><a class="tocitem" href="#Pole-Identification-from-the-transform"><span>Pole Identification from the transform</span></a></li></ul></li></ul></li><li><a class="tocitem" href="../../benchmarking/">Benchmarking Runs</a></li><li><a class="tocitem" href="../../api/">API</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Tutorials</a></li><li class="is-active"><a href>Discrete Laplace Transform</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Discrete Laplace Transform</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/SUTD-MDQS/QILaplace.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/SUTD-MDQS/QILaplace.jl/blob/master/docs/src/tutorials/zt.jl" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Discrete-Laplace-(z-)Transform-Tutorial"><a class="docs-heading-anchor" href="#Discrete-Laplace-(z-)Transform-Tutorial">Discrete Laplace (z-)Transform Tutorial</a><a id="Discrete-Laplace-(z-)Transform-Tutorial-1"></a><a class="docs-heading-anchor-permalink" href="#Discrete-Laplace-(z-)Transform-Tutorial" title="Permalink"></a></h1><p>This walkthrough shows how to use <code>QILaplace.jl</code> to compute the discrete z-transform and infer poles of a signal from transformed coefficients.</p><p>The zT in this package is a composition of the damping block and QFT block in the paired register basis,</p><p class="math-container">\[W_{\mathrm{zT}} = W_{\mathrm{DT}}(\omega_r)\circ W_{\mathrm{QFT,paired}}.\]</p><p>We first run a tiny pedagogical case of a signal with <code>n=2</code> qubits (<code>N=2^n=4</code> points). In the paired-register basis, this has <code>m=4</code> total qubits (<code>M=N^2=16</code> points).</p><pre><code class="language-julia hljs">using QILaplace, ITensors
+using LinearAlgebra, Printf
+using Plots, LaTeXStrings</code></pre><h2 id="Setting-up-the-signal"><a class="docs-heading-anchor" href="#Setting-up-the-signal">Setting up the signal</a><a id="Setting-up-the-signal-1"></a><a class="docs-heading-anchor-permalink" href="#Setting-up-the-signal" title="Permalink"></a></h2><p>For the walkthrough, we use the signal of the form</p><p class="math-container">\[x_j = a^j\cos(\omega_0 j),\qquad j=0,1,2,3.\]</p><pre><code class="language-julia hljs">n = 2
+N = 2^n
+m = 2n
+
+a_small = 0.7
+ω0_small = π / 3
+x = Float64[a_small^j * cos(ω0_small * j) for j in 0:(N - 1)]
+
+@show n N m
+round.(x; digits=4)</code></pre><pre><code class="nohighlight hljs">4-element Vector{Float64}:
+  1.0
+  0.35
+ -0.245
+ -0.343</code></pre><h2 id="Constructing-the-ZTMPS"><a class="docs-heading-anchor" href="#Constructing-the-ZTMPS">Constructing the ZTMPS</a><a id="Constructing-the-ZTMPS-1"></a><a class="docs-heading-anchor-permalink" href="#Constructing-the-ZTMPS" title="Permalink"></a></h2><p>The encoded paired state is</p><p class="math-container">\[|x\rangle_{\mathrm{pair}}
+= \sum_{j=0}^{N-1}\hat{x}_j\,|j\rangle_{\mathrm{main}}|j\rangle_{\mathrm{copy}},
+\qquad \hat{x}=x/\|x\|_2.\]</p><p>We need both registers:</p><ul><li><code>main</code> stores transform-output index information,</li><li><code>copy</code> carries the original index information used by controlled non-unitary operations in the zT construction.</li></ul><pre><code class="language-julia hljs">ψz = signal_ztmps(x; cutoff=1e-14, maxdim=64)
+
+int_to_bits_lsb(v::Integer, n::Int) = Int.(digits(v; base=2, pad=n))
+int_to_bits_msb(v::Integer, n::Int) = reverse(int_to_bits_lsb(v, n))
+
+function interleave_bits(main_bits, copy_bits)
+    length(main_bits) == length(copy_bits) ||
+        throw(ArgumentError(&quot;main_bits and copy_bits must have the same length&quot;))
+    bits = Vector{Int}(undef, 2 * length(main_bits))
+    for i in eachindex(main_bits)
+        bits[2i - 1] = Int(main_bits[i])
+        bits[2i] = Int(copy_bits[i])
+    end
+    return bits
+end
+
+@show int_to_bits_msb(0, n)
+@show int_to_bits_lsb(3, n)
+@show interleave_bits([0, 0], [1, 1]);</code></pre><pre><code class="nohighlight hljs">int_to_bits_msb(0, n) = [0, 0]
+int_to_bits_lsb(3, n) = [1, 1]
+interleave_bits([0, 0], [1, 1]) = [0, 1, 0, 1]
+</code></pre><p>Element-access sanity check: We can check that the element-access works by checking the amplitude of the coefficient for the state <span>$|2\rangle_{\mathrm{main}}|2\rangle_{\mathrm{copy}}$</span>.</p><pre><code class="language-julia hljs">j_demo = 2
+bits_j = int_to_bits_msb(j_demo, n)
+amp_match = coefficient(ψz, interleave_bits(bits_j, bits_j))
+
+@show amp_match x[j_demo + 1];</code></pre><pre><code class="nohighlight hljs">amp_match = -0.24499999999999986
+x[j_demo + 1] = -0.24499999999999986
+</code></pre><h2 id="Constructing-the-zT-circuit"><a class="docs-heading-anchor" href="#Constructing-the-zT-circuit">Constructing the zT circuit</a><a id="Constructing-the-zT-circuit-1"></a><a class="docs-heading-anchor-permalink" href="#Constructing-the-zT-circuit" title="Permalink"></a></h2><p>The sampled transform coefficients are:</p><p class="math-container">\[\chi_{k,l} = \frac{1}{2^n}\sum_{j=0}^{N-1}x_j\,
+e^{-\frac{\omega_r k}{2^n}j}\,e^{-i\frac{\omega_i l}{2^n}j},
+\quad
+s_{k,l}=\frac{\omega_r k+i\omega_i l}{2^n},
+\quad
+z_{k,l}=e^{-s_{k,l}}.\]</p><p>The imaginary part of <span>$s_{k,l}$</span>, <span>$\omega_i l/2^n$</span> makes the <span>$\chi_{k,l}$</span> run from 0 to <span>$2\pi$</span> for <span>$\omega_i = 2\pi$</span>, sweeping across all the points angularly.  The real part <span>$\omega_r k/2^n$</span> makes the <span>$\chi_{k,l}$</span> run from 1 to <span>$e^{-\omega_r}$</span>, sweeping from the <span>$r=1$</span> to <span>$r=e^{-\omega_r}$</span> circle radially inwards. The points at the <span>$r=1$</span> circle correspond to pure oscillations, while the points inside the circle <span>$r &lt; 1$</span> correspond to damped signals with/without oscillations.] Note that if we want to sample from the origin, we need <span>$\omega_r \rightarrow \infty$</span>, meaning the signal is highly highly damped.</p><p>The DT block contributes damping, and paired QFT contributes phase.</p><p>Primitive gates to construct the zT circuit in the quantics representation of <span>$j, k, l$</span> include:</p><p class="math-container">\[H_d = \frac{1}{\sqrt{2}}
+\begin{pmatrix}
+1 &amp; 1 \\
+1 &amp; e^{-\omega_r/2}
+\end{pmatrix},
+\qquad
+H = \frac{1}{\sqrt{2}}
+\begin{pmatrix}
+1 &amp; 1 \\
+1 &amp; -1
+\end{pmatrix},\]</p><p class="math-container">\[R_{lm} =
+\begin{pmatrix}
+1 &amp; 0 \\
+0 &amp; e^{-\omega_r / 2^{m-l+1}}
+\end{pmatrix},
+\qquad
+P_{lm} =
+\begin{pmatrix}
+1 &amp; 0 \\
+0 &amp; e^{-2\pi i / 2^{m-l+1}}
+\end{pmatrix}.\]</p><p>For controlled gates, we describe action in words: when control is <code>|0⟩</code> the target is unchanged; when control is <code>|1⟩</code> the target receives the corresponding damping/phase factor.</p><img src="../../animations/assets/zt_circuit.png" alt="Discrete Laplace transform circuit on a paired register"><div class="admonition is-info" id="Sign-convention-d5a5b92aa1b669d9"><header class="admonition-header">Sign convention<a class="admonition-anchor" href="#Sign-convention-d5a5b92aa1b669d9" title="Permalink"></a></header><div class="admonition-body"><p>We use the <code>-i</code> phase convention in zT/QFT blocks, so <span>$z_{k,l}=r_k e^{-i\theta_l}$</span> and <span>$\mathrm{Im}(z_{k,l})=-r_k\sin\theta_l$</span>.</p></div></div><pre><code class="language-julia hljs">ωr = 2π
+ωi = 2π
+Wzt = build_zt_mpo(ψz, ωr; cutoff=1e-14, maxdim=64)</code></pre><pre><code class="nohighlight hljs">PairedSiteMPO with 2 sites:
+  Site 1 (main): dim=2, tags=&quot;Link,u&quot; | dim=2, tags=&quot;site-1&quot; | dim=2, tags=&quot;site-1&quot;
+  Site 1 (copy): dim=8, tags=&quot;Link,u&quot; | dim=2, tags=&quot;site-copy-1&quot; | dim=2, tags=&quot;site-copy-1&quot; | dim=2, tags=&quot;Link,u&quot;
+  Site 2 (main): dim=2, tags=&quot;Link,u&quot; | dim=2, tags=&quot;site-2&quot; | dim=2, tags=&quot;site-2&quot; | dim=8, tags=&quot;Link,u&quot;
+  Site 2 (copy): dim=2, tags=&quot;site-copy-2&quot; | dim=2, tags=&quot;site-copy-2&quot; | dim=2, tags=&quot;Link,u&quot;
+</code></pre><p>Coefficient extraction from transformed <code>ZTMPS</code>: encode <code>(k,l)</code> in LSB-first order (bit-reversal), interleave main/copy bits, query <code>coefficient</code>.</p><pre><code class="language-julia hljs">function chi_from_zt(ψ::ZTMPS, k::Int, l::Int)
+    nreg = length(ψ.sites_main)
+    kb = int_to_bits_lsb(k, nreg)
+    lb = int_to_bits_lsb(l, nreg)
+    return coefficient(ψ, interleave_bits(kb, lb))
+end</code></pre><pre><code class="nohighlight hljs">chi_from_zt (generic function with 1 method)</code></pre><h2 id="Performing-the-z-Transform"><a class="docs-heading-anchor" href="#Performing-the-z-Transform">Performing the z-Transform</a><a id="Performing-the-z-Transform-1"></a><a class="docs-heading-anchor-permalink" href="#Performing-the-z-Transform" title="Permalink"></a></h2><p>Apply the zT MPO and extract all <code>N x N = 4 x 4 = 16</code> coefficients.</p><pre><code class="language-julia hljs">ψout = apply(Wzt, ψz)
+χ_num = ComplexF64[chi_from_zt(ψout, k, l) for k in 0:(N - 1), l in 0:(N - 1)]
+
+@show chi_from_zt(ψout, 1, 1)
+round.(χ_num; digits=4)</code></pre><pre><code class="nohighlight hljs">4×4 Matrix{ComplexF64}:
+ 0.1905+0.0im  0.3112-0.1732im   0.187+0.0im  0.3112+0.1732im
+ 0.2648+0.0im  0.2526-0.019im   0.2299+0.0im  0.2526+0.019im
+ 0.2537+0.0im  0.2501-0.0038im  0.2461+0.0im  0.2501+0.0038im
+ 0.2508-0.0im    0.25-0.0008im  0.2492-0.0im    0.25+0.0008im</code></pre><h2 id="Post-transform-coefficient-analysis"><a class="docs-heading-anchor" href="#Post-transform-coefficient-analysis">Post-transform coefficient analysis</a><a id="Post-transform-coefficient-analysis-1"></a><a class="docs-heading-anchor-permalink" href="#Post-transform-coefficient-analysis" title="Permalink"></a></h2><p>At each grid index pair <code>(k,l)</code>, we use three linked quantities:</p><ul><li><code>s(k, l) = (ωr k + i ωi l)/2^n</code>: the complex Laplace sample point,</li><li><code>z(k, l) = e^{-s(k, l)} = e^{-(ωr k + i ωi l)/2^n}</code>: the same point mapped to the complex z-plane,</li><li><code>χ(k, l)</code>: the sampled z-transform coefficient evaluated at that point.</li></ul><p>So <code>(k,l)</code> is the discrete address, <code>s(k,l)</code> is the transform-domain coordinate, <code>z(k,l)</code> is its geometric location in the Argand plane, and <code>χ(k,l)</code> is the value we color/compare on those coordinates.</p><p>Analytical reference on the same grid:</p><pre><code class="language-julia hljs">function chi_analytical(xn::AbstractVector, k::Int, l::Int, ωr::Real, ωi::Real)
+    Nloc = length(xn)
+    s = (ωr * k + im * ωi * l) / Nloc
+    acc = zero(ComplexF64)
+    @inbounds for j in 0:(Nloc - 1)
+        acc += xn[j + 1] * exp(-s * j)
+    end
+    return acc / Nloc
+end
+
+χ_ref = ComplexF64[chi_analytical(x, k, l, ωr, ωi) for k in 0:(N - 1), l in 0:(N - 1)]
+rel_err_small = abs.(χ_num .- χ_ref) ./ max.(abs.(χ_ref), eps(Float64))
+
+@printf(&quot;max relative error = %.3e\n&quot;, maximum(rel_err_small))
+
+@printf(&quot;  %-12s  %-20s  %-20s  %10s\n&quot;, &quot;(k,l)&quot;, &quot;χ_num&quot;, &quot;χ_exact&quot;, &quot;rel err&quot;)
+println(&quot;-&quot;^74)
+for k in 0:(N - 1), l in 0:(N - 1)
+    a = χ_num[k + 1, l + 1]
+    b = χ_ref[k + 1, l + 1]
+    anum = @sprintf(&quot;% .5f%+.5fi&quot;, real(a), imag(a))
+    aexact = @sprintf(&quot;% .5f%+.5fi&quot;, real(b), imag(b))
+    @printf(
+        &quot;  (%2d,%2d)      %-20s  %-20s  %8.2e\n&quot;,
+        k, l, anum, aexact, rel_err_small[k + 1, l + 1]
+    )
+end
+
+function z_from_kl(k::Int, l::Int, nreg::Int, ωr::Real, ωi::Real)
+    Nloc = 2^nreg
+    r = exp(-ωr * k / Nloc)
+    θ = ωi * l / Nloc
+    return complex(r * cos(θ), -r * sin(θ))
+end
+
+zs_small = ComplexF64[z_from_kl(k, l, n, ωr, ωi) for k in 0:(N - 1), l in 0:(N - 1)]
+round.(zs_small; digits=4)
+
+</code></pre><pre><code class="nohighlight hljs">max relative error = 4.624e-15
+  (k,l)         χ_num                 χ_exact                  rel err
+--------------------------------------------------------------------------
+  ( 0, 0)       0.19050+0.00000i      0.19050+0.00000i     4.25e-15
+  ( 0, 1)       0.31125-0.17325i      0.31125-0.17325i     4.05e-15
+  ( 0, 2)       0.18700+0.00000i      0.18700+0.00000i     4.62e-15
+  ( 0, 3)       0.31125+0.17325i      0.31125+0.17325i     3.30e-15
+  ( 1, 0)       0.26477+0.00000i      0.26477+0.00000i     3.79e-15
+  ( 1, 1)       0.25265-0.01896i      0.25265-0.01896i     3.09e-15
+  ( 1, 2)       0.22993+0.00000i      0.22993-0.00000i     2.74e-15
+  ( 1, 3)       0.25265+0.01896i      0.25265+0.01896i     2.19e-15
+  ( 2, 0)       0.25366+0.00000i      0.25366+0.00000i     2.41e-15
+  ( 2, 1)       0.25011-0.00379i      0.25011-0.00379i     2.23e-15
+  ( 2, 2)       0.24611+0.00000i      0.24611-0.00000i     2.59e-15
+  ( 2, 3)       0.25011+0.00379i      0.25011+0.00379i     2.23e-15
+  ( 3, 0)       0.25078-0.00000i      0.25078+0.00000i     2.22e-15
+  ( 3, 1)       0.25000-0.00079i      0.25000-0.00079i     1.11e-15
+  ( 3, 2)       0.24921-0.00000i      0.24921-0.00000i     2.13e-15
+  ( 3, 3)       0.25000+0.00079i      0.25000+0.00079i     8.57e-16
+</code></pre><img src="../../assets/zt_small_kl.svg" alt="Small-grid z-transform magnitude"><h2 id="Pole-Identification-from-the-transform"><a class="docs-heading-anchor" href="#Pole-Identification-from-the-transform">Pole Identification from the transform</a><a id="Pole-Identification-from-the-transform-1"></a><a class="docs-heading-anchor-permalink" href="#Pole-Identification-from-the-transform" title="Permalink"></a></h2><p>The previous plot was probably too pixelated to make sense of anything accurately. Although we saw some signatures of poles at <span>$(k,l)=(0,1), (0,3)$</span>, the transform required more input signal samples to get a better resolution. We now scale up the algorithm to a large-scale signal to show its power of pole identification. The signal we analyse is a complex-valued signal with two poles, one positive and one negative:</p><p class="math-container">\[x_j = a^j\cos(\omega_0 j),\qquad
+a = 1.00015\,e^{i\,0.002},\quad \omega_0 = 0.0061.\]</p><p>We deliberately took a complex-valued amplitude to break the symmetry of the two poles this function has about the real axis. The pole targets are analytically given in the continuum limit as:</p><p class="math-container">\[z_\pm = \frac{1}{a}e^{\pm i\omega_0}
+\approx 0.99984 + 0.00408i,\ \ 0.99981 - 0.00816i.\]</p><p>We shall now perform a signal sampling of <span>$n=20$</span> qubits (<span>$N=2^{20}=1048576$</span> points), and compress it into a signal with <span>$m=2n=40$</span> qubits (<span>$M=N^2 \approx 10^12$</span> points).</p><pre><code class="language-julia hljs">n_big = 20
+N_big = 2^n_big
+a_big = 1.00015 * exp(im * 0.002)
+ω0_big = 0.0061
+x_big = ComplexF64[a_big^j * cos(ω0_big * j) for j in 0:(N_big - 1)]
+
+ψz_big = signal_ztmps(
+    x_big;
+    method=:rsvd, k=50, p=5, q=2,
+    cutoff=1e-12, maxdim=128,
+)</code></pre><pre><code class="nohighlight hljs">ZTMPS with 20 sites:
+  Site 1:
+    Amain: dim=2, tags=&quot;site-1&quot; | dim=1, tags=&quot;bond-copy-1&quot;
+    Acopy: dim=1, tags=&quot;bond-copy-1&quot; | dim=1, tags=&quot;bond-1&quot; | dim=2, tags=&quot;site-copy-1&quot;
+  Site 2:
+    Amain: dim=1, tags=&quot;bond-1&quot; | dim=2, tags=&quot;site-2&quot; | dim=1, tags=&quot;bond-copy-2&quot;
+    Acopy: dim=1, tags=&quot;bond-copy-2&quot; | dim=1, tags=&quot;bond-2&quot; | dim=2, tags=&quot;site-copy-2&quot;
+  Site 3:
+    Amain: dim=1, tags=&quot;bond-2&quot; | dim=2, tags=&quot;site-3&quot; | dim=1, tags=&quot;bond-copy-3&quot;
+    Acopy: dim=1, tags=&quot;bond-copy-3&quot; | dim=1, tags=&quot;bond-3&quot; | dim=2, tags=&quot;site-copy-3&quot;
+  Site 4:
+    Amain: dim=1, tags=&quot;bond-3&quot; | dim=2, tags=&quot;site-4&quot; | dim=2, tags=&quot;bond-copy-4&quot;
+    Acopy: dim=2, tags=&quot;bond-copy-4&quot; | dim=2, tags=&quot;bond-4&quot; | dim=2, tags=&quot;site-copy-4&quot;
+  Site 5:
+    Amain: dim=2, tags=&quot;bond-4&quot; | dim=2, tags=&quot;site-5&quot; | dim=3, tags=&quot;bond-copy-5&quot;
+    Acopy: dim=3, tags=&quot;bond-copy-5&quot; | dim=2, tags=&quot;bond-5&quot; | dim=2, tags=&quot;site-copy-5&quot;
+  Site 6:
+    Amain: dim=2, tags=&quot;bond-5&quot; | dim=2, tags=&quot;site-6&quot; | dim=4, tags=&quot;bond-copy-6&quot;
+    Acopy: dim=4, tags=&quot;bond-copy-6&quot; | dim=2, tags=&quot;bond-6&quot; | dim=2, tags=&quot;site-copy-6&quot;
+  Site 7:
+    Amain: dim=2, tags=&quot;bond-6&quot; | dim=2, tags=&quot;site-7&quot; | dim=4, tags=&quot;bond-copy-7&quot;
+    Acopy: dim=4, tags=&quot;bond-copy-7&quot; | dim=2, tags=&quot;bond-7&quot; | dim=2, tags=&quot;site-copy-7&quot;
+  Site 8:
+    Amain: dim=2, tags=&quot;bond-7&quot; | dim=2, tags=&quot;site-8&quot; | dim=4, tags=&quot;bond-copy-8&quot;
+    Acopy: dim=4, tags=&quot;bond-copy-8&quot; | dim=2, tags=&quot;bond-8&quot; | dim=2, tags=&quot;site-copy-8&quot;
+  Site 9:
+    Amain: dim=2, tags=&quot;bond-8&quot; | dim=2, tags=&quot;site-9&quot; | dim=4, tags=&quot;bond-copy-9&quot;
+    Acopy: dim=4, tags=&quot;bond-copy-9&quot; | dim=2, tags=&quot;bond-9&quot; | dim=2, tags=&quot;site-copy-9&quot;
+  Site 10:
+    Amain: dim=2, tags=&quot;bond-9&quot; | dim=2, tags=&quot;site-10&quot; | dim=4, tags=&quot;bond-copy-10&quot;
+    Acopy: dim=4, tags=&quot;bond-copy-10&quot; | dim=2, tags=&quot;bond-10&quot; | dim=2, tags=&quot;site-copy-10&quot;
+  Site 11:
+    Amain: dim=2, tags=&quot;bond-10&quot; | dim=2, tags=&quot;site-11&quot; | dim=4, tags=&quot;bond-copy-11&quot;
+    Acopy: dim=4, tags=&quot;bond-copy-11&quot; | dim=2, tags=&quot;bond-11&quot; | dim=2, tags=&quot;site-copy-11&quot;
+  Site 12:
+    Amain: dim=2, tags=&quot;bond-11&quot; | dim=2, tags=&quot;site-12&quot; | dim=4, tags=&quot;bond-copy-12&quot;
+    Acopy: dim=4, tags=&quot;bond-copy-12&quot; | dim=2, tags=&quot;bond-12&quot; | dim=2, tags=&quot;site-copy-12&quot;
+  Site 13:
+    Amain: dim=2, tags=&quot;bond-12&quot; | dim=2, tags=&quot;site-13&quot; | dim=4, tags=&quot;bond-copy-13&quot;
+    Acopy: dim=4, tags=&quot;bond-copy-13&quot; | dim=2, tags=&quot;bond-13&quot; | dim=2, tags=&quot;site-copy-13&quot;
+  Site 14:
+    Amain: dim=2, tags=&quot;bond-13&quot; | dim=2, tags=&quot;site-14&quot; | dim=4, tags=&quot;bond-copy-14&quot;
+    Acopy: dim=4, tags=&quot;bond-copy-14&quot; | dim=2, tags=&quot;bond-14&quot; | dim=2, tags=&quot;site-copy-14&quot;
+  Site 15:
+    Amain: dim=2, tags=&quot;bond-14&quot; | dim=2, tags=&quot;site-15&quot; | dim=4, tags=&quot;bond-copy-15&quot;
+    Acopy: dim=4, tags=&quot;bond-copy-15&quot; | dim=2, tags=&quot;bond-15&quot; | dim=2, tags=&quot;site-copy-15&quot;
+  Site 16:
+    Amain: dim=2, tags=&quot;bond-15&quot; | dim=2, tags=&quot;site-16&quot; | dim=4, tags=&quot;bond-copy-16&quot;
+    Acopy: dim=4, tags=&quot;bond-copy-16&quot; | dim=2, tags=&quot;bond-16&quot; | dim=2, tags=&quot;site-copy-16&quot;
+  Site 17:
+    Amain: dim=2, tags=&quot;bond-16&quot; | dim=2, tags=&quot;site-17&quot; | dim=4, tags=&quot;bond-copy-17&quot;
+    Acopy: dim=4, tags=&quot;bond-copy-17&quot; | dim=2, tags=&quot;bond-17&quot; | dim=2, tags=&quot;site-copy-17&quot;
+  Site 18:
+    Amain: dim=2, tags=&quot;bond-17&quot; | dim=2, tags=&quot;site-18&quot; | dim=4, tags=&quot;bond-copy-18&quot;
+    Acopy: dim=4, tags=&quot;bond-copy-18&quot; | dim=2, tags=&quot;bond-18&quot; | dim=2, tags=&quot;site-copy-18&quot;
+  Site 19:
+    Amain: dim=2, tags=&quot;bond-18&quot; | dim=2, tags=&quot;site-19&quot; | dim=4, tags=&quot;bond-copy-19&quot;
+    Acopy: dim=4, tags=&quot;bond-copy-19&quot; | dim=2, tags=&quot;bond-19&quot; | dim=2, tags=&quot;site-copy-19&quot;
+  Site 20:
+    Amain: dim=2, tags=&quot;bond-19&quot; | dim=2, tags=&quot;site-20&quot; | dim=2, tags=&quot;bond-copy-20&quot;
+    Acopy: dim=2, tags=&quot;bond-copy-20&quot; | dim=2, tags=&quot;site-copy-20&quot;
+</code></pre><p>The closed-form solution for the given signal is given as</p><p class="math-container">\[χ(z) = \frac{1}{2N}\left(\frac{1 - (γ_p z)^N}{1 - γ_p z} + \frac{1 - (γ_m z)^N}{1 - γ_m z}\right),\]</p><p>where <span>$γ_p = a e^{iω_0}$</span> and <span>$γ_m = a e^{-iω_0}$</span>. Note that this closed form does not have a defined pole as the analytical case. The poles manifest only at the infinite series limit. However, we will still see signatures of a pole around that analytic point for a large enough signal sampling. We now define that function, and another function to numerically sample the z-transform coefficients from the given MPS.</p><pre><code class="language-julia hljs">function χ_finite_reference(z::ComplexF64, γp::ComplexF64, γm::ComplexF64, Nloc::Int)
+    s1 = (1 - (γp * z)^Nloc) / (1 - γp * z)
+    s2 = (1 - (γm * z)^Nloc) / (1 - γm * z)
+    return (0.5 / Nloc) * (s1 + s2)
+end
+
+function sample_chi_and_z(ψ::ZTMPS, nreg::Int, ωr::Real, ωi::Real, ks, ls)
+    χ = ComplexF64[chi_from_zt(ψ, k, l) for k in ks, l in ls]
+    zs = ComplexF64[z_from_kl(k, l, nreg, ωr, ωi) for k in ks, l in ls]
+    return χ, zs
+end
+
+z_pole_pos = (1 / a_big) * exp( im * ω0_big)
+z_pole_neg = (1 / a_big) * exp(-im * ω0_big)
+@show z_pole_pos z_pole_neg;
+
+γ_pos = a_big * exp( im * ω0_big);
+γ_neg = a_big * exp(-im * ω0_big);</code></pre><pre><code class="nohighlight hljs">z_pole_pos = 0.9998416187689586 + 0.004099373607135251im
+z_pole_neg = 0.9998172225959715 - 0.00809869662229722im
+</code></pre><h3 id="Coarse-grained-scan"><a class="docs-heading-anchor" href="#Coarse-grained-scan">Coarse-grained scan</a><a id="Coarse-grained-scan-1"></a><a class="docs-heading-anchor-permalink" href="#Coarse-grained-scan" title="Permalink"></a></h3><p>In this coarse-grain scan, we obtain the z-transform values at the values of <span>$k, l$</span> that are far apart from each other. This will let us sparsely sample over the 2D <span>$z$</span>-plane. We take the sampling step to be <span>$2^{12}$</span> which gives us a a total of <span>$2^8 \times 2^8 = 2^{16}$</span> points in the grid.</p><pre><code class="language-julia hljs">ωr_coarse = 2π
+ωi_coarse = 2π
+step_coarse = 2^12
+
+Wzt_coarse = build_zt_mpo(ψz_big, ωr_coarse; cutoff=1e-12, maxdim=128)
+ψout_coarse = apply(Wzt_coarse, ψz_big)
+
+ks_coarse = 0:step_coarse:(N_big - 1)
+ls_coarse = 0:step_coarse:(N_big - 1)
+χ_coarse, zs_coarse = sample_chi_and_z(ψout_coarse, n_big, ωr_coarse, ωi_coarse, ks_coarse, ls_coarse)
+
+mag_coarse = abs.(χ_coarse)
+mag_coarse_norm = mag_coarse ./ maximum(mag_coarse)
+peak_idx_c = argmax(mag_coarse)
+k_peak_c = ks_coarse[peak_idx_c[1]]
+l_peak_c = ls_coarse[peak_idx_c[2]]
+z_peak_c = z_from_kl(k_peak_c, l_peak_c, n_big, ωr_coarse, ωi_coarse)
+
+@printf(&quot; Predicted pole indices from coarse scan: %d, %d\n&quot;, k_peak_c, l_peak_c)
+@printf(&quot; Predicted pole location from coarse scan: %.6f + %.6fi\n&quot;, real(z_peak_c), imag(z_peak_c))
+@printf(&quot; Error from nearest analytic pole: %.3e\n&quot;, min(abs(z_peak_c - z_pole_pos), abs(z_peak_c - z_pole_neg)))
+</code></pre><pre><code class="nohighlight hljs"> Predicted pole indices from coarse scan: 0, 0
+ Predicted pole location from coarse scan: 1.000000 + -0.000000i
+ Error from nearest analytic pole: 4.102e-03
+</code></pre><img src="../../assets/zt_pole_scan_coarse.svg" alt="Coarse z-plane pole scan"><h3 id="Fine-grained-scan"><a class="docs-heading-anchor" href="#Fine-grained-scan">Fine-grained scan</a><a id="Fine-grained-scan-1"></a><a class="docs-heading-anchor-permalink" href="#Fine-grained-scan" title="Permalink"></a></h3><p>In the fine-grained scan, we consider the place near the unit circle, around the real axis where we found the signatures of poles from the coarse scan. To get the resolution better, we generate the zT-MPO for <code>ωr_fine = 0.5</code> so that we can sample more densely near the unit circle. We sample <span>$128 \times 128$</span> points around the area <span>$r \in [0.99984, 1]$</span> and <span>$\theta \in [-5e-3, 9e-3]$</span>.</p><pre><code class="language-julia hljs">ωr_fine = 0.5
+ωi_fine = 2π
+nr_fine = 128
+nθ_fine = 128
+rmin_fine, rmax_fine = 1 - 1.6e-4, 1.0
+θmin_fine, θmax_fine = -5e-3, 9e-3
+
+Wzt_fine = build_zt_mpo(ψz_big, ωr_fine; cutoff=1e-12, maxdim=128)
+ψout_fine = apply(Wzt_fine, ψz_big)
+
+r_targets = range(rmin_fine, rmax_fine; length=nr_fine)
+ks_fine = clamp.(round.(Int, (-N_big / ωr_fine) .* log.(r_targets)), 0, N_big - 1)
+
+θ_targets = range(θmin_fine, θmax_fine; length=nθ_fine)
+θ_wrapped = mod.(θ_targets, 2π)
+ls_fine = mod.(round.(Int, (N_big / ωi_fine) .* θ_wrapped), N_big)
+
+χ_fine, zs_fine = sample_chi_and_z(ψout_fine, n_big, ωr_fine, ωi_fine, ks_fine, ls_fine)
+mag_fine = abs.(χ_fine)
+mag_fine_norm = mag_fine ./ maximum(mag_fine)
+
+peak_idx_f = argmax(mag_fine)
+k_peak_f = ks_fine[peak_idx_f[1]]
+l_peak_f = ls_fine[peak_idx_f[2]]
+z_peak_f = z_from_kl(k_peak_f, l_peak_f, n_big, ωr_fine, ωi_fine)
+
+@printf(&quot; Predicted pole indices from fine scan: %d, %d\n&quot;, k_peak_f, l_peak_f)
+@printf(&quot; Predicted pole location from fine scan: %.6f + %.6fi\n&quot;, real(z_peak_f), imag(z_peak_f))
+@printf(&quot; Error from nearest analytic pole: %.3e\n&quot;, min(abs(z_peak_f - z_pole_pos), abs(z_peak_f - z_pole_neg)))
+
+
+χ_ref_fine = ComplexF64[χ_finite_reference(z, γ_pos, γ_neg, N_big) for z in zs_fine]
+rel_fine = abs.(χ_fine .- χ_ref_fine) ./ max.(abs.(χ_ref_fine), eps(Float64))
+ΔM_fine = maximum(rel_fine)
+@printf(&quot;fine scan max relative coefficient error ΔM = %.3e\n&quot;, ΔM_fine)
+</code></pre><pre><code class="nohighlight hljs"> Predicted pole indices from fine scan: 0, 1047889
+ Predicted pole location from fine scan: 0.999992 + 0.004117i
+ Error from nearest analytic pole: 1.509e-04
+fine scan max relative coefficient error ΔM = 2.945e+63
+</code></pre><img src="../../assets/zt_pole_scan_fine.svg" alt="Fine z-plane pole scan"><h3 id="Superfine-(full-resolution-zoom)"><a class="docs-heading-anchor" href="#Superfine-(full-resolution-zoom)">Superfine (full-resolution zoom)</a><a id="Superfine-(full-resolution-zoom)-1"></a><a class="docs-heading-anchor-permalink" href="#Superfine-(full-resolution-zoom)" title="Permalink"></a></h3><p>We have certainly increased in accuracy of the pole&#39;s location as we increased the resolution of the scan from coarse to fine. To zoom into the poles fully, we need to sample the z-transform at the full <code>(k,l)</code> stride <code>1:1</code> around one analytical pole. In this run, we sample around the positive pole we obtained from the fine scan. We will do a <span>$50 \times 50$</span> grid sampling around this pole.</p><pre><code class="language-julia hljs">z_target = z_pole_pos # analytical positive pole for stable superfine centering
+θ_target = mod(-angle(z_target), 2π)
+k_center = clamp(round(Int, (-N_big / ωr_fine) * log(abs(z_target))), 0, N_big - 1)
+l_center = mod(round(Int, (N_big / ωi_fine) * θ_target), N_big)
+
+half_k = 24
+half_l = 24
+ks_superfine = collect((k_center - half_k):(k_center + half_k))
+ls_superfine = mod.(collect((l_center - half_l):(l_center + half_l)), N_big)
+
+χ_super, zs_superfine = sample_chi_and_z(ψout_fine, n_big, ωr_fine, ωi_fine, ks_superfine, ls_superfine)
+mag_super = abs.(χ_super)
+mag_super_norm = mag_super ./ maximum(mag_super)
+
+peak_idx_s = argmax(mag_super)
+k_peak_s = ks_superfine[peak_idx_s[1]]
+l_peak_s = ls_superfine[peak_idx_s[2]]
+z_peak_s = z_from_kl(k_peak_s, l_peak_s, n_big, ωr_fine, ωi_fine)
+ΔM_superfine = maximum(abs.(χ_super .- χ_finite_reference(z_peak_s, γ_pos, γ_neg, N_big)))
+den_super = max(abs(χ_finite_reference(z_peak_s, γ_pos, γ_neg, N_big)), eps(Float64))
+ΔM_superfine_rel = ΔM_superfine / den_super
+
+@printf(&quot; Predicted pole indices from superfine scan: %d, %d\n&quot;, k_peak_s, l_peak_s)
+@printf(&quot; Predicted pole location from superfine scan: %.6f + %.6fi\n&quot;, real(z_peak_s), imag(z_peak_s))
+@printf(&quot; Error from nearest analytic pole: %.3e\n&quot;, min(abs(z_peak_s - z_pole_pos), abs(z_peak_s - z_pole_neg)))
+@printf(&quot; Maximum relative coefficient error: %.3e\n&quot;, ΔM_superfine_rel)
+</code></pre><pre><code class="nohighlight hljs"> Predicted pole indices from superfine scan: 320, 1047872
+ Predicted pole location from superfine scan: 0.999839 + 0.004218i
+ Error from nearest analytic pole: 1.185e-04
+ Maximum relative coefficient error: 2.739e+61
+</code></pre><img src="../../assets/zt_pole_scan_superfine.svg" alt="Superfine z-plane scan around analytic pole"><p><em>Figure 2. Pole identification from transformed coefficients: coarse global scan, fine near-unit-circle scan, and superfine z-plane local full-resolution scan with analytical pole marker.</em></p><p>The superfine scan is numerically very accurate, which we can see from the very small relative transform error (ΔM<em>superfine</em>rel). At the same time, the detected peak is still not exactly on the analytical pole location, and that is expected here. The reason is not a failure of the algorithm, but the fact that we are computing a finite, discretized Laplace/z-transform from a sampled signal, whereas the analytical pole formula comes from the ideal infinite-series model. In other words, the method is correctly capturing the pole signature, but finite sampling and grid resolution leave a small offset in the recovered pole position; with a longer and more finely time-resolved signal, that offset should shrink and the detected pole should move closer to the analytical value.</p><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../dt/">« Damping Transform</a><a class="docs-footer-nextpage" href="../../benchmarking/">Benchmarking Runs »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Tuesday 28 April 2026 18:57">Tuesday 28 April 2026</span>. Using Julia version 1.12.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

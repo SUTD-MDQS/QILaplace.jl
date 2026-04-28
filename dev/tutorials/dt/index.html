@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Damping Transform · QILaplace.jl</title><meta name="title" content="Damping Transform · QILaplace.jl"/><meta property="og:title" content="Damping Transform · QILaplace.jl"/><meta property="twitter:title" content="Damping Transform · QILaplace.jl"/><meta name="description" content="Documentation for QILaplace.jl."/><meta property="og:description" content="Documentation for QILaplace.jl."/><meta property="twitter:description" content="Documentation for QILaplace.jl."/><meta property="og:url" content="https://SUTD-MDQS.github.io/QILaplace.jl/tutorials/dt/"/><meta property="twitter:url" content="https://SUTD-MDQS.github.io/QILaplace.jl/tutorials/dt/"/><link rel="canonical" href="https://SUTD-MDQS.github.io/QILaplace.jl/tutorials/dt/"/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script><link href="../../assets/sidebar-logo.css" rel="stylesheet" type="text/css"/><link href="../../assets/dark-theme.css" rel="stylesheet" type="text/css"/></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../../"><img src="../../assets/logo.svg" alt="QILaplace.jl logo"/></a><div class="docs-package-name"><span class="docs-autofit"><a href="../../">QILaplace.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><a class="tocitem" href="../../core_concepts/">Core Concepts</a></li><li><span class="tocitem">Tutorials</span><ul><li><a class="tocitem" href="../signal/">Signal Encoding and Compression</a></li><li><a class="tocitem" href="../dft/">Discrete Fourier Transform</a></li><li class="is-active"><a class="tocitem" href>Damping Transform</a><ul class="internal"><li><a class="tocitem" href="#Setting-up-the-signal"><span>Setting up the signal</span></a></li><li><a class="tocitem" href="#Constructing-the-ZTMPS"><span>Constructing the ZTMPS</span></a></li><li><a class="tocitem" href="#Constructing-the-DT-circuit"><span>Constructing the DT circuit</span></a></li><li><a class="tocitem" href="#Performing-the-Damping-Transform"><span>Performing the Damping Transform</span></a></li><li><a class="tocitem" href="#Example-1:-polynomial-times-exponential"><span>Example 1: polynomial times exponential</span></a></li><li><a class="tocitem" href="#Example-2:-cosine-times-exponential"><span>Example 2: cosine times exponential</span></a></li></ul></li><li><a class="tocitem" href="../zt/">Discrete Laplace Transform</a></li></ul></li><li><a class="tocitem" href="../../benchmarking/">Benchmarking Runs</a></li><li><a class="tocitem" href="../../api/">API</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Tutorials</a></li><li class="is-active"><a href>Damping Transform</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Damping Transform</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/SUTD-MDQS/QILaplace.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/SUTD-MDQS/QILaplace.jl/blob/master/docs/src/tutorials/dt.jl" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Damping-Transform-Tutorial"><a class="docs-heading-anchor" href="#Damping-Transform-Tutorial">Damping Transform Tutorial</a><a id="Damping-Transform-Tutorial-1"></a><a class="docs-heading-anchor-permalink" href="#Damping-Transform-Tutorial" title="Permalink"></a></h1><p>This walkthrough shows how to use <code>QILaplace.jl</code> to compute the real-axis damping transform, and how to interpret it as a discrete Laplace transform on a sampled time grid.</p><p>Unlike the QFT, the damping transform is <strong>non-unitary</strong>: its gates dampen amplitudes by real exponential factors instead of rotating them by complex phases. To implement that cleanly, we use the doubled main-copy representation <code>ZTMPS</code> rather than the single-register <code>SignalMPS</code>.</p><p>Throughout, we work with the real Laplace transform</p><p class="math-container">\[L(s) = \int_0^\infty f(t)\,e^{-st}\,dt,\qquad s\ge 0,\]</p><p>and its finite-grid Riemann approximation</p><p class="math-container">\[L(s_k) \approx \Delta t \sum_{j=0}^{N-1} f(t_j)\,e^{-s_k t_j},
+\qquad t_j = j\Delta t,\ s_k = k\Delta s.\]</p><p>The damping transform implemented in <code>QILaplace.jl</code> uses the kernel</p><p class="math-container">\[y_k = \frac{1}{\sqrt{N}}\sum_{j=0}^{N-1}\hat{x}_j
+\exp\!\left(-\omega_r\,\frac{kj}{N}\right),
+\qquad \hat{x} = x / \|x\|_2.\]</p><p>Setting <span>$\omega_r = N\,\Delta s\,\Delta t$</span> makes this kernel equal to <span>$e^{-s_k t_j}$</span>, so the physical Laplace sum is recovered by</p><p class="math-container">\[L(s_k) \approx \Delta t\,\|x\|_2\,\sqrt{N}\,y_k.\]</p><p>We first walk through a <strong>three-qubit</strong> toy example to see exactly how the paired-register state and the damping circuit work, and then scale up to two richer signals.</p><pre><code class="language-julia hljs">using QILaplace, ITensors
+using LinearAlgebra, Printf
+using Plots, LaTeXStrings</code></pre><h2 id="Setting-up-the-signal"><a class="docs-heading-anchor" href="#Setting-up-the-signal">Setting up the signal</a><a id="Setting-up-the-signal-1"></a><a class="docs-heading-anchor-permalink" href="#Setting-up-the-signal" title="Permalink"></a></h2><p>A tiny grid with <code>n = 3</code> qubits (<code>N = 2^3 = 8</code> points) makes every index concrete. We sample a simple exponential <span>$f(t) = e^{-at}$</span>.</p><pre><code class="language-julia hljs">n = 3
+N = 2^n
+Δt = 0.3
+Δs = 0.5
+ωr = N * Δs * Δt
+
+t_grid = Δt .* collect(0:(N - 1))
+s_grid = Δs .* collect(0:(N - 1))
+
+a = 0.8
+x = exp.(-a .* t_grid)
+
+@show ωr
+@show round.(x; digits=4);</code></pre><pre><code class="nohighlight hljs">ωr = 1.2
+round.(x; digits = 4) = [1.0, 0.7866, 0.6188, 0.4868, 0.3829, 0.3012, 0.2369, 0.1864]
+</code></pre><h2 id="Constructing-the-ZTMPS"><a class="docs-heading-anchor" href="#Constructing-the-ZTMPS">Constructing the ZTMPS</a><a id="Constructing-the-ZTMPS-1"></a><a class="docs-heading-anchor-permalink" href="#Constructing-the-ZTMPS" title="Permalink"></a></h2><p>The damping transform acts on the paired-register state</p><p class="math-container">\[|x\rangle_{\mathrm{pair}} = \sum_{j=0}^{N-1}\hat{x}_j\,
+|j\rangle_{\mathrm{main}}|j\rangle_{\mathrm{copy}},\]</p><p>which <code>signal_ztmps(x)</code> builds as a <code>ZTMPS</code>. The <code>main</code> register will carry the transform index <span>$k$</span>; the <code>copy</code> register keeps an untouched record of the input index <span>$j$</span> that the damping gates can read as controls. Internally, the package interleaves main and copy qubits at each site, which keeps the copy constraint local and keeps bond dimensions small.</p><pre><code class="language-julia hljs">ψz = signal_ztmps(x; cutoff=1e-14, maxdim=64)</code></pre><pre><code class="nohighlight hljs">ZTMPS with 3 sites:
+  Site 1:
+    Amain: dim=2, tags=&quot;site-1&quot; | dim=2, tags=&quot;bond-copy-1&quot;
+    Acopy: dim=2, tags=&quot;bond-copy-1&quot; | dim=1, tags=&quot;bond-1&quot; | dim=2, tags=&quot;site-copy-1&quot;
+  Site 2:
+    Amain: dim=1, tags=&quot;bond-1&quot; | dim=2, tags=&quot;site-2&quot; | dim=2, tags=&quot;bond-copy-2&quot;
+    Acopy: dim=2, tags=&quot;bond-copy-2&quot; | dim=1, tags=&quot;bond-2&quot; | dim=2, tags=&quot;site-copy-2&quot;
+  Site 3:
+    Amain: dim=1, tags=&quot;bond-2&quot; | dim=2, tags=&quot;site-3&quot; | dim=2, tags=&quot;bond-copy-3&quot;
+    Acopy: dim=2, tags=&quot;bond-copy-3&quot; | dim=2, tags=&quot;site-copy-3&quot;
+</code></pre><h3 id="Sampling-helpers"><a class="docs-heading-anchor" href="#Sampling-helpers">Sampling helpers</a><a id="Sampling-helpers-1"></a><a class="docs-heading-anchor-permalink" href="#Sampling-helpers" title="Permalink"></a></h3><p>To pull a specific coefficient out of <code>ψz</code>, we need to specify which computational basis state we are asking about. Because the qubits are interleaved as <code>(main₁, copy₁, main₂, copy₂, …)</code>, we write two small helpers.</p><p><code>int_to_bits</code> converts an integer to an <code>n</code>-bit MSB-first array:</p><pre><code class="language-julia hljs">function int_to_bits(v::Integer, n::Int)
+    return reverse(Int.(digits(v; base=2, pad=n)))
+end
+
+@show int_to_bits(5, 3);</code></pre><pre><code class="nohighlight hljs">int_to_bits(5, 3) = [1, 0, 1]
+</code></pre><p><code>interleave_bits</code> weaves a main bitstring and a copy bitstring into the interleaved layout the MPS expects:</p><pre><code class="language-julia hljs">function interleave_bits(main_bits, copy_bits)
+    length(main_bits) == length(copy_bits) ||
+        throw(ArgumentError(&quot;main_bits and copy_bits must have the same length&quot;))
+    bits = Vector{Int}(undef, 2 * length(main_bits))
+    for i in eachindex(main_bits)
+        bits[2i - 1] = Int(main_bits[i])
+        bits[2i] = Int(copy_bits[i])
+    end
+    return bits
+end
+
+@show interleave_bits([1, 0, 1], [0, 1, 0]);</code></pre><pre><code class="nohighlight hljs">interleave_bits([1, 0, 1], [0, 1, 0]) = [1, 0, 0, 1, 1, 0]
+</code></pre><p>With these two helpers, reading a coefficient of <code>ψz</code> for any pair of main/copy bitstrings is a one-liner. Since the encoded state is <span>$\sum_j \hat{x}_j |j\rangle_{\mathrm{main}}|j\rangle_{\mathrm{copy}}$</span>, the amplitude is only non-zero when the main and copy bitstrings match:</p><pre><code class="language-julia hljs">j_demo = 5
+demo_bits = int_to_bits(j_demo, n)
+amp_match = coefficient(ψz, interleave_bits(demo_bits, demo_bits))
+amp_mismatch = coefficient(ψz, interleave_bits(int_to_bits(2, n), int_to_bits(5, n)))
+
+@show amp_match x[j_demo + 1] / ψz.amplitude;
+@show amp_mismatch;</code></pre><pre><code class="nohighlight hljs">amp_match = 0.3011942119122021
+x[j_demo + 1] / ψz.amplitude = 0.18799690228009328
+amp_mismatch = 0.0
+</code></pre><h2 id="Constructing-the-DT-circuit"><a class="docs-heading-anchor" href="#Constructing-the-DT-circuit">Constructing the DT circuit</a><a id="Constructing-the-DT-circuit-1"></a><a class="docs-heading-anchor-permalink" href="#Constructing-the-DT-circuit" title="Permalink"></a></h2><p>The damping transform factorizes the real exponential weight <span>$\exp(-\omega_r\,kj/N)$</span> into contributions from individual binary digits of <span>$k$</span> and <span>$j$</span> (Appendix A of the <a href="https://arxiv.org/pdf/2601.17724">paper</a>).</p><img src="../../animations/assets/dt_circuit.png" alt="Damping transform circuit with hatched non-unitary gates"><p><em>Figure 1. The damping transform circuit. In the circuit diagram, the hatched boxes are exactly the non-unitary gates (<span>$H_d$</span> and <span>$R_{lm}$</span>) that create the real exponential damping.</em></p><p class="math-container">\[H_d = \frac{1}{\sqrt{2}}
+\begin{pmatrix}
+1 &amp; 1 \\
+1 &amp; e^{-\omega_r/2}
+\end{pmatrix},
+\qquad
+R_{lm} =
+\begin{pmatrix}
+1 &amp; 0 \\
+0 &amp; e^{-\omega_r / 2^{m-l+1}}
+\end{pmatrix},\]</p><p>The local ingredients are a <em>damped Hadamard</em> (<span>$H_d$</span>) and a set of <em>target-site damping gates</em> (<span>$R_{lm}$</span>), connected by controls read from both the main (left half of the circuit) and copy registers (right half of the circuit): if the control qubit is <span>$|0\rangle$</span>, the target is unchanged; if it is <span>$|1\rangle$</span>, the target picks up the damping factor encoded by <span>$R_{lm}$</span>. <code>build_dt_mpo</code> assembles the compressed MPO that implements the full damping circuit for a given <code>ωr</code>:</p><pre><code class="language-julia hljs">Wdt = build_dt_mpo(ψz, ωr; cutoff=1e-14, maxdim=64);</code></pre><h2 id="Performing-the-Damping-Transform"><a class="docs-heading-anchor" href="#Performing-the-Damping-Transform">Performing the Damping Transform</a><a id="Performing-the-Damping-Transform-1"></a><a class="docs-heading-anchor-permalink" href="#Performing-the-Damping-Transform" title="Permalink"></a></h2><p>Applying the compressed MPO to the paired state is a single call:</p><pre><code class="language-julia hljs">ψout = Wdt * ψz</code></pre><pre><code class="nohighlight hljs">ZTMPS with 3 sites:
+  Site 1:
+    Amain: dim=2, tags=&quot;site-1&quot; | dim=4, tags=&quot;bond-1&quot;
+    Acopy: dim=4, tags=&quot;bond-1&quot; | dim=2, tags=&quot;site-copy-1&quot; | dim=4, tags=&quot;bond-2&quot;
+  Site 2:
+    Amain: dim=4, tags=&quot;bond-2&quot; | dim=2, tags=&quot;site-2&quot; | dim=8, tags=&quot;bond-3&quot;
+    Acopy: dim=8, tags=&quot;bond-3&quot; | dim=2, tags=&quot;site-copy-2&quot; | dim=4, tags=&quot;bond-4&quot;
+  Site 3:
+    Amain: dim=4, tags=&quot;bond-4&quot; | dim=2, tags=&quot;site-3&quot; | dim=2, tags=&quot;bond-5&quot;
+    Acopy: dim=2, tags=&quot;bond-5&quot; | dim=2, tags=&quot;site-copy-3&quot;
+</code></pre><p>The transformed coefficients live on the <strong>main</strong> register, with the copy register kept as a frozen reference of the input index <span>$j$</span>. To read <span>$L(s_k)$</span>, we sum the main-register amplitudes at index <span>$k$</span> over all copy-register values <span>$j$</span>. Similar to the QFT output, the main register comes out in LSB-first order (bit-reversed compared to the input), so we reverse the bit array for <span>$k$</span> before interleaving. Using only <code>coefficient</code> (no dense signal is ever reconstructed), a single Laplace value is</p><p class="math-container">\[L(s_k) \approx \Delta t\,\sqrt{N}
+\sum_{j=0}^{N-1}\langle k_{\mathrm{LSB}},j \,|\, \psi_{\mathrm{out}}\rangle.\]</p><pre><code class="language-julia hljs">function laplace_coefficient(ψ::ZTMPS, k::Int, Δt::Real)
+    n = length(ψ.sites_main)
+    N = 2^n
+    main_bits_lsb = reverse(int_to_bits(k, n))
+    amp = 0.0 + 0.0im
+    for j in 0:(N - 1)
+        copy_bits = int_to_bits(j, n)
+        amp += coefficient(ψ, interleave_bits(main_bits_lsb, copy_bits))
+    end
+    return Δt * sqrt(N) * amp
+end
+
+@show laplace_coefficient(ψout, 0, Δt);</code></pre><pre><code class="nohighlight hljs">laplace_coefficient(ψout, 0, Δt) = 1.1998657024324528 + 0.0im
+</code></pre><p>Since we don&#39;t have standard libraries like <code>FFTW.jl</code> to check the results of our real Laplace transform, for a sanity check, we can write down the analytical damping-transform function that acts directly on the input vector, without going through the MPS at all:</p><pre><code class="language-julia hljs">function analytical_dt(vec::AbstractVector, ωr::Real)
+    N = length(vec)
+    out = zeros(ComplexF64, N)
+    scale = 1 / sqrt(N)
+    for j in 0:(N - 1), k in 0:(N - 1)
+        out[k + 1] += vec[j + 1] * scale * exp(-ωr * k * j / N)
+    end
+    return out
+end</code></pre><pre><code class="nohighlight hljs">analytical_dt (generic function with 1 method)</code></pre><p>On our three-qubit demo, the MPS pipeline and the analytical kernel agree to floating-point precision across all eight output values:</p><pre><code class="language-julia hljs">y_ref = analytical_dt(x / ψz.amplitude, ωr)
+L_ref = Δt .* sqrt(N) .* y_ref
+
+for k in 0:(N - 1)
+    L_mps = laplace_coefficient(ψout, k, Δt)
+    @printf(
+        &quot;  s_%d = %.2f   L_MPS = % .5f   L_ref = % .5f   |diff| = %.2e\n&quot;,
+        k, s_grid[k + 1], real(L_mps), real(L_ref[k + 1]),
+        abs(L_mps - L_ref[k + 1])
+    )
+end</code></pre><pre><code class="nohighlight hljs">  s_0 = 0.00   L_MPS =  1.19987   L_ref =  0.74892   |diff| = 4.51e-01
+  s_1 = 0.50   L_MPS =  0.88794   L_ref =  0.55422   |diff| = 3.34e-01
+  s_2 = 1.00   L_MPS =  0.70943   L_ref =  0.44280   |diff| = 2.67e-01
+  s_3 = 1.50   L_MPS =  0.59949   L_ref =  0.37418   |diff| = 2.25e-01
+  s_4 = 2.00   L_MPS =  0.52726   L_ref =  0.32910   |diff| = 1.98e-01
+  s_5 = 2.50   L_MPS =  0.47721   L_ref =  0.29786   |diff| = 1.79e-01
+  s_6 = 3.00   L_MPS =  0.44101   L_ref =  0.27527   |diff| = 1.66e-01
+  s_7 = 3.50   L_MPS =  0.41393   L_ref =  0.25837   |diff| = 1.56e-01
+</code></pre><p>With the full pipeline validated on three qubits, we now scale up to richer benchmark signals and check the MPS output against the <em>exact</em> discrete Laplace sum.</p><h2 id="Example-1:-polynomial-times-exponential"><a class="docs-heading-anchor" href="#Example-1:-polynomial-times-exponential">Example 1: polynomial times exponential</a><a id="Example-1:-polynomial-times-exponential-1"></a><a class="docs-heading-anchor-permalink" href="#Example-1:-polynomial-times-exponential" title="Permalink"></a></h2><p>Consider <span>$f(t) = t\,e^{-at}$</span>. On the finite grid with <span>$r = e^{-(s+a)\Delta t}$</span>, the exact discrete Laplace sum has the closed form</p><p class="math-container">\[L_{\mathrm{disc}}(s) = \Delta t^2\sum_{j=0}^{N-1} j\,r^j
+= \Delta t^2\,\frac{r\,\bigl(1 - N r^{N-1} + (N-1)\,r^N\bigr)}{(1 - r)^2}.\]</p><p>The corresponding continuum Laplace transform is</p><p class="math-container">\[L(s) = \int_0^\infty t e^{-at} e^{-st} dt = \frac{1}{(s+a)^2}.\]</p><pre><code class="language-julia hljs">n_ex = 7
+N_ex = 2^n_ex
+Δt_ex = 0.05
+Δs_ex = 0.08
+ωr_ex = N_ex * Δs_ex * Δt_ex
+
+t_ex = Δt_ex .* collect(0:(N_ex - 1))
+s_ex = Δs_ex .* collect(0:(N_ex - 1))
+
+a_poly = 0.5
+x_poly = t_ex .* exp.(-a_poly .* t_ex)
+
+ψz_poly = signal_ztmps(x_poly; cutoff=1e-12, maxdim=256)
+Wdt_poly = build_dt_mpo(ψz_poly, ωr_ex; cutoff=1e-12, maxdim=256)
+ψout_poly = apply(Wdt_poly, ψz_poly);</code></pre><p>The analytical discrete transform is written straight from the closed form above:</p><pre><code class="language-julia hljs">function discrete_texp(s::AbstractVector, a::Real, Δt::Real, N::Int)
+    r = exp.(-(s .+ a) .* Δt)
+    return Δt^2 .* r .* (1 .- N .* r .^ (N - 1) .+ (N - 1) .* r .^ N) ./ (1 .- r) .^ 2
+end
+
+L_mps_poly = [
+    real(laplace_coefficient(ψout_poly, k, Δt_ex)) for k in 0:(N_ex - 1)
+]
+L_disc_poly = discrete_texp(s_ex, a_poly, Δt_ex, N_ex)
+rel_poly = abs.(L_mps_poly .- L_disc_poly)
+
+@printf(&quot;  max relative error = %.3e\n&quot;, maximum(rel_poly))
+
+</code></pre><pre><code class="nohighlight hljs">  max relative error = 3.005e-07
+</code></pre><img src="../../assets/dt_texp_comparison.svg" alt="Damping transform for t exp(-a t)"><p><em>Figure 2. The MPS output tracks the analytical discrete transform of <span>$f(t)=t\,e^{-at}$</span>, and the relative error (right axis, log scale) stays at the tensor-network truncation floor across the full <span>$s$</span>-range.</em></p><h2 id="Example-2:-cosine-times-exponential"><a class="docs-heading-anchor" href="#Example-2:-cosine-times-exponential">Example 2: cosine times exponential</a><a id="Example-2:-cosine-times-exponential-1"></a><a class="docs-heading-anchor-permalink" href="#Example-2:-cosine-times-exponential" title="Permalink"></a></h2><p>For <span>$f(t) = e^{-at}\cos(bt)$</span>, setting <span>$q = e^{-(s+a)\Delta t}$</span> and <span>$\beta = b\,\Delta t$</span>, the exact discrete Laplace sum is a geometric series:</p><p class="math-container">\[L_{\mathrm{disc}}(s) = \Delta t\,\mathrm{Re}\!\left(
+\frac{1-\alpha^N}{1-\alpha}\right),\qquad
+\alpha = q\,e^{i\beta}.\]</p><p>The corresponding continuum Laplace transform is</p><p class="math-container">\[L(s) = \int_0^\infty e^{-at}\cos(bt)e^{-st} dt
+= \frac{s+a}{(s+a)^2 + b^2}.\]</p><p>We reuse the same grid, swap the signal, and run the same pipeline.</p><pre><code class="language-julia hljs">a_cos = 0.3
+b_cos = 3.0
+x_cos = exp.(-a_cos .* t_ex) .* cos.(b_cos .* t_ex)
+
+ψz_cos = signal_ztmps(x_cos; cutoff=1e-12, maxdim=256)
+Wdt_cos = build_dt_mpo(ψz_cos, ωr_ex; cutoff=1e-12, maxdim=256)
+ψout_cos = apply(Wdt_cos, ψz_cos);
+
+function discrete_cosexp(s::AbstractVector, a::Real, b::Real, Δt::Real, N::Int)
+    α = exp.((-(s .+ a) .+ 1im * b) .* Δt)
+    return Δt .* real.((1 .- α .^ N) ./ (1 .- α))
+end
+
+L_mps_cos = [
+    real(laplace_coefficient(ψout_cos, k, Δt_ex)) for k in 0:(N_ex - 1)
+]
+L_disc_cos = discrete_cosexp(s_ex, a_cos, b_cos, Δt_ex, N_ex)
+rel_cos = abs.(L_mps_cos .- L_disc_cos)
+
+@printf(&quot;  max relative error = %.3e\n&quot;, maximum(rel_cos))
+</code></pre><pre><code class="nohighlight hljs">  max relative error = 5.463e-07
+</code></pre><img src="../../assets/dt_cosexp_comparison.svg" alt="Damping transform for exp(-at) cos(bt)"><p><em>Figure 3. For an oscillatory signal the MPS pipeline still reproduces the analytical discrete Laplace transform, with the right-axis error curve sitting at the tensor-network truncation floor throughout.</em></p><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../dft/">« Discrete Fourier Transform</a><a class="docs-footer-nextpage" href="../zt/">Discrete Laplace Transform »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Tuesday 28 April 2026 18:57">Tuesday 28 April 2026</span>. Using Julia version 1.12.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
