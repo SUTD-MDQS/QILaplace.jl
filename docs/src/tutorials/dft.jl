@@ -51,7 +51,9 @@ using FFTW, LinearAlgebra
 # Create a $2^n$-point signal (here $n=4$, so $N=16$):
 
 n = 4
-x = generate_signal(n, kind=:sin, freq=1.0)
+N = 2^n
+dt = 1 / N
+x = generate_signal(n, kind=:sin, dt=dt, freq=2π)
 
 # ## Constructing the SignalMPS
 
@@ -156,13 +158,23 @@ qft_val_k2 = round(qft_qn[idx_qn_k2]; digits=5)
 fftw_val_k2 = round(fftw_ref[idx_fn_k2]; digits=5)
 @show k2 qft_val_k2 fftw_val_k2 abs(qft_val_k2 - fftw_val_k2)
 
+
+## Analysing the Fourier Spectrum
+
 # For a moderately larger signal, we compare the QFT spectrum against FFTW and plot the
-# absolute error on a secondary (right) y-axis with a distinct linestyle.
+# absolute error on a secondary (right) y-axis with a distinct linestyle. We choose a signal with two 
+# sinusoids with frequencies $\omega_1 = 8.35$ and $\omega_2 = 43.70$ and phases $\phi_1 = 0$ and $\phi_2 = 0.3$.
+# We deliberately choose the frequencies to not be an integer multiple of $2\pi/N$ so that we have a non-zero DC value, 
+# and the frequency peaks are not too sharp in the fourier domain.
 
 using Plots, LaTeXStrings
 
 n_big = 8
-x_big = generate_signal(n_big, kind=:sin, freq=[4.0, 17.0], phase=[0.0, 0.3])
+N_big = 2^n_big
+dt_big = 1 / N_big
+freq_big = 2π .* [8.35, 43.70]
+phase_big = [0.0, 0.3]
+x_big = generate_signal(n_big, kind=:sin, dt=dt_big, freq=freq_big, phase=phase_big)
 psi_big, x_big_norm = signal_mps(x_big)
 
 qft_big_mpo = build_qft_mpo(psi_big; cutoff=1e-12, maxdim=1000)
@@ -182,20 +194,26 @@ N_big = length(x_big)
 # x_j = \sum_r \sin(\Omega_r j + \phi_r),\quad \Omega_r = \omega_r\,dt,
 # ```
 #
-# and for vector frequencies it sets
+# and here we explicitly choose
 #
 # ```math
-# dt = \frac{2\pi}{\omega_{\max}\,n}.
+# dt = \frac{1}{N}.
 # ```
 #
-# With `freq=[4,17]`, `phase=[0,0.3]`, and `n=8`, we get
+# With `freq=[2π*8.35,\,2π*43.70]`, `phase=[0,0.3]`, and `N=256`, we get
 #
 # ```math
-# \Omega_1 = \frac{\pi}{17},\qquad \Omega_2 = \frac{\pi}{4}.
+# \Omega_1 = \frac{2π*8.35}{256},\qquad \Omega_2 = \frac{2π*43.70}{256},
+# ```
+#
+# i.e. numerically
+#
+# ```math
+# \Omega_1\approx 0.330,\qquad \Omega_2\approx 1.748,
 # ```
 #
 # So the spectrum should show symmetric peaks near
-# $\omega\approx\pm\pi/17$ and $\omega=\pm\pi/4$.
+# $\omega\approx\pm\Omega_1$ and $\omega\approx\pm\Omega_2$.
 #
 # The DC value (at $\omega=0$) for the normalized transform
 # $\mathrm{bfft}(x/\|x\|_2)/\sqrt{N}$ equals
@@ -212,9 +230,6 @@ N_big = length(x_big)
 # \sin\!\left(\phi+\frac{(N-1)\Omega}{2}\right)}{\sin\!\left(\frac{\Omega}{2}\right)}.
 # ```
 
-freq_big = [4.0, 17.0]
-phase_big = [0.0, 0.3]
-dt_big = (2π / maximum(abs, freq_big) / n_big)
 Ω_big = freq_big .* dt_big
 
 @show Ω_big Ω_big ./ π
@@ -225,35 +240,24 @@ end
 
 dc_pred = sum(sine_sum_closed_form(Ω, ϕ, N_big) for (Ω, ϕ) in zip(Ω_big, phase_big)) / (x_big_norm * sqrt(N_big))
 
-# Shift spectra so frequency runs from approximately -$\pi$ to $\pi$.
-qft_big_shift = fftshift(qft_big)
-fftw_big_shift = fftshift(fftw_big)
+qft_big_shift = fftshift(qft_big) #hide
+fftw_big_shift = fftshift(fftw_big) #hide
 
 ω_axis = (2π / N_big) .* collect(-div(N_big, 2):(div(N_big, 2) - 1))
-peak_marks = [-π / 4, -π / 17, π / 17, π / 4];
+peak_marks = sort(vcat(-Ω_big, Ω_big)); #hide
 #
-xtick_vals = sort(unique(vcat([-π, -π / 2], peak_marks, [0.0, π / 2, π]))) #hide
-xtick_labels = map(xtick_vals) do ω #hide
-	if isapprox(ω, -π / 4; atol=1e-10) #hide
-		L"-\frac{\pi}{4}" #hide
-	elseif isapprox(ω, -π / 17; atol=1e-10) #hide
-		L"-\frac{\pi}{17}" #hide
-	elseif isapprox(ω, π / 17; atol=1e-10) #hide
-		L"\frac{\pi}{17}" #hide
-	elseif isapprox(ω, π / 4; atol=1e-10) #hide
-		L"\frac{\pi}{4}" #hide
-	elseif isapprox(ω, -π / 2; atol=1e-10) #hide
-		L"-\frac{\pi}{2}" #hide
-	elseif isapprox(ω, π / 2; atol=1e-10) #hide
-		L"\frac{\pi}{2}" #hide
-	elseif isapprox(ω, -π; atol=1e-10) #hide
-		L"-\pi" #hide
-	elseif isapprox(ω, π; atol=1e-10) #hide
-		L"\pi" #hide
-	else #hide
-		"" #hide
-	end #hide
-end #hide
+ω1, ω2 = sort(Ω_big) #hide
+xtick_vals = [-π, -π / 2, -ω2, -ω1, ω1, ω2, π / 2, π] #hide
+xtick_labels = [ #hide
+	L"-\pi", #hide
+	L"-\frac{\pi}{2}", #hide
+	L"-\Omega_2", #hide
+	L"-\Omega_1", #hide
+	L"\Omega_1", #hide
+	L"\Omega_2", #hide
+	L"\frac{\pi}{2}", #hide
+	L"\pi", #hide
+] #hide
 nothing #hide
 p = plot( #hide
 	ω_axis, #hide
@@ -266,7 +270,7 @@ p = plot( #hide
 	legend=:topleft, #hide
 ); #hide
 plot!(p, ω_axis, abs.(fftw_big_shift); label="|FFTW bfft|", linewidth=2, linestyle=:dash); #hide
-vline!(p, peak_marks; color=:grey, linestyle=:dashdot, linewidth=1.0, label=false); #hide
+vline!(p, peak_marks; color=:black, linestyle=:dashdot, linewidth=1.0, label=false); #hide
 #
 p_err = twinx(p); #hide
 abs_err_big_shift = fftshift(abs_err_big); #hide
@@ -276,11 +280,11 @@ plot!( #hide
     p_err, #hide
 	ω_axis, #hide
 	abs_err_big_shift; #hide
-    label="|error|", #hide
+    label="|QFT - FFTW|", #hide
 	linewidth=1.5, #hide
     linestyle=:dot, #hide
     color=:grey, #hide
-    ylabel="Absolute error", #hide
+    ylabel="|error|", #hide
 	legend=:topright, #hide
 ); #hide
 ylims!(p_err, (0.0, err_ylim)); #hide
@@ -300,6 +304,6 @@ dc_numeric = isnothing(zero_idx) ? NaN + NaN * im : fftw_big_shift[zero_idx]
 # <img src="../../assets/dft_spectrum_comparison.svg" alt="QFT spectrum vs FFTW with absolute error">
 # ```
 #
-# *Figure 2. Shifted spectrum comparison in angular frequency $\omega\in[-\pi,\pi)$ for $n=8$: the QILaplace QFT and FFTW reference overlap at the expected peak locations near $\omega\approx\pm\pi/17$ and $\omega=\pm\pi/4$, while the dotted error curve (right axis) remains small throughout the band.*
+# *Figure 2. Shifted spectrum comparison in angular frequency $\omega\in[-\pi,\pi)$ for $n=8$: the QILaplace QFT and FFTW reference overlap at the expected peak locations near $\omega\approx\pm\Omega_1$ and $\omega\approx\pm\Omega_2$ (vertical dash-dot markers), while the dotted error curve (right axis) remains small throughout the band.*
 # 
 # Currently we don't have the inverse QFT available in `QILaplace.jl`, but it is straightforward to implement since QFT is a unitary, hence invertible transform. If you want this support as well, feel free to leave a request in our [main GutHub repo](https://github.com/SUTD-MDQS/QILaplace.jl/issues) :)

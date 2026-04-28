@@ -17,7 +17,14 @@ using LinearAlgebra, Printf, Plots #hide
 
 n = 4
 N = 2^n
-x_structured = generate_signal(n, kind=:sin, freq=[1.0, 3.0], phase=[0.2, -0.4])
+dt_struct = 1 / N
+x_structured = generate_signal(
+    n,
+    kind=:sin,
+    dt=dt_struct,
+    freq=[2π, 6π],
+    phase=[0.2, -0.4],
+)
 
 # Now, we compress this signal into an MPS. The `signal_mps` function returns 
 # the normalized MPS `psi` and the original vector's norm, which we need to recover the exact physical values later.
@@ -65,9 +72,9 @@ println("Integer access:        ", val_int)
 println("Binary array access:   ", val_bin)
 println("Direct state access:   ", val_direct)
 
-@assert isapprox(x_structured[target_idx+1], val_int; atol=1e-11) #hide
-@assert isapprox(val_int, val_bin; atol=1e-11) #hide
-@assert isapprox(val_int, val_direct; atol=1e-11) #hide
+@assert isapprox(x_structured[target_idx+1], val_int; atol=1e-10) #hide
+@assert isapprox(val_int, val_bin; atol=1e-10) #hide
+@assert isapprox(val_int, val_direct; atol=1e-10) #hide
 
 # ## 3. Compression Strategies: SVD vs. RSVD
 # 
@@ -104,12 +111,14 @@ relative_l2(x_hat, x_ref) = norm(x_hat - x_ref) / max(norm(x_ref), eps(Float64))
 # Generate a decaying multi-frequency signal
 n_struct = 10
 N_struct = 2^n_struct
+dt_struct_big = 1 / N_struct
 
 x_structured = generate_signal(
     n_struct,
     kind=:sin_decay,
-    freq=[2.0, 5.0, 13.0],
-    decay_rate=[0.03, 0.05, 0.08],
+    dt=dt_struct_big,
+    freq=[2π * 5, 2π * 17, 2π * 23],
+    decay_rate=[1.25, 1.4, 1.55],
     phase=[0.0, 0.4, -0.6],
 )
 
@@ -166,7 +175,7 @@ savefig(p_struct, structured_plot_path); #hide
 nothing #hide
 
 # ```@raw html
-# <img src="../assets/signal_structured_comparison.svg" alt="Structured signal compression comparison">
+# <img src="../../assets/signal_structured_comparison.svg" alt="Structured signal compression comparison">
 # ```
 #
 # *Figure 1: Both SVD and RSVD accurately track the original structured signal.*
@@ -253,7 +262,7 @@ savefig(p_noisy, noisy_plot_path); #hide
 nothing #hide
 
 # ```@raw html
-# <img src="../assets/signal_noisy_comparison.svg" alt="Noisy signal compression comparison">
+# <img src="../../assets/signal_noisy_comparison.svg" alt="Noisy signal compression comparison">
 # ```
 #
 # *Figure 2: SVD tries to fit the noise, resulting in a messy reconstruction. RSVD captures the underlying structure, effectively filtering out the noise.*

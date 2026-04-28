@@ -403,11 +403,3 @@ nothing #hide
 # the analytical discrete Laplace transform, with the right-axis error
 # curve sitting at the tensor-network truncation floor throughout.*
 #
-# **Takeaway.** The `QILaplace.jl` damping transform reproduces the
-# exact finite-grid Laplace sum up to numerical precision across very
-# different signal shapes. The `zTMPS` state, the non-unitary
-# `build_dt_mpo` circuit, and the on-the-fly sampling of the main
-# register through `coefficient` are the three ingredients; any remaining
-# gap to the continuum Laplace transform is governed by the grid
-# resolution $\Delta t$ and the window length $T_{\max} = N\Delta t$,
-# not by the tensor-network circuit.

@@ -9,6 +9,7 @@ const TUTORIALS = [
     "signal",
     "dft",
     "dt",
+    "zt",
 ]
 
 for tutorial in TUTORIALS

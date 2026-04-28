@@ -57,27 +57,29 @@ Create a $2^n$-point signal (here $n=4$, so $N=16$):
 
 ````julia
 n = 4
-x = generate_signal(n, kind=:sin, freq=1.0)
+N = 2^n
+dt = 1 / N
+x = generate_signal(n, kind=:sin, dt=dt, freq=2π)
 ````
 
 ````
 16-element Vector{Float64}:
   0.0
-  0.479425538604203
-  0.8414709848078965
-  0.9974949866040544
-  0.9092974268256817
-  0.5984721441039564
-  0.1411200080598672
- -0.35078322768961984
- -0.7568024953079282
- -0.977530117665097
- -0.9589242746631385
- -0.7055403255703919
- -0.27941549819892586
-  0.21511998808781552
-  0.6569865987187891
-  0.9379999767747389
+  0.3826834323650898
+  0.7071067811865475
+  0.9238795325112867
+  1.0
+  0.9238795325112867
+  0.7071067811865476
+  0.3826834323650899
+  1.2246467991473532e-16
+ -0.38268343236508967
+ -0.7071067811865475
+ -0.9238795325112865
+ -1.0
+ -0.9238795325112866
+ -0.7071067811865477
+ -0.3826834323650904
 ````
 
 ## Constructing the SignalMPS
@@ -89,11 +91,11 @@ psi_test, x_norm = signal_mps(x)
 
 ````
 (SignalMPS with 4 sites:
-  Site 1: dim=2, tags="site-1" | dim=2, tags="bond-1"
-  Site 2: dim=2, tags="bond-1" | dim=2, tags="site-2" | dim=2, tags="bond-2"
+  Site 1: dim=2, tags="site-1" | dim=1, tags="bond-1"
+  Site 2: dim=1, tags="bond-1" | dim=2, tags="site-2" | dim=2, tags="bond-2"
   Site 3: dim=2, tags="bond-2" | dim=2, tags="site-3" | dim=2, tags="bond-3"
   Site 4: dim=2, tags="bond-3" | dim=2, tags="site-4"
-, 2.7644775277560276)
+, 2.8284271247461903)
 ````
 
 Coefficient-level validation and signal-compression diagnostics are now covered
@@ -129,8 +131,8 @@ psi_qn = apply(qft_mpo, psi_test)
 
 ````
 SignalMPS with 4 sites:
-  Site 1: dim=2, tags="site-1" | dim=4, tags="bond-1"
-  Site 2: dim=4, tags="bond-1" | dim=2, tags="site-2" | dim=8, tags="bond-2"
+  Site 1: dim=2, tags="site-1" | dim=2, tags="bond-1"
+  Site 2: dim=2, tags="bond-1" | dim=2, tags="site-2" | dim=8, tags="bond-2"
   Site 3: dim=8, tags="bond-2" | dim=2, tags="site-3" | dim=4, tags="bond-3"
   Site 4: dim=4, tags="bond-3" | dim=2, tags="site-4"
 
@@ -194,7 +196,7 @@ comparison_error = norm(qft_fn - fftw_ref)
 ````
 
 ````
-1.5387862583322824e-15
+1.2123008147487333e-15
 ````
 
 Explicit sampling for k = 1 and k = 7.
@@ -216,6 +218,9 @@ idx_qn_k2 = 15
 qft_val_k2 = round(qft_qn[idx_qn_k2]; digits=5)
 fftw_val_k2 = round(fftw_ref[idx_fn_k2]; digits=5)
 @show k2 qft_val_k2 fftw_val_k2 abs(qft_val_k2 - fftw_val_k2)
+
+
+# Analysing the Fourier Spectrum
 ````
 
 ````
@@ -223,13 +228,20 @@ fftw_val_k2 = round(fftw_ref[idx_fn_k2]; digits=5)
 ````
 
 For a moderately larger signal, we compare the QFT spectrum against FFTW and plot the
-absolute error on a secondary (right) y-axis with a distinct linestyle.
+absolute error on a secondary (right) y-axis with a distinct linestyle. We choose a signal with two
+sinusoids with frequencies $\omega_1 = 8.35$ and $\omega_2 = 43.70$ and phases $\phi_1 = 0$ and $\phi_2 = 0.3$.
+We deliberately choose the frequencies to not be an integer multiple of $2\pi/N$ so that we have a non-zero DC value,
+and the frequency peaks are not too sharp in the fourier domain.
 
 ````julia
 using Plots, LaTeXStrings
 
 n_big = 8
-x_big = generate_signal(n_big, kind=:sin, freq=[4.0, 17.0], phase=[0.0, 0.3])
+N_big = 2^n_big
+dt_big = 1 / N_big
+freq_big = 2π .* [8.35, 43.70]
+phase_big = [0.0, 0.3]
+x_big = generate_signal(n_big, kind=:sin, dt=dt_big, freq=freq_big, phase=phase_big)
 psi_big, x_big_norm = signal_mps(x_big)
 
 qft_big_mpo = build_qft_mpo(psi_big; cutoff=1e-12, maxdim=1000)
@@ -254,20 +266,26 @@ The signal generator uses
 x_j = \sum_r \sin(\Omega_r j + \phi_r),\quad \Omega_r = \omega_r\,dt,
 ```
 
-and for vector frequencies it sets
+and here we explicitly choose
 
 ```math
-dt = \frac{2\pi}{\omega_{\max}\,n}.
+dt = \frac{1}{N}.
 ```
 
-With `freq=[4,17]`, `phase=[0,0.3]`, and `n=8`, we get
+With `freq=[2π*8.35,\,2π*43.70]`, `phase=[0,0.3]`, and `N=256`, we get
 
 ```math
-\Omega_1 = \frac{\pi}{17},\qquad \Omega_2 = \frac{\pi}{4}.
+\Omega_1 = \frac{2π*8.35}{256},\qquad \Omega_2 = \frac{2π*43.70}{256},
+```
+
+i.e. numerically
+
+```math
+\Omega_1\approx 0.330,\qquad \Omega_2\approx 1.748,
 ```
 
 So the spectrum should show symmetric peaks near
-$\omega\approx\pm\pi/17$ and $\omega=\pm\pi/4$.
+$\omega\approx\pm\Omega_1$ and $\omega\approx\pm\Omega_2$.
 
 The DC value (at $\omega=0$) for the normalized transform
 $\mathrm{bfft}(x/\|x\|_2)/\sqrt{N}$ equals
@@ -285,9 +303,6 @@ S(\Omega,\phi)=\sum_{j=0}^{N-1}\sin(\Omega j+\phi)
 ```
 
 ````julia
-freq_big = [4.0, 17.0]
-phase_big = [0.0, 0.3]
-dt_big = (2π / maximum(abs, freq_big) / n_big)
 Ω_big = freq_big .* dt_big
 
 @show Ω_big Ω_big ./ π
@@ -297,20 +312,15 @@ function sine_sum_closed_form(Ω::Real, ϕ::Real, N::Int)
 end
 
 dc_pred = sum(sine_sum_closed_form(Ω, ϕ, N_big) for (Ω, ϕ) in zip(Ω_big, phase_big)) / (x_big_norm * sqrt(N_big))
-````
 
-````
-0.04218697405728838
-````
-
-Shift spectra so frequency runs from approximately -$\pi$ to $\pi$.
-
-````julia
-qft_big_shift = fftshift(qft_big)
-fftw_big_shift = fftshift(fftw_big)
 
 ω_axis = (2π / N_big) .* collect(-div(N_big, 2):(div(N_big, 2) - 1))
-peak_marks = [-π / 4, -π / 17, π / 17, π / 4];
+````
+
+````
+Ω_big = [0.20493983326152165, 1.0725593668896405]
+Ω_big ./ π = [0.065234375, 0.3414062500000001]
+
 ````
 
 
@@ -323,7 +333,7 @@ dc_numeric = isnothing(zero_idx) ? NaN + NaN * im : fftw_big_shift[zero_idx]
 ````
 
 ````
-2.636779683484747e-16
+9.020562075079397e-17
 ````
 
 The generated spectrum comparison plot is embedded below.
@@ -332,7 +342,7 @@ The generated spectrum comparison plot is embedded below.
 <img src="../../assets/dft_spectrum_comparison.svg" alt="QFT spectrum vs FFTW with absolute error">
 ```
 
-*Figure 2. Shifted spectrum comparison in angular frequency $\omega\in[-\pi,\pi)$ for $n=8$: the QILaplace QFT and FFTW reference overlap at the expected peak locations near $\omega\approx\pm\pi/17$ and $\omega=\pm\pi/4$, while the dotted error curve (right axis) remains small throughout the band.*
+*Figure 2. Shifted spectrum comparison in angular frequency $\omega\in[-\pi,\pi)$ for $n=8$: the QILaplace QFT and FFTW reference overlap at the expected peak locations near $\omega\approx\pm\Omega_1$ and $\omega\approx\pm\Omega_2$ (vertical dash-dot markers), while the dotted error curve (right axis) remains small throughout the band.*
 
 Currently we don't have the inverse QFT available in `QILaplace.jl`, but it is straightforward to implement since QFT is a unitary, hence invertible transform. If you want this support as well, feel free to leave a request in our [main GutHub repo](https://github.com/SUTD-MDQS/QILaplace.jl/issues) :)
 

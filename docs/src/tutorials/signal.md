@@ -23,27 +23,34 @@ We will use a small signal with n=4 qubits (16 elements total).
 ````julia
 n = 4
 N = 2^n
-x_structured = generate_signal(n, kind=:sin, freq=[1.0, 3.0], phase=[0.2, -0.4])
+dt_struct = 1 / N
+x_structured = generate_signal(
+    n,
+    kind=:sin,
+    dt=dt_struct,
+    freq=[2π, 6π],
+    phase=[0.2, -0.4],
+)
 ````
 
 ````
 16-element Vector{Float64}:
  -0.1907490115135893
-  1.583146970344883
-  1.3375155615167753
+  1.2605272231070337
+  1.7601409795355494
+  0.9887917666210433
   0.059005583838356745
-  0.3600095461044126
-  1.2390415955021288
+  0.11718557170551103
+  0.9284594163678446
+  1.1914820619096866
   0.19074901151358986
- -1.5831469703448826
- -1.337515561516776
+ -1.260527223107033
+ -1.7601409795355503
+ -0.9887917666210435
  -0.059005583838356856
- -0.3600095461044127
- -1.2390415955021288
- -0.1907490115135887
-  1.5831469703448833
-  1.3375155615167746
-  0.0590055838383573
+ -0.11718557170551058
+ -0.9284594163678468
+ -1.1914820619096873
 ````
 
 Now, we compress this signal into an MPS. The `signal_mps` function returns
@@ -56,11 +63,11 @@ psi, x_norm = signal_mps(x_structured; method=:svd, cutoff=1e-14)
 
 ````
 (SignalMPS with 4 sites:
-  Site 1: dim=2, tags="site-1" | dim=2, tags="bond-1"
-  Site 2: dim=2, tags="bond-1" | dim=2, tags="site-2" | dim=3, tags="bond-2"
-  Site 3: dim=3, tags="bond-2" | dim=2, tags="site-3" | dim=2, tags="bond-3"
+  Site 1: dim=2, tags="site-1" | dim=1, tags="bond-1"
+  Site 2: dim=1, tags="bond-1" | dim=2, tags="site-2" | dim=2, tags="bond-2"
+  Site 3: dim=2, tags="bond-2" | dim=2, tags="site-3" | dim=2, tags="bond-3"
   Site 4: dim=2, tags="bond-3" | dim=2, tags="site-4"
-, 4.041678989149093)
+, 4.0)
 ````
 
 ## 2. Accessing the Compressed Elements
@@ -124,10 +131,10 @@ println("Direct state access:   ", val_direct)
 ````
 
 ````
-Original signal value: -0.059005583838356856
-Integer access:        -0.05900558383835625
-Binary array access:   -0.05900558383835625
-Direct state access:   -0.05900558383835625
+Original signal value: -1.260527223107033
+Integer access:        -1.2605272231070337
+Binary array access:   -1.2605272231070337
+Direct state access:   -1.2605272231070337
 
 ````
 
@@ -174,12 +181,14 @@ Generate a decaying multi-frequency signal
 ````julia
 n_struct = 10
 N_struct = 2^n_struct
+dt_struct_big = 1 / N_struct
 
 x_structured = generate_signal(
     n_struct,
     kind=:sin_decay,
-    freq=[2.0, 5.0, 13.0],
-    decay_rate=[0.03, 0.05, 0.08],
+    dt=dt_struct_big,
+    freq=[2π * 5, 2π * 17, 2π * 23],
+    decay_rate=[1.25, 1.4, 1.55],
     phase=[0.0, 0.4, -0.6],
 )
 
@@ -225,14 +234,14 @@ println("  Rel Error:  ", round(relative_l2(x_struct_rsvd, x_structured), sigdig
 
 ````
 SVD Performance:
-  Time:       12.4462 seconds
+  Time:       12.2886 seconds
   Max Bond:   6
-  Rel Error:  5.91e-15
+  Rel Error:  3.63e-5
 
 RSVD Performance:
-  Time:       3.4352 seconds
+  Time:       3.408 seconds
   Max Bond:   6
-  Rel Error:  1.09e-13
+  Rel Error:  2.54e-5
 
 ````
 
@@ -241,7 +250,7 @@ the reconstruction to be sure.
 
 
 ```@raw html
-<img src="../assets/signal_structured_comparison.svg" alt="Structured signal compression comparison">
+<img src="../../assets/signal_structured_comparison.svg" alt="Structured signal compression comparison">
 ```
 
 *Figure 1: Both SVD and RSVD accurately track the original structured signal.*
@@ -316,14 +325,14 @@ println("  Rel Error:  ", round(err_noisy_rsvd, sigdigits=3), " (Higher, but acc
 
 ````
 Noisy SVD Performance:
-  Time:       0.331 seconds
-  Max Bond:   32 (Massive blow-up!)
-  Rel Error:  2.17e-15
+  Time:       0.2631 seconds
+  Max Bond:   31 (Massive blow-up!)
+  Rel Error:  2.14e-5
 
 Noisy RSVD Performance:
-  Time:       0.0017 seconds
+  Time:       0.0018 seconds
   Max Bond:   10 (Constrained)
-  Rel Error:  0.188 (Higher, but acceptable)
+  Rel Error:  0.204 (Higher, but acceptable)
 
 ````
 
@@ -334,7 +343,7 @@ the noise and retained the core physical signal!
 
 
 ```@raw html
-<img src="../assets/signal_noisy_comparison.svg" alt="Noisy signal compression comparison">
+<img src="../../assets/signal_noisy_comparison.svg" alt="Noisy signal compression comparison">
 ```
 
 *Figure 2: SVD tries to fit the noise, resulting in a messy reconstruction. RSVD captures the underlying structure, effectively filtering out the noise.*

@@ -273,7 +273,7 @@ end
 ````
 
 ````
-laplace_coefficient(ψout, 0, x_norm, Δt) = 1.199865702432455 + 0.0im
+laplace_coefficient(ψout, 0, x_norm, Δt) = 1.1998657024324544 + 0.0im
 
 ````
 
@@ -316,14 +316,14 @@ end
 ````
 
 ````
-  s_0 = 0.00   L_MPS =  1.19987   L_ref =  1.19987   |diff| = 1.78e-15
-  s_1 = 0.50   L_MPS =  0.88794   L_ref =  0.88794   |diff| = 1.67e-15
-  s_2 = 1.00   L_MPS =  0.70943   L_ref =  0.70943   |diff| = 2.33e-15
-  s_3 = 1.50   L_MPS =  0.59949   L_ref =  0.59949   |diff| = 2.33e-15
-  s_4 = 2.00   L_MPS =  0.52726   L_ref =  0.52726   |diff| = 3.00e-15
-  s_5 = 2.50   L_MPS =  0.47721   L_ref =  0.47721   |diff| = 2.39e-15
-  s_6 = 3.00   L_MPS =  0.44101   L_ref =  0.44101   |diff| = 2.66e-15
-  s_7 = 3.50   L_MPS =  0.41393   L_ref =  0.41393   |diff| = 2.28e-15
+  s_0 = 0.00   L_MPS =  1.19987   L_ref =  1.19987   |diff| = 1.11e-15
+  s_1 = 0.50   L_MPS =  0.88794   L_ref =  0.88794   |diff| = 5.55e-16
+  s_2 = 1.00   L_MPS =  0.70943   L_ref =  0.70943   |diff| = 5.55e-16
+  s_3 = 1.50   L_MPS =  0.59949   L_ref =  0.59949   |diff| = 2.22e-16
+  s_4 = 2.00   L_MPS =  0.52726   L_ref =  0.52726   |diff| = 6.66e-16
+  s_5 = 2.50   L_MPS =  0.47721   L_ref =  0.47721   |diff| = 6.66e-16
+  s_6 = 3.00   L_MPS =  0.44101   L_ref =  0.44101   |diff| = 6.11e-16
+  s_7 = 3.50   L_MPS =  0.41393   L_ref =  0.41393   |diff| = 5.55e-16
 
 ````
 
@@ -386,7 +386,7 @@ L_disc_poly = discrete_texp(s_ex, a_poly, Δt_ex, N_ex)
 ````
 
 ````
-  max |MPS - discrete| = 4.950e-08
+  max |MPS - discrete| = 3.005e-07
 
 ````
 
@@ -444,7 +444,7 @@ L_disc_cos = discrete_cosexp(s_ex, a_cos, b_cos, Δt_ex, N_ex)
 ````
 
 ````
-  max |MPS - discrete| = 5.431e-07
+  max |MPS - discrete| = 5.463e-07
 
 ````
 
@@ -455,15 +455,6 @@ L_disc_cos = discrete_cosexp(s_ex, a_cos, b_cos, Δt_ex, N_ex)
 *Figure 3. For an oscillatory signal the MPS pipeline still reproduces
 the analytical discrete Laplace transform, with the right-axis error
 curve sitting at the tensor-network truncation floor throughout.*
-
-**Takeaway.** The `QILaplace.jl` damping transform reproduces the
-exact finite-grid Laplace sum up to numerical precision across very
-different signal shapes. The `zTMPS` state, the non-unitary
-`build_dt_mpo` circuit, and the on-the-fly sampling of the main
-register through `coefficient` are the three ingredients; any remaining
-gap to the continuum Laplace transform is governed by the grid
-resolution $\Delta t$ and the window length $T_{\max} = N\Delta t$,
-not by the tensor-network circuit.
 
 ---
 
