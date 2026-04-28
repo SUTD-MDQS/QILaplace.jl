@@ -6,8 +6,7 @@
   <br>
 </h1>
 
-<h4 align="center">Quantum-inspired signal transforms via tensor network representations.</h4>
-<h4 align="center">Read the documentation here!</h4>
+<h4 align="center">Quantum-inspired signal transforms via tensor-network representations.</h4>
 
 <p align="center">
   <a href="https://github.com/SUTD-MDQS/QILaplace.jl/actions/workflows/CI.yml">
@@ -28,135 +27,83 @@
 </p>
 
 <p align="center">
-  <a href="#quickstart-tour">Quickstart</a> •
-  <a href="#when-to-use-qilaplace">When to Use</a> •
-  <a href="#why-tensor-network-transforms">Why Tensor Networks?</a> •
-  <a href="#core-features">Core Features</a> •
-  <a href="#performance">Performance</a>
+  <a href="https://SUTD-MDQS.github.io/QILaplace.jl">
+    <img src="https://img.shields.io/badge/Read%20the%20Documentation-QILaplace%20Docs-9558B2?style=for-the-badge&logo=julia&logoColor=white" alt="Read the Documentation">
+  </a>
 </p>
 
-QILaplace.jl is a Julia library for implementing **quantum-inspired signal transforms**—most notably the **Quantum Fourier Transform (QFT)** and **Discrete Laplace (aka z-Transform)** variants—using **tensor-network representations**. The package is built on **Matrix Product States** (MPS) and **Matrix Product Operators** (MPOs) and runs entirely on classical hardware via ITensors.jl.
+<p align="center">
+  <a href="#what-this-package-provides">What this package provides</a> •
+  <a href="#core-features">Core features</a> •
+  <a href="#quickstart-tour">Quickstart</a> •
+  <a href="#performance">Performance</a> •
+  <a href="#authorship-and-maintenance">Authorship</a>
+</p>
 
-The central idea is to leverage the representability of certain quantum circuits as MPOs and realize their action through efficient tensor-network contractions. This allows us to study, prototype, and apply QFT-like transforms at problem sizes far beyond what dense representations would permit—**without requiring a quantum computer**. For compressible signals, this reaches performance better than—classical algorithms like FFT and Chirp-z, while handling problem sizes (input size $\approx 2^{30}$, output size $\approx 2^{60}$) that would be infeasible in dense form.
+QILaplace.jl is a Julia package for running Fourier- and Laplace-family transforms with tensor networks on classical hardware. It is designed for large, structured signals where compressed MPS/MPO representations make dense workflows impractical.
 
-## Why tensor-network transforms?
+The package includes QFT, damping-transform (DT), and full z-transform (zT) pipelines, together with MPS compression, MPO construction, and direct coefficient extraction tools.
 
-### The classical state of the art
+## What this package provides
 
-For discrete signal transforms, classical algorithms are extremely effective—but they implicitly assume **dense access** to all signal samples:
+- **Signal-to-MPS encoding** using SVD and randomized SVD (`:svd` / `:rsvd`).
+- **Compressed transform MPOs** for QFT, DT, and zT.
+- **Scalable transform workflows** for compressible signals, with practical near-logarithmic growth in problem size.
 
-- **Discrete Fourier Transform (FFT)**\
-  Runtime: **$O(N \ \log(N))$**\
-  Requires storing and processing all $N$ samples explicitly.
-
-- **Discrete Laplace / z-transform**\
-  Naive implementations scale as **$O(N^2)$** and can suffer from numerical instability at large $N$. However, several *fast classical alternatives* exist for specific evaluation settings:
-
-  - **Fast evaluation on the positive real axis:** using specialized schemes, evaluation along the real axis can be performed in **effectively linear or near-linear time** with cost **$O(N + M)$**.
-  - **Chirp-z transform (CZT):** reduces evaluation along specific contours in the complex plane to FFT-like convolutions, with cost **$O((N + M)\ \log(N + M))$**.
-  - **Dense 2D evaluation grids:** typical scaling **$O(N·M)$**.
-
-  These algorithms substantially outperform brute-force Laplace evaluation, but still fundamentally rely on *dense access to the signal* and do not exploit internal low-rank or entanglement structure.
-
-However, many real-world signals are **structured and compressible**, with most of their "useful" information concentrated in a small number of dominant modes. Such signals admit low-rank representations and can be faithfully approximated with far fewer degrees of freedom than their ambient dimension suggests. QILaplace.jl adopts a tensor-network perspective:
-
-- Signals of length $N$ are represented as **MPS with $\log_2(N)$ sites**
-- Transform operators are constructed by efficiently contracting **logarithmic-depth MPO circuits**
-- Approximation error, compression, and circuit structure are **explicitly controlled**
-
-For signals admitting a bounded MPS bond dimension, this leads to a radically different scaling regime.
-
-
-### What this package provides
-
-QILaplace.jl implements three quantum-inspired discrete transforms:
-
-- **Quantum Fourier Transform (QFT)**\
-  A circuit-structured alternative to the FFT, realized as a finite-bond-dimension MPO.
-
-- **Discrete Laplace Transform with real exponents (Damping Transform)**\
-  Suitable for exponentially damped signals and decay analysis.
-
-- **Full complex Discrete Laplace / z-Transform (zT)**\
-  A tensor-network formulation of the classical z-transform, enabling pole–zero analysis directly from tensor states.
-
-
-## Performance
-
-The transform operators in QILaplace.jl correspond to **logarithmic-depth quantum circuits** represented as MPOs. Prior work of [Chen, Stoudenmire, and White](https://journals.aps.org/prxquantum/abstract/10.1103/PRXQuantum.4.040318) has shown that QFT circuits admit an MPO representation with a **finite bond dimension** that does **not scale with system size** for fixed accuracy. We have observed the same behavior in the case of the discrete Laplace transform as well. 
-
-Input signals are represented as MPS with bond dimension $\chi_s$, determined by the structure and complexity of the data. Structured or weakly correlated signals admit compact representations, while more complex signals may require larger bond dimensions.
-
-Transforms are applied via MPO–MPS contraction. The computational cost scales as:
-
-- Linear in the number of tensor sites: **$n = \log_2(N)$**
-- Polynomial in the signal bond dimension $\chi_s$
-- Polynomial in the circuit bond dimension $\chi_c$ (constant for fixed accuracy)
-
-For fixed circuit accuracy, the effective runtime is **$O(\chi_s^2 \log(N))$**.
-
-### Runtime comparison
-
-| Transform                  | Best-known algorithm                        | Best-known classical runtime   | QILaplace runtime\* |
-| -------------------------- | ------------------------------------------- | ------------------------------ | ------------------- |
-| Discrete Fourier Transform | FFT (Cooley–Tukey)                          | $O(N \log(N))$                 | $O(\chi_s^2 \log(N))$        |
-| z-Transform (complex)      | Chirp-z transform (CZT)                     | $O((N+M)\ \log(N + M))$        | $O(\chi_s^2 \log(N))$        |
-| QFT (quantum circuit)      | Quantum QFT circuit                         | $O(\log^2(N))$†                | $O(\chi_s^2 \log(N))$        |
-
-\* For signals admitting bounded MPS bond dimension.
-
-† Idealized quantum circuit, ignoring state preparation, readout, and noise overheads.
-
-In other words, **when the signal is compressible**, transform costs scale logarithmically with signal length. In this regime, tensor-network implementations can be competitive with—and in practice outperform—both dense classical algorithms and idealized quantum-circuit implementations for large data sizes, while running entirely on classical hardware.
-
+DT and zT use the same high-level API style as QFT, so moving between Fourier and Laplace/z-domain analyses is straightforward.
 
 ## Core features
 
-### Signal generation and representation
+### 1) Signal compression workflows (SVD and RSVD)
 
-- Signals are represented as MPS objects (e.g. `SignalMPS`, `ZTMPS`)
-- Dense arrays can be compressed using SVD or randomized SVD (rSVD)
-- Built-in utilities generate oscillatory, damped, and structured test signals
+- Convert dense vectors into MPS (`signal_mps`, `signal_ztmps`)
+- Control approximation with `cutoff` and `maxdim`
+- Choose deterministic SVD (sequential sweep) or randomized SVD (divide and conquer) backends
 
-### Transform construction
+<p align="center">
+  <img src="docs/src/animations/assets/SVDRMPSConversion.gif" alt="SVD to MPS animation" width="390">
+  <img src="docs/src/animations/assets/RSVDRMPSConversion.gif" alt="RSVD to MPS animation" width="390">
+</p>
 
-- QFT, damping-transform, and z-transform operators are constructed as MPOs
-- Circuit-style MPO building blocks:
-  - `SingleSiteMPO`
-  - `PairedSiteMPO`
-- High-level builders:
-  - `build_qft_mpo`
-  - `build_dt_mpo`
-  - `build_zt_mpo`
+### 2) Circuit compression for transform MPOs
 
-### Transform application
+- Build compressed transform operators with `build_qft_mpo`, `build_dt_mpo`, and `build_zt_mpo`
+- Apply through the same contraction interface (`W * ψ`)
+- Keep transform accuracy under explicit truncation control
 
-- Generic interface: `*(::AbstractMPO, ::AbstractMPS)`
-- Outputs are produced in **bit-reversed order**, matching the natural QFT circuit layout
+<p align="center">
+  <img src="docs/src/animations/assets/CircuitCompression.gif" alt="QFT circuit compression animation" width="390">
+  <img src="docs/src/animations/assets/DTCircuitCompression.gif" alt="DT circuit compression animation" width="390">
+</p>
 
-### Post-processing and analysis
+For full circuit diagrams and examples, see:
+- https://SUTD-MDQS.github.io/QILaplace.jl/tutorials/dft/
+- https://SUTD-MDQS.github.io/QILaplace.jl/tutorials/dt/
+- https://SUTD-MDQS.github.io/QILaplace.jl/tutorials/zt/
 
-- Pole and zero extraction directly from transformed tensor states (yet to implement)
-- Parameter estimation and spectral analysis tools (planned)
+### 3) z-domain analysis and pole scanning
 
-## When to use QILaplace
+- Query transformed coefficients directly from tensor states (`coefficient`)
+- Run coarse-to-fine scans in $(k,\ell)$, $s$-, and $z$-spaces
+- Compare inferred peak/pole locations against analytical references
 
-**Ideal for:**
-- ✅ Structured or compressible signals (oscillatory, damped, low-rank)
-- ✅ Large signal lengths ($N \geq 2^{20}$) where dense FFT/Laplace become memory-intensive
+See the full pole-identification walkthrough in:
+- https://SUTD-MDQS.github.io/QILaplace.jl/tutorials/zt/
 
-**Not ideal for:**
-- ❌ Fully random or high-entropy signals (minimal compression; overhead outweighs gains)
+## Workflow
+
+1. **Encode signal** -> `signal_mps` (single register) or `signal_ztmps` (paired register).
+2. **Build transform MPO** -> `build_qft_mpo`, `build_dt_mpo`, or `build_zt_mpo`.
+3. **Apply + extract coefficients** -> `W * ψ` (or `apply(W, ψ)`) and probe entries with `coefficient`.
 
 ## Quickstart tour
 
-### Signal → MPS → QFT frequency bins
-The most common workflow is: synthesize a structured signal, compress it into an MPS, build the desired MPO, and contract. The example below produces a damped multi-tone waveform, applies the QFT circuit, and probes any frequency bin directly from the resulting tensor state without materializing a dense vector.
+### Signal -> MPS -> QFT frequency bins
 
 ```julia
 using QILaplace
 
-n = 10                                            # log2 signal length → 1024 samples
+n = 10                                            # log2 signal length -> 1024 samples
 signal = generate_signal(n; kind=:sin_decay,
                          freq=[1.0, 2.5], decay_rate=[0.08, 0.03])
 
@@ -164,14 +111,13 @@ signal = generate_signal(n; kind=:sin_decay,
 compress!(ψ; maxdim=64)
 
 Wqft = build_qft_mpo(ψ; cutoff=1e-12, maxdim=128)
-spectrum = Wqft * ψ                                # Apply MPO to MPS
+spectrum = Wqft * ψ                               # Apply MPO to MPS
 
 # Extract physical-scale amplitude at frequency bin (bit-reversed order)
 amplitude = coefficient(spectrum, "0101010110")
 ```
 
-### Damped signals and z-Transform pipeline
-When working with Laplace/zT analyses you need the doubled register representation (`ZTMPS`) so that both main and copy wires stay entangled. The snippet below chains the damping transform and the full z-transform MPOs and inspects an amplitude in the z-space directly from the contracted tensor.
+### Damped and z-transform workflows (paired register)
 
 ```julia
 using QILaplace
@@ -181,36 +127,34 @@ signal = generate_signal(n; kind=:sin_decay, freq=1.0, decay_rate=0.05)
 
 ψzt = signal_ztmps(signal; method=:svd, cutoff=1e-12)
 
+# Damping transform (real-axis)
 Wdt = build_dt_mpo(ψzt, 0.3; maxdim=64)
-damped = Wdt * ψzt                               # Apply damping transform
+damped = Wdt * ψzt
 
+# Full z-transform (DT + QFT circuit in one MPO)
 Wzt = build_zt_mpo(ψzt, 0.3; maxdim=128)
-response = Wzt * damped                          # Apply full z-transform
+response = Wzt * ψzt
 
-amplitude = coefficient(response, "1010101010")  # Physical-scale amplitude
+amplitude_dt = coefficient(damped, "1010101010")
+amplitude_zt = coefficient(response, "1010101010")
 ```
 
-### Performance highlight
-**We have computed the z-Transform** of signals with $N \approx 2^{30}$ (≈1 billion data points) and stored the result in an MPS with $M \approx 2^{60}$ (≈1 million-trillion transform evaluations)—a regime completely inaccessible to dense classical methods!
+## Performance
 
+For a signal of length $N = 2^n$, transforms are applied as MPO-MPS contractions over $n=\log(N)$ tensor sites. With signal bond dimension $\chi_s$, circuit bond dimension $\chi_c$, and bounded circuit bond behavior for fixed accuracy:
+
+$$
+T_{\mathrm{apply}} \sim O\left( \chi_s^2 \log N \right).
+$$
+
+For full benchmarks and runtime plots, see:
+**https://SUTD-MDQS.github.io/QILaplace.jl/benchmarking/**
 
 ## Authorship and maintenance
 
-This repository supports the work reported in an upcoming arXiv manuscript.
-
-- **Original author:** **Noufal Jaseem**\
-  Developed the original implementation and core workflow used to generate the results reported in the manuscript.
-
-- **Lead maintainer / major contributor:** **Gauthameshwar S.**\
-  Curated and structured the repository, improved code quality and usability, and implemented targeted efficiency optimizations. The optimized implementation was used to update the runtime figures in the main manuscript.
-
-- **Project supervision:** **Dario Poletti**\
-  Provided scientific supervision and guidance for the project.
-
-
-## Citation
-
-If you use QILaplace.jl in published work, please cite the repository and the associated arXiv paper [here](https://arxiv.org/abs/2601.17724).
+- **Lead maintainer:** Gauthameshwar S.
+- **Original codes:** Noufal Jaseem.
+- **PI:** Dario Poletti.
 
 Made with ❤️ using Julia, ITensors, and a healthy respect for bond-dimension growth.
 
