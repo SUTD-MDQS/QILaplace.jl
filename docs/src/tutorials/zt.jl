@@ -219,10 +219,11 @@ round.(zs_small; digits=4)
 
 assets_dir = joinpath(@__DIR__, "..", "assets") #hide
 mkpath(assets_dir) #hide
+zt_heat_cmap = cgrad(["#fffdc9", "#fd883b", "#820026"]) #hide
 
 p_small = heatmap( #hide
     0:(N - 1), 0:(N - 1), abs.(χ_num); #hide
-    color=:OrRd, xlabel=L"l", ylabel=L"k", #hide
+    color=zt_heat_cmap, xlabel=L"l", ylabel=L"k", #hide
     title=L"|\chi(k,l)|\ \mathrm{for}\ n=2", #hide
 ) #hide
 savefig(p_small, joinpath(assets_dir, "zt_small_kl.svg")) #hide
@@ -234,7 +235,12 @@ nothing #hide
 
 # ## Pole Identification from the transform
 #
-# The previous plot was probably too pixelated to make sense of anything accurately. Although we saw some signatures of poles at $(k,l)=(0,1), (0,3)$, the transform required more input signal samples to get a better resolution. We now scale up the algorithm to a large-scale signal to show its power of pole identification. The signal we analyse is a complex-valued signal with two poles, one positive and one negative:
+# One of the main applications of performing the z-transform is to identify the zeros and poles of a signal. 
+# Suppose we are given a black box that transforms our input signal in a non-unitary manner (that includes decaying of the signal). 
+# By identifying where the poles lie in the z-plane, one can get a good understanding of the nature of the response of the black box. 
+# This is especially useful in the context of system identification and control in engineering systems. 
+# The plot in the previous section may have been too pixelated to reveal detailed features. 
+# Although we observed signs of poles at $(k,l)=(0,1), (0,3)$, a higher-resolution transform is required for more precise identification. We now extend the algorithm to a much larger-scale signal to better demonstrate its capability for pole identification. The signal we analyze here is complex-valued and has two poles, one positive and one negative:
 #
 # ```math
 # x_j = a^j\cos(\omega_0 j),\qquad
@@ -315,7 +321,7 @@ z_peak_c = z_from_kl(k_peak_c, l_peak_c, n_big, ωr_coarse, ωi_coarse)
 
 p_coarse = scatter( #hide
     vec(real.(zs_coarse)), vec(imag.(zs_coarse)); #hide
-    marker_z=vec(mag_coarse_norm), color=:OrRd, ms=3.0, msw=0, #hide
+    marker_z=vec(mag_coarse_norm), color=zt_heat_cmap, ms=3.0, msw=0, #hide
     xlims=(-1.05, 1.05), ylims=(-1.05, 1.05), #hide
     xlabel=L"\mathrm{Re}(z)", ylabel=L"\mathrm{Im}(z)", #hide
     title=L"|\chi(z)|\ \mathrm{(coarse)}", colorbar_title=L"|\chi|/\max|\chi|", #hide
@@ -361,20 +367,14 @@ z_peak_f = z_from_kl(k_peak_f, l_peak_f, n_big, ωr_fine, ωi_fine)
 @printf(" Predicted pole location from fine scan: %.6f + %.6fi\n", real(z_peak_f), imag(z_peak_f))
 @printf(" Error from nearest analytic pole: %.3e\n", min(abs(z_peak_f - z_pole_pos), abs(z_peak_f - z_pole_neg)))
 
-
-χ_ref_fine = ComplexF64[χ_finite_reference(z, γ_pos, γ_neg, N_big) for z in zs_fine]
-rel_fine = abs.(χ_fine .- χ_ref_fine) ./ max.(abs.(χ_ref_fine), eps(Float64))
-ΔM_fine = maximum(rel_fine)
-@printf("fine scan max relative coefficient error ΔM = %.3e\n", ΔM_fine)
-
 p_fine = scatter( #hide
     vec(real.(zs_fine)), vec(imag.(zs_fine)); #hide
-    marker_z=vec(mag_fine_norm), color=:OrRd, ms=3.0, msw=0, #hide
+    marker_z=vec(mag_fine_norm), color=zt_heat_cmap, ms=3.0, msw=0, #hide
     xlims=(1 - 1.5e-4, 1.0), ylims=(-9e-3, 5e-3), #hide
     xformatter=x -> @sprintf("%.6f", x), #hide
     xlabel=L"\mathrm{Re}(z)", ylabel=L"\mathrm{Im}(z)", #hide
     title=L"|\chi(z)|\ \mathrm{(fine)}", colorbar_title=L"|\chi|/\max|\chi|", #hide
-    aspect_ratio=:auto, size=(750, 700), framestyle=:box, label=false, #hide
+    aspect_ratio=:auto, size=(700, 700), framestyle=:box, label=false, #hide
 ) #hide
 savefig(p_fine, joinpath(assets_dir, "zt_pole_scan_fine.svg")) #hide
 nothing #hide
@@ -405,18 +405,14 @@ peak_idx_s = argmax(mag_super)
 k_peak_s = ks_superfine[peak_idx_s[1]]
 l_peak_s = ls_superfine[peak_idx_s[2]]
 z_peak_s = z_from_kl(k_peak_s, l_peak_s, n_big, ωr_fine, ωi_fine)
-ΔM_superfine = maximum(abs.(χ_super .- χ_finite_reference(z_peak_s, γ_pos, γ_neg, N_big)))
-den_super = max(abs(χ_finite_reference(z_peak_s, γ_pos, γ_neg, N_big)), eps(Float64))
-ΔM_superfine_rel = ΔM_superfine / den_super
 
 @printf(" Predicted pole indices from superfine scan: %d, %d\n", k_peak_s, l_peak_s)
 @printf(" Predicted pole location from superfine scan: %.6f + %.6fi\n", real(z_peak_s), imag(z_peak_s))
 @printf(" Error from nearest analytic pole: %.3e\n", min(abs(z_peak_s - z_pole_pos), abs(z_peak_s - z_pole_neg)))
-@printf(" Maximum relative coefficient error: %.3e\n", ΔM_superfine_rel)
 
 p_super = scatter( #hide
     vec(real.(zs_superfine)), vec(imag.(zs_superfine)); #hide
-    marker_z=vec(mag_super_norm), color=:OrRd, ms=5.0, msw=0, #hide
+    marker_z=vec(mag_super_norm), color=zt_heat_cmap, ms=5.0, msw=0, #hide
     xlabel=L"\mathrm{Re}(z)", ylabel=L"\mathrm{Im}(z)", #hide
     title=L"|\chi(z)|\ \mathrm{(superfine)}", #hide
     colorbar_title=L"|\chi|/\max|\chi|", #hide
@@ -437,9 +433,7 @@ nothing #hide
 # coarse global scan, fine near-unit-circle scan, and superfine z-plane
 # local full-resolution scan with analytical pole marker.*
 # 
-# The superfine scan is numerically very accurate, 
-# which we can see from the very small relative transform error (ΔM_superfine_rel). 
-# At the same time, the detected peak is still not exactly 
+# The detected peak is still not exactly 
 # on the analytical pole location, and that is expected here. 
 # The reason is not a failure of the algorithm, but the fact that we are computing a finite, 
 # discretized Laplace/z-transform from a sampled signal, whereas the 

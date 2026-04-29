@@ -68,12 +68,12 @@ The parameters you are most likely to touch live at the top of each runner:
 - `REBENCHMARK` — if set to `true`, clears the in-memory series and
   re-benchmarks from scratch; otherwise the existing artifact is reused.
 
-```@raw html
-<div style="background-color: #eef9f0; border: 1px solid #75d689ff; border-radius: 10px; padding: 14px 16px; margin: 20px 0;">
-    <div style="color: #000000; font-weight: 800; font-size: 1.02rem; letter-spacing: 0.03em; margin-bottom: 6px;">📁 Reproducibility</div>
-    <div style="color: #1f4a2a;">Raw results (<code>.jld2</code>) and figures (<code>.svg</code>) are committed to the repository, so you can rerun only the plot scripts and still get the same plots. The JLD2 artifacts carry a <code>meta</code> dict (Julia version, CPU, BLAS threads, parameter values); if you change any parameter in the runner the loader detects the mismatch and starts a fresh sweep for the affected series.</div>
-</div>
-```
+!!! tip "Reproducibility"
+    Raw results (`.jld2`) and figures (`.svg`) are committed to the repository, so you
+    can rerun only the plot scripts and still get the same plots. The JLD2 artifacts
+    carry a `meta` dict (Julia version, CPU, BLAS threads, parameter values); if you
+    change any parameter in the runner the loader detects the mismatch and starts a
+    fresh sweep for the affected series.
 
 ## 1. Benchmark signals
 

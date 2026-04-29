@@ -515,19 +515,12 @@ z_peak_f = z_from_kl(k_peak_f, l_peak_f, n_big, ωr_fine, ωi_fine)
 @printf(" Predicted pole location from fine scan: %.6f + %.6fi\n", real(z_peak_f), imag(z_peak_f))
 @printf(" Error from nearest analytic pole: %.3e\n", min(abs(z_peak_f - z_pole_pos), abs(z_peak_f - z_pole_neg)))
 
-
-χ_ref_fine = ComplexF64[χ_finite_reference(z, γ_pos, γ_neg, N_big) for z in zs_fine]
-rel_fine = abs.(χ_fine .- χ_ref_fine) ./ max.(abs.(χ_ref_fine), eps(Float64))
-ΔM_fine = maximum(rel_fine)
-@printf("fine scan max relative coefficient error ΔM = %.3e\n", ΔM_fine)
-
 ````
 
 ````
  Predicted pole indices from fine scan: 0, 1047889
  Predicted pole location from fine scan: 0.999992 + 0.004117i
  Error from nearest analytic pole: 1.509e-04
-fine scan max relative coefficient error ΔM = 2.945e+63
 
 ````
 
@@ -558,14 +551,10 @@ peak_idx_s = argmax(mag_super)
 k_peak_s = ks_superfine[peak_idx_s[1]]
 l_peak_s = ls_superfine[peak_idx_s[2]]
 z_peak_s = z_from_kl(k_peak_s, l_peak_s, n_big, ωr_fine, ωi_fine)
-ΔM_superfine = maximum(abs.(χ_super .- χ_finite_reference(z_peak_s, γ_pos, γ_neg, N_big)))
-den_super = max(abs(χ_finite_reference(z_peak_s, γ_pos, γ_neg, N_big)), eps(Float64))
-ΔM_superfine_rel = ΔM_superfine / den_super
 
 @printf(" Predicted pole indices from superfine scan: %d, %d\n", k_peak_s, l_peak_s)
 @printf(" Predicted pole location from superfine scan: %.6f + %.6fi\n", real(z_peak_s), imag(z_peak_s))
 @printf(" Error from nearest analytic pole: %.3e\n", min(abs(z_peak_s - z_pole_pos), abs(z_peak_s - z_pole_neg)))
-@printf(" Maximum relative coefficient error: %.3e\n", ΔM_superfine_rel)
 
 ````
 
@@ -573,7 +562,6 @@ den_super = max(abs(χ_finite_reference(z_peak_s, γ_pos, γ_neg, N_big)), eps(F
  Predicted pole indices from superfine scan: 320, 1047872
  Predicted pole location from superfine scan: 0.999839 + 0.004218i
  Error from nearest analytic pole: 1.185e-04
- Maximum relative coefficient error: 2.739e+61
 
 ````
 
@@ -585,9 +573,7 @@ den_super = max(abs(χ_finite_reference(z_peak_s, γ_pos, γ_neg, N_big)), eps(F
 coarse global scan, fine near-unit-circle scan, and superfine z-plane
 local full-resolution scan with analytical pole marker.*
 
-The superfine scan is numerically very accurate,
-which we can see from the very small relative transform error (ΔM_superfine_rel).
-At the same time, the detected peak is still not exactly
+The detected peak is still not exactly
 on the analytical pole location, and that is expected here.
 The reason is not a failure of the algorithm, but the fact that we are computing a finite,
 discretized Laplace/z-transform from a sampled signal, whereas the

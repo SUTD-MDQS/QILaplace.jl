@@ -26,16 +26,15 @@
 # The damping transform implemented in `QILaplace.jl` uses the kernel
 #
 # ```math
-# y_k = \frac{1}{\sqrt{N}}\sum_{j=0}^{N-1}\hat{x}_j
-# \exp\!\left(-\omega_r\,\frac{kj}{N}\right),
-# \qquad \hat{x} = x / \|x\|_2.
+# y_k = \frac{1}{\sqrt{N}}\sum_{j=0}^{N-1}x_j
+# \exp\!\left(-\omega_r\,\frac{kj}{N}\right).
 # ```
 #
 # Setting $\omega_r = N\,\Delta s\,\Delta t$ makes this kernel equal to
 # $e^{-s_k t_j}$, so the physical Laplace sum is recovered by
 #
 # ```math
-# L(s_k) \approx \Delta t\,\|x\|_2\,\sqrt{N}\,y_k.
+# L(s_k) \approx \Delta t\,\sqrt{N}\,y_k.
 # ```
 #
 # We first walk through a **three-qubit** toy example to see exactly how
@@ -72,7 +71,7 @@ x = exp.(-a .* t_grid)
 # The damping transform acts on the paired-register state
 #
 # ```math
-# |x\rangle_{\mathrm{pair}} = \sum_{j=0}^{N-1}\hat{x}_j\,
+# |x\rangle_{\mathrm{pair}} = \sum_{j=0}^{N-1}x_j\,
 # |j\rangle_{\mathrm{main}}|j\rangle_{\mathrm{copy}},
 # ```
 #
@@ -118,16 +117,14 @@ end
 
 # With these two helpers, reading a coefficient of `ψz` for any pair of
 # main/copy bitstrings is a one-liner. Since the encoded state is
-# $\sum_j \hat{x}_j |j\rangle_{\mathrm{main}}|j\rangle_{\mathrm{copy}}$,
+# $\sum_j x_j |j\rangle_{\mathrm{main}}|j\rangle_{\mathrm{copy}}$,
 # the amplitude is only non-zero when the main and copy bitstrings match:
 
 j_demo = 5
 demo_bits = int_to_bits(j_demo, n)
 amp_match = coefficient(ψz, interleave_bits(demo_bits, demo_bits))
-amp_mismatch = coefficient(ψz, interleave_bits(int_to_bits(2, n), int_to_bits(5, n)))
 
-@show amp_match x[j_demo + 1] / ψz.amplitude;
-@show amp_mismatch;
+@show amp_match x[j_demo + 1];
 
 # ## Constructing the DT circuit
 #
@@ -219,7 +216,7 @@ end
 # On our three-qubit demo, the MPS pipeline and the analytical kernel
 # agree to floating-point precision across all eight output values:
 
-y_ref = analytical_dt(x / ψz.amplitude, ωr)
+y_ref = analytical_dt(x, ωr)
 L_ref = Δt .* sqrt(N) .* y_ref
 
 for k in 0:(N - 1)

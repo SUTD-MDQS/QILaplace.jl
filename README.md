@@ -26,7 +26,11 @@
   </a>
 </p>
 
-[![Read the Documentation](https://img.shields.io/badge/Read%20the%20Documentation-QILaplace%20Docs-9558B2?style=for-the-badge&logo=julia&logoColor=white)](https://SUTD-MDQS.github.io/QILaplace.jl)
+<p align="center">
+  <a href="https://SUTD-MDQS.github.io/QILaplace.jl">
+    <img src="https://img.shields.io/badge/Read%20the%20Documentation-QILaplace%20Docs-9558B2?style=for-the-badge&logo=julia&logoColor=white" alt="Read the Documentation"/>
+  </a>
+</p>
 
 <p align="center">
   <a href="#what-this-package-provides">What this package provides</a> •
