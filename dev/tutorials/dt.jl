@@ -126,7 +126,7 @@ demo_bits = int_to_bits(j_demo, n)
 amp_match = coefficient(ψz, interleave_bits(demo_bits, demo_bits))
 amp_mismatch = coefficient(ψz, interleave_bits(int_to_bits(2, n), int_to_bits(5, n)))
 
-@show amp_match x[j_demo + 1] / ψz.amplitude;
+@show amp_match x[j_demo + 1];
 @show amp_mismatch;
 
 # ## Constructing the DT circuit
@@ -219,7 +219,7 @@ end
 # On our three-qubit demo, the MPS pipeline and the analytical kernel
 # agree to floating-point precision across all eight output values:
 
-y_ref = analytical_dt(x / ψz.amplitude, ωr)
+y_ref = analytical_dt(x, ωr)
 L_ref = Δt .* sqrt(N) .* y_ref
 
 for k in 0:(N - 1)

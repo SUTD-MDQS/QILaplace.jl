@@ -52,9 +52,9 @@ demo_bits = int_to_bits(j_demo, n)
 amp_match = coefficient(ψz, interleave_bits(demo_bits, demo_bits))
 amp_mismatch = coefficient(ψz, interleave_bits(int_to_bits(2, n), int_to_bits(5, n)))
 
-@show amp_match x[j_demo + 1] / ψz.amplitude;
+@show amp_match x[j_demo + 1];
 @show amp_mismatch;</code></pre><pre><code class="nohighlight hljs">amp_match = 0.3011942119122021
-x[j_demo + 1] / ψz.amplitude = 0.18799690228009328
+x[j_demo + 1] = 0.301194211912202
 amp_mismatch = 0.0
 </code></pre><h2 id="Constructing-the-DT-circuit"><a class="docs-heading-anchor" href="#Constructing-the-DT-circuit">Constructing the DT circuit</a><a id="Constructing-the-DT-circuit-1"></a><a class="docs-heading-anchor-permalink" href="#Constructing-the-DT-circuit" title="Permalink"></a></h2><p>The damping transform factorizes the real exponential weight <span>$\exp(-\omega_r\,kj/N)$</span> into contributions from individual binary digits of <span>$k$</span> and <span>$j$</span> (Appendix A of the <a href="https://arxiv.org/pdf/2601.17724">paper</a>).</p><img src="../../animations/assets/dt_circuit.png" alt="Damping transform circuit with hatched non-unitary gates"><p><em>Figure 1. The damping transform circuit. In the circuit diagram, the hatched boxes are exactly the non-unitary gates (<span>$H_d$</span> and <span>$R_{lm}$</span>) that create the real exponential damping.</em></p><p class="math-container">\[H_d = \frac{1}{\sqrt{2}}
 \begin{pmatrix}
@@ -98,7 +98,7 @@ end
         out[k + 1] += vec[j + 1] * scale * exp(-ωr * k * j / N)
     end
     return out
-end</code></pre><pre><code class="nohighlight hljs">analytical_dt (generic function with 1 method)</code></pre><p>On our three-qubit demo, the MPS pipeline and the analytical kernel agree to floating-point precision across all eight output values:</p><pre><code class="language-julia hljs">y_ref = analytical_dt(x / ψz.amplitude, ωr)
+end</code></pre><pre><code class="nohighlight hljs">analytical_dt (generic function with 1 method)</code></pre><p>On our three-qubit demo, the MPS pipeline and the analytical kernel agree to floating-point precision across all eight output values:</p><pre><code class="language-julia hljs">y_ref = analytical_dt(x, ωr)
 L_ref = Δt .* sqrt(N) .* y_ref
 
 for k in 0:(N - 1)
@@ -108,14 +108,14 @@ for k in 0:(N - 1)
         k, s_grid[k + 1], real(L_mps), real(L_ref[k + 1]),
         abs(L_mps - L_ref[k + 1])
     )
-end</code></pre><pre><code class="nohighlight hljs">  s_0 = 0.00   L_MPS =  1.19987   L_ref =  0.74892   |diff| = 4.51e-01
-  s_1 = 0.50   L_MPS =  0.88794   L_ref =  0.55422   |diff| = 3.34e-01
-  s_2 = 1.00   L_MPS =  0.70943   L_ref =  0.44280   |diff| = 2.67e-01
-  s_3 = 1.50   L_MPS =  0.59949   L_ref =  0.37418   |diff| = 2.25e-01
-  s_4 = 2.00   L_MPS =  0.52726   L_ref =  0.32910   |diff| = 1.98e-01
-  s_5 = 2.50   L_MPS =  0.47721   L_ref =  0.29786   |diff| = 1.79e-01
-  s_6 = 3.00   L_MPS =  0.44101   L_ref =  0.27527   |diff| = 1.66e-01
-  s_7 = 3.50   L_MPS =  0.41393   L_ref =  0.25837   |diff| = 1.56e-01
+end</code></pre><pre><code class="nohighlight hljs">  s_0 = 0.00   L_MPS =  1.19987   L_ref =  1.19987   |diff| = 6.66e-16
+  s_1 = 0.50   L_MPS =  0.88794   L_ref =  0.88794   |diff| = 5.55e-16
+  s_2 = 1.00   L_MPS =  0.70943   L_ref =  0.70943   |diff| = 9.99e-16
+  s_3 = 1.50   L_MPS =  0.59949   L_ref =  0.59949   |diff| = 1.11e-15
+  s_4 = 2.00   L_MPS =  0.52726   L_ref =  0.52726   |diff| = 1.11e-16
+  s_5 = 2.50   L_MPS =  0.47721   L_ref =  0.47721   |diff| = 1.67e-16
+  s_6 = 3.00   L_MPS =  0.44101   L_ref =  0.44101   |diff| = 8.88e-16
+  s_7 = 3.50   L_MPS =  0.41393   L_ref =  0.41393   |diff| = 5.55e-16
 </code></pre><p>With the full pipeline validated on three qubits, we now scale up to richer benchmark signals and check the MPS output against the <em>exact</em> discrete Laplace sum.</p><h2 id="Example-1:-polynomial-times-exponential"><a class="docs-heading-anchor" href="#Example-1:-polynomial-times-exponential">Example 1: polynomial times exponential</a><a id="Example-1:-polynomial-times-exponential-1"></a><a class="docs-heading-anchor-permalink" href="#Example-1:-polynomial-times-exponential" title="Permalink"></a></h2><p>Consider <span>$f(t) = t\,e^{-at}$</span>. On the finite grid with <span>$r = e^{-(s+a)\Delta t}$</span>, the exact discrete Laplace sum has the closed form</p><p class="math-container">\[L_{\mathrm{disc}}(s) = \Delta t^2\sum_{j=0}^{N-1} j\,r^j
 = \Delta t^2\,\frac{r\,\bigl(1 - N r^{N-1} + (N-1)\,r^N\bigr)}{(1 - r)^2}.\]</p><p>The corresponding continuum Laplace transform is</p><p class="math-container">\[L(s) = \int_0^\infty t e^{-at} e^{-st} dt = \frac{1}{(s+a)^2}.\]</p><pre><code class="language-julia hljs">n_ex = 7
 N_ex = 2^n_ex
@@ -169,4 +169,4 @@ rel_cos = abs.(L_mps_cos .- L_disc_cos)
 
 @printf(&quot;  max relative error = %.3e\n&quot;, maximum(rel_cos))
 </code></pre><pre><code class="nohighlight hljs">  max relative error = 5.463e-07
-</code></pre><img src="../../assets/dt_cosexp_comparison.svg" alt="Damping transform for exp(-at) cos(bt)"><p><em>Figure 3. For an oscillatory signal the MPS pipeline still reproduces the analytical discrete Laplace transform, with the right-axis error curve sitting at the tensor-network truncation floor throughout.</em></p><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../dft/">« Discrete Fourier Transform</a><a class="docs-footer-nextpage" href="../zt/">Discrete Laplace Transform »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Tuesday 28 April 2026 18:57">Tuesday 28 April 2026</span>. Using Julia version 1.12.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+</code></pre><img src="../../assets/dt_cosexp_comparison.svg" alt="Damping transform for exp(-at) cos(bt)"><p><em>Figure 3. For an oscillatory signal the MPS pipeline still reproduces the analytical discrete Laplace transform, with the right-axis error curve sitting at the tensor-network truncation floor throughout.</em></p><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../dft/">« Discrete Fourier Transform</a><a class="docs-footer-nextpage" href="../zt/">Discrete Laplace Transform »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Wednesday 29 April 2026 04:38">Wednesday 29 April 2026</span>. Using Julia version 1.12.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

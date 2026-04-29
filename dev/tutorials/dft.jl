@@ -21,29 +21,6 @@
 # $\sum_{x=0}^{N-1} a_x |x\rangle$, then apply a compressed QFT MPO built from
 # Hadamard and controlled-phase gates.
 #
-# ![QFT circuit for $n=4$ qubits](../animations/assets/qft_circuit.png)
-#
-# *Figure 1. Four-qubit QFT circuit in product form: Each wire receives a Hadamard gate followed by controlled-phase gates ($P_{ij}$) from less significant wires. The unswapped output is in bit-reversed order.*
-#
-# In the product-form circuit, outputs come out in **bit-reversed order** relative
-# to standard DFT indexing: if $k = k_{n-1}\dots k_1k_0$, the unswapped output is
-# indexed by $\operatorname{rev}(k)=k_0k_1\dots k_{n-1}$.
-#
-# This is why we either (i) append explicit SWAP gates at the end of the QFT
-# circuit, (ii) sample the MPS by keeping the bit-reversed ordering in mind, or
-# (iii) account for reversal when converting the transformed MPS to a dense
-# vector for comparison with FFT-based reference implementations.
-#
-# In this QFT circuit, the Hadamard Gate ($H$) and the Phase gate ($P_{ij}$) are defined as:
-# ```math
-# H = \frac{1}{\sqrt{2}} \begin{pmatrix} 1 & 1 \\ 1 & -1 \end{pmatrix} \quad
-# P_{ij} = \begin{pmatrix} 1 & 0 \\ 0 & e^{-2\pi i / 2^{j-i+1}} \end{pmatrix}
-# ```
-# Controlled-phase action:
-# - If the control qubit is $|0\rangle$, nothing happens to the target.
-# - If the control qubit is $|1\rangle$, the target picks up the phase defined by $P_{ij}$.
-#
-
 using QILaplace, ITensors
 using FFTW, LinearAlgebra
 
@@ -65,6 +42,35 @@ psi_test = signal_mps(x)
 # in the dedicated `signal.jl` tutorial so that this page stays focused on DFT/QFT.
 
 # ## Constructing the QFT circuit
+#
+# In this tutorial, the QFT is the circuit-level representation of the Fourier
+# transform that we apply to the compressed `SignalMPS`. Instead of forming the
+# dense Fourier matrix, `QILaplace.jl` builds the QFT as a compressed MPO from
+# local Hadamard and controlled-phase gates, then contracts that MPO directly
+# with the MPS. 
+#
+# ![QFT circuit for $n=4$ qubits](../animations/assets/qft_circuit.png)
+#
+# *Figure 1. Four-qubit QFT circuit in product form: each wire receives a Hadamard gate followed by controlled-phase gates ($P_{ij}$) from less significant wires. The unswapped output is in bit-reversed order.*
+#
+# In the product-form circuit, outputs come out in **bit-reversed order** relative
+# to standard DFT indexing: if $k = k_{n-1}\dots k_1k_0$, the unswapped output is
+# indexed by $\operatorname{rev}(k)=k_0k_1\dots k_{n-1}$.
+#
+# This is why we either (i) append explicit SWAP gates at the end of the QFT
+# circuit, (ii) sample the MPS by keeping the bit-reversed ordering in mind, or
+# (iii) account for reversal when converting the transformed MPS to a dense
+# vector for comparison with FFT-based reference implementations.
+#
+# In this QFT circuit, the Hadamard gate ($H$) and phase gate ($P_{ij}$) are:
+# ```math
+# H = \frac{1}{\sqrt{2}} \begin{pmatrix} 1 & 1 \\ 1 & -1 \end{pmatrix} \quad
+# P_{ij} = \begin{pmatrix} 1 & 0 \\ 0 & e^{-2\pi i / 2^{j-i+1}} \end{pmatrix}
+# ```
+# Controlled-phase action:
+# - If the control qubit is $|0\rangle$, nothing happens to the target.
+# - If the control qubit is $|1\rangle$, the target picks up the phase defined by $P_{ij}$.
+#
 qft_mpo = build_qft_mpo(psi_test; cutoff=1e-14, maxdim=100)
 
 # Ensure MPS and MPO use exactly the same site indices before applying.
@@ -89,6 +95,12 @@ psi_qn = apply(qft_mpo, psi_test)
 # ```math
 # \mathrm{QFT}_N\hat{x} = \frac{\mathrm{fft}(\hat{x})}{\sqrt{N}}.
 # ```
+#
+# !!! note "QFT convention"
+#     This package uses the `-2πi` forward phase with `1/sqrt(N)` scaling.
+#     Some standard QFT textbooks have the forward QFT with a $+2\pi i$ 
+# 	  phase instead of $-2\pi i$ phase, although classically, the forward fft
+#     has a $-2\pi i$ phase.
 
 # We can use the package utility `mps_to_vector` directly. With
 # `reverse=true`, it returns output-index bit reversal (FFT ordering).
@@ -133,7 +145,7 @@ fftw_val_k2 = round(fftw_ref[idx_fn_k2]; digits=5)
 @show k2 qft_val_k2 fftw_val_k2 abs(qft_val_k2 - fftw_val_k2)
 
 
-## Analysing the Fourier Spectrum
+# ## Analysing the Fourier Spectrum
 
 # For a moderately larger signal, we compare the QFT spectrum against FFTW and plot the
 # absolute error on a secondary (right) y-axis with a distinct linestyle. We choose a signal with two 
