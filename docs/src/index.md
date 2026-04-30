@@ -12,7 +12,7 @@ The package currently provides three transform families in one consistent API: a
 
 You can install QILaplace by running the following command in the Julia REPL:
 ```julia
-using Pkg;Pkg.add("QILaplace.jl");
+using Pkg;Pkg.add("QILaplace");
 ```
 If you are more of an interactive coder, you can run the same by going to the pkg mode: 
 ```julia
