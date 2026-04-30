@@ -1,6 +1,11 @@
 # Core Concepts
 
-To effectively use QILaplace.jl, it is helpful to understand how classical signals are mapped onto tensor network structures. This library leverages Matrix Product States (MPS) and Matrix Product Operators (MPO) to perform transformations—like the Laplace and Fourier transform—with logarithmic scaling.
+QILaplace.jl maps length-$N$ signals to tensor networks so you can run Fourier- and Laplace-family transforms without materializing dense arrays. This page provides the minimum intuition and practical choices. For step-by-step usage, start with the tutorials.
+
+**Why it matters**
+- Work with $N=2^n$ signals without $O(N)$ memory.
+- Control accuracy with explicit truncation (`cutoff`, `maxdim`).
+- Extract coefficients directly from compressed states.
 
 ## Matrix Product States (MPS) and Operators (MPO)
 
@@ -14,12 +19,10 @@ A Matrix Product State (MPS) is a mathematical factorization that breaks down a 
 
 A Matrix Product Operator (MPO) is the operator equivalent of an MPS. It allows us to apply linear transformations—such as the Fourier or Laplace transform—directly to the compressed MPS without ever needing to decompress the data back into a flat array.
 
-```@raw html
-<div style="background-color: #eef9f0; border: 1px solid #75d689ff; border-radius: 10px; padding: 14px 16px; margin: 20px 0;">
-    <div style="color: #000000; font-weight: 800; font-size: 1.02rem; letter-spacing: 0.03em; margin-bottom: 6px;;">💡 Further Reading</div>
-    <div style="color: #1f4a2a;">For a deeper dive into the physics-style origins and mathematical theory of MPS, we recommend exploring <a href="https://tensornetwork.org/mps/" target="_blank" rel="noopener">TensorNetwork.org</a> or the seminal review by <a href="https://arxiv.org/abs/1008.3477" target="_blank" rel="noopener">Schollwöck (2011)</a>.</div>
-</div>
-```
+!!! tip "Further Reading"
+    For a deeper dive into the physics-style origins and mathematical theory of MPS,
+    we recommend exploring [TensorNetwork.org](https://tensornetwork.org/mps/) or the
+    seminal review by [Schollwöck (2011)](https://arxiv.org/abs/1008.3477).
 
 ## Compressing Data: The Quantics Representation
 
@@ -56,6 +59,12 @@ Transforming the "tensorized" signal into a compressed MPS is the most computati
 - Accuracy-Compression Trade-off: A smaller $\tau$ leads to higher fidelity but larger bond dimensions ($\chi$), while a larger $\tau$ achieves massive compression at the cost of some numerical precision.
 
 To perform this decomposition, QILaplace.jl provides two primary algorithms, each meticulously optimized for different hardware constraints and signal complexities.
+
+!!! tip "Quick Decision Rules for MPS Compression"
+    - Use `method=:rsvd` for large $n$ or exploratory runs. Switch to `:svd` when you need exact singular values at smaller $n$.
+    - Start with `cutoff=1e-10` to `1e-12` for high accuracy. For faster, smaller MPS, you can relax to `1e-6` to `1e-8`.
+    - Set `maxdim` to limit worst-case bond dimension growth. If you hit the cap and errors are too large, raise `maxdim` or lower `cutoff`.
+    - For small $n$, sanity-check by comparing a few `coefficient` samples against dense references and monitoring `maxbond` growth.
 
 ### 1. The Standard SVD (Sequential Sweep)
 The standard approach involves a sequential sweep from one end of the tensor chain to the other.
@@ -107,12 +116,11 @@ By operating on classical hardware, we gain a unique "digital advantage." We can
 
 Check out the [Tutorials](tutorials/signal.md) to get hands-on with constructing these MPS and MPOs, and refer to the [Benchmarking](benchmarking.md) page to see the actual performance results verified on a MacBook M2 Pro and reproducible on your own hardware.
 
-```@raw html
-<div style="background-color: #fff8e8; border: 1px solid #e7a747ff; border-radius: 10px; padding: 14px 16px; margin: 20px 0;">
-    <div style="color: #000000; font-weight: 800; font-size: 1.02rem; letter-spacing: 0.03em; margin-bottom: 6px;">💡 Why Quantum-Inspired?</div>
-    <div style="color: #6a4a1b;">We borrow the "algorithmic structure" of quantum gates but implement them as compressed classical tensors. This allows us to execute non-unitary maps that are often difficult for real quantum computers to handle, while maintaining the exponential scaling benefits of quantum algorithms.</div>
-</div>
-```
+!!! note "Why Quantum-Inspired?"
+    We borrow the "algorithmic structure" of quantum gates but implement them as
+    compressed classical tensors. This allows us to execute non-unitary maps that are
+    often difficult for real quantum computers to handle, while maintaining the
+    exponential scaling benefits of quantum algorithms.
 
 ### Quantum Fourier Transform Circuit
 

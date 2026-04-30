@@ -239,12 +239,12 @@ println("  Rel Error:  ", round(relative_l2(x_struct_rsvd, x_structured), sigdig
 
 ````
 SVD Performance:
-  Time:       12.2793 seconds
+  Time:       11.781 seconds
   Max Bond:   6
   Rel Error:  3.63e-5
 
 RSVD Performance:
-  Time:       3.4569 seconds
+  Time:       3.3398 seconds
   Max Bond:   6
   Rel Error:  2.54e-5
 
@@ -330,12 +330,12 @@ println("  Rel Error:  ", round(err_noisy_rsvd, sigdigits=3), " (Higher, but acc
 
 ````
 Noisy SVD Performance:
-  Time:       0.2712 seconds
+  Time:       0.2535 seconds
   Max Bond:   31 (Massive blow-up!)
   Rel Error:  2.14e-5
 
 Noisy RSVD Performance:
-  Time:       0.0022 seconds
+  Time:       0.0018 seconds
   Max Bond:   10 (Constrained)
   Rel Error:  0.204 (Higher, but acceptable)
 

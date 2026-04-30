@@ -12,7 +12,7 @@ The package currently provides three transform families in one consistent API: a
 
 You can install QILaplace by running the following command in the Julia REPL:
 ```julia
-using Pkg;Pkg.add("QILaplace.jl");
+using Pkg;Pkg.add("QILaplace");
 ```
 If you are more of an interactive coder, you can run the same by going to the pkg mode: 
 ```julia
@@ -21,7 +21,7 @@ If you are more of an interactive coder, you can run the same by going to the pk
 
 This package is built on ITensors.jl, which requires Julia 1.10 or above for a stable performance. So it is recommended to have Julia 1.10+
 
-## Start Here
+Easy navigation around the docs:
 
 - [Core Concepts](core_concepts.md): learn the tensor-network ideas behind the package.
 - [Signal Tutorial](tutorials/signal.md): start with signal encoding and compression.
@@ -33,7 +33,7 @@ This package is built on ITensors.jl, which requires Julia 1.10 or above for a s
 
 ## Further Learning
 
-If you are interested in the concept/theory of laplace, and fourier transforms, feel free to check out these videos by 3B1B. 
+If you are interested in the concept/theory of laplace, and fourier transforms, feel free to check out these videos by Grant Sanderson (3B1B). 
 
 ```@raw html
 <div style="display:flex; gap:24px; flex-wrap:wrap; margin:20px 0;">
@@ -50,10 +50,11 @@ If you are interested in the concept/theory of laplace, and fourier transforms, 
     <p><strong>3Blue1Brown:</strong> Visual intuition for Laplace-transform ideas.</p>
   </div>
 </div>
-
-```@autodocs
-Modules = [QILaplace]
 ```
 
-## Further Resources
+Check out some more literature and lecture materials on tensor networks 
+
 - [TensorNetwork.org](https://tensornetwork.org/) for a solid introduction to MPS, MPOs, and tensor-network methods.
+- [Tensors.net](https://www.tensors.net/tutorials) for hands-on tensor-network numerics (contractions, SVD/QR, gauges, canonical forms) with code-first explanations.
+- [Lecture by Schollwock](https://www.theorie.physik.uni-muenchen.de/activities/schools/archiv/asc_school_17/video_schollwoeck/index.html) for an accessible introductory video set on core MPS ideas and practical DMRG workflow (useful to understand the concept of orthogonality center used in our algorithms). 
+- [Lecture notes on quantum-inspired tensor network computational techniques](https://arxiv.org/pdf/2601.03035) for a neat intro to MPS/MPO algorithms in solving, under the quantics representation, partial differential equations, integration, transforms (such as the Quantum Fourier Transform to solve heat equation), and many more. 

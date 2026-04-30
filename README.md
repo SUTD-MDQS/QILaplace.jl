@@ -28,7 +28,7 @@
 
 <p align="center">
   <a href="https://SUTD-MDQS.github.io/QILaplace.jl">
-    <img src="https://img.shields.io/badge/Read%20the%20Documentation-QILaplace%20Docs-9558B2?style=for-the-badge&logo=julia&logoColor=white" alt="Read the Documentation">
+    <img src="https://img.shields.io/badge/Read%20the%20Documentation-QILaplace%20Docs-9558B2?style=for-the-badge&logo=julia&logoColor=white" alt="Read the Documentation"/>
   </a>
 </p>
 
@@ -40,7 +40,7 @@
   <a href="#authorship-and-maintenance">Authorship</a>
 </p>
 
-QILaplace.jl is a Julia package for running Fourier- and Laplace-family transforms with tensor networks on classical hardware. It is designed for large, structured signals where compressed MPS/MPO representations make dense workflows impractical.
+QILaplace.jl is a Julia package for Fourier- and Laplace-style transforms using tensor networks on classical hardware. It is built for large, structured signals, where compressed MPS/MPO representations keep these transforms practical when dense workflows become too expensive.
 
 The package includes QFT, damping-transform (DT), and full z-transform (zT) pipelines, together with MPS compression, MPO construction, and direct coefficient extraction tools.
 
@@ -70,6 +70,7 @@ DT and zT use the same high-level API style as QFT, so moving between Fourier an
 - Build compressed transform operators with `build_qft_mpo`, `build_dt_mpo`, and `build_zt_mpo`
 - Apply through the same contraction interface (`W * ψ`)
 - Keep transform accuracy under explicit truncation control
+- The circuit-compression construction is strictly optimal for these transform circuits.
 
 <p align="center">
   <img src="docs/src/animations/assets/CircuitCompression.gif" alt="QFT circuit compression animation" width="390">
@@ -77,9 +78,9 @@ DT and zT use the same high-level API style as QFT, so moving between Fourier an
 </p>
 
 For full circuit diagrams and examples, see:
-- https://SUTD-MDQS.github.io/QILaplace.jl/tutorials/dft/
-- https://SUTD-MDQS.github.io/QILaplace.jl/tutorials/dt/
-- https://SUTD-MDQS.github.io/QILaplace.jl/tutorials/zt/
+- [Discrete Fourier Transform](https://SUTD-MDQS.github.io/QILaplace.jl/dev/tutorials/dft/)
+- [Damping Transform](https://SUTD-MDQS.github.io/QILaplace.jl/dev/tutorials/dt/)
+- [Complex Laplace Transform](https://SUTD-MDQS.github.io/QILaplace.jl/dev/tutorials/zt/)
 
 ### 3) z-domain analysis and pole scanning
 
@@ -148,7 +149,7 @@ T_{\mathrm{apply}} \sim O\left( \chi_s^2 \log N \right).
 $$
 
 For full benchmarks and runtime plots, see:
-**https://SUTD-MDQS.github.io/QILaplace.jl/benchmarking/**
+**https://SUTD-MDQS.github.io/QILaplace.jl/dev/benchmarking/**
 
 ## Authorship and maintenance
 

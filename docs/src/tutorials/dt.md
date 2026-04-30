@@ -170,13 +170,13 @@ demo_bits = int_to_bits(j_demo, n)
 amp_match = coefficient(ψz, interleave_bits(demo_bits, demo_bits))
 amp_mismatch = coefficient(ψz, interleave_bits(int_to_bits(2, n), int_to_bits(5, n)))
 
-@show amp_match x[j_demo + 1] / ψz.amplitude;
+@show amp_match x[j_demo + 1];
 @show amp_mismatch;
 ````
 
 ````
 amp_match = 0.301194211912202
-x[j_demo + 1] / ψz.amplitude = 0.18799690228009328
+x[j_demo + 1] = 0.301194211912202
 amp_mismatch = 0.0
 
 ````
@@ -302,7 +302,7 @@ On our three-qubit demo, the MPS pipeline and the analytical kernel
 agree to floating-point precision across all eight output values:
 
 ````julia
-y_ref = analytical_dt(x / ψz.amplitude, ωr)
+y_ref = analytical_dt(x, ωr)
 L_ref = Δt .* sqrt(N) .* y_ref
 
 for k in 0:(N - 1)
@@ -316,14 +316,14 @@ end
 ````
 
 ````
-  s_0 = 0.00   L_MPS =  1.19987   L_ref =  0.74892   |diff| = 4.51e-01
-  s_1 = 0.50   L_MPS =  0.88794   L_ref =  0.55422   |diff| = 3.34e-01
-  s_2 = 1.00   L_MPS =  0.70943   L_ref =  0.44280   |diff| = 2.67e-01
-  s_3 = 1.50   L_MPS =  0.59949   L_ref =  0.37418   |diff| = 2.25e-01
-  s_4 = 2.00   L_MPS =  0.52726   L_ref =  0.32910   |diff| = 1.98e-01
-  s_5 = 2.50   L_MPS =  0.47721   L_ref =  0.29786   |diff| = 1.79e-01
-  s_6 = 3.00   L_MPS =  0.44101   L_ref =  0.27527   |diff| = 1.66e-01
-  s_7 = 3.50   L_MPS =  0.41393   L_ref =  0.25837   |diff| = 1.56e-01
+  s_0 = 0.00   L_MPS =  1.19987   L_ref =  1.19987   |diff| = 4.44e-16
+  s_1 = 0.50   L_MPS =  0.88794   L_ref =  0.88794   |diff| = 5.55e-16
+  s_2 = 1.00   L_MPS =  0.70943   L_ref =  0.70943   |diff| = 5.55e-16
+  s_3 = 1.50   L_MPS =  0.59949   L_ref =  0.59949   |diff| = 0.00e+00
+  s_4 = 2.00   L_MPS =  0.52726   L_ref =  0.52726   |diff| = 6.66e-16
+  s_5 = 2.50   L_MPS =  0.47721   L_ref =  0.47721   |diff| = 5.55e-16
+  s_6 = 3.00   L_MPS =  0.44101   L_ref =  0.44101   |diff| = 6.66e-16
+  s_7 = 3.50   L_MPS =  0.41393   L_ref =  0.41393   |diff| = 6.11e-16
 
 ````
 
