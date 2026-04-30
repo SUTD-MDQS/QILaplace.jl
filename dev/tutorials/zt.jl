@@ -235,7 +235,12 @@ nothing #hide
 
 # ## Pole Identification from the transform
 #
-# The previous plot was probably too pixelated to make sense of anything accurately. Although we saw some signatures of poles at $(k,l)=(0,1), (0,3)$, the transform required more input signal samples to get a better resolution. We now scale up the algorithm to a large-scale signal to show its power of pole identification. The signal we analyse is a complex-valued signal with two poles, one positive and one negative:
+# One of the main applications of performing the z-transform is to identify the zeros and poles of a signal. 
+# Suppose we are given a black box that transforms our input signal in a non-unitary manner (that includes decaying of the signal). 
+# By identifying where the poles lie in the z-plane, one can get a good understanding of the nature of the response of the black box. 
+# This is especially useful in the context of system identification and control in engineering systems. 
+# The plot in the previous section may have been too pixelated to reveal detailed features. 
+# Although we observed signs of poles at $(k,l)=(0,1), (0,3)$, a higher-resolution transform is required for more precise identification. We now extend the algorithm to a much larger-scale signal to better demonstrate its capability for pole identification. The signal we analyze here is complex-valued and has two poles, one positive and one negative:
 #
 # ```math
 # x_j = a^j\cos(\omega_0 j),\qquad

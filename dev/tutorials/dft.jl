@@ -292,4 +292,26 @@ dc_numeric = isnothing(zero_idx) ? NaN + NaN * im : fftw_big_shift[zero_idx]
 #
 # *Figure 2. Shifted spectrum comparison in angular frequency $\omega\in[-\pi,\pi)$ for $n=8$: the QILaplace QFT and FFTW reference overlap at the expected peak locations near $\omega\approx\pm\Omega_1$ and $\omega\approx\pm\Omega_2$ (vertical dash-dot markers), while the dotted error curve (right axis) remains small throughout the band.*
 # 
+# The lecture notes by Waintal, Huang, and Groth ([arXiv:2601.03035](https://arxiv.org/abs/2601.03035))
+# highlight that once functions and operators are in MPS/MPO (quantics) form,
+# Fourier transforms become MPO-MPS contractions. This gives a practical route
+# to spectral PDE solvers on exponentially fine grids without forming dense vectors.
+# 
+# Typical use-cases include:
+# 
+# - **Heat / diffusion equation**: move to Fourier space so the Laplacian is diagonal
+#   (mode-by-mode damping), then transform back.
+# - **Poisson and Helmholtz-type solves**: convert derivatives to algebraic multipliers
+#   in frequency space, solve per mode, and invert.
+# - **Schrödinger- and Gross-Pitaevskii-type dynamics**: use split-step or spectral
+#   updates where kinetic terms are easiest in Fourier space and local terms in real space.
+# - **Convolution-form PDE terms**: exploit the convolution theorem so expensive real-space
+#   convolutions become pointwise products in Fourier space.
+# - **Stiff multi-scale PDEs**: combine quantics low-rank compression with spectral
+#   differentiation to resolve widely separated scales at reduced memory cost.
+# 
+# In short, the role of QFT here is the same as in classical spectral methods,
+# but executed directly in compressed tensor-network form (MPS/MPO) rather than
+# on dense arrays.
+# 
 # Currently we don't have the inverse QFT available in `QILaplace.jl`, but it is straightforward to implement since QFT is a unitary, hence invertible transform. If you want this support as well, feel free to leave a request in our [main GutHub repo](https://github.com/SUTD-MDQS/QILaplace.jl/issues) :)
