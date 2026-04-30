@@ -73,12 +73,12 @@ println(&quot;\nRSVD Performance:&quot;)
 println(&quot;  Time:       &quot;, round(t_rsvd, digits=4), &quot; seconds&quot;)
 println(&quot;  Max Bond:   &quot;, max_bond_dim(psi_rsvd))
 println(&quot;  Rel Error:  &quot;, round(relative_l2(x_struct_rsvd, x_structured), sigdigits=3))</code></pre><pre><code class="nohighlight hljs">SVD Performance:
-  Time:       23.0875 seconds
+  Time:       23.2171 seconds
   Max Bond:   6
   Rel Error:  3.63e-5
 
 RSVD Performance:
-  Time:       6.9481 seconds
+  Time:       7.2717 seconds
   Max Bond:   6
   Rel Error:  2.54e-5
 </code></pre><p>Both algorithms captured the structure perfectly, but let&#39;s visualize the reconstruction to be sure.</p><pre><code class="nohighlight hljs">GKS: cannot open display - headless operation mode active
@@ -109,12 +109,12 @@ println(&quot;\nNoisy RSVD Performance:&quot;)
 println(&quot;  Time:       &quot;, round(t_rsvd_noisy, digits=4), &quot; seconds&quot;)
 println(&quot;  Max Bond:   &quot;, bond_noisy_rsvd, &quot; (Constrained)&quot;)
 println(&quot;  Rel Error:  &quot;, round(err_noisy_rsvd, sigdigits=3), &quot; (Higher, but acceptable)&quot;)</code></pre><pre><code class="nohighlight hljs">Noisy SVD Performance:
-  Time:       0.3623 seconds
+  Time:       0.3615 seconds
   Max Bond:   31 (Massive blow-up!)
   Rel Error:  2.14e-5
 
 Noisy RSVD Performance:
-  Time:       0.0026 seconds
+  Time:       0.0027 seconds
   Max Bond:   10 (Constrained)
   Rel Error:  0.204 (Higher, but acceptable)
-</code></pre><p>Even though RSVD has a higher absolute error relative to the <em>noisy</em> input, a visual inspection reveals something fantastic: it effectively smoothed out the noise and retained the core physical signal!</p><img src="../../assets/signal_noisy_comparison.svg" alt="Noisy signal compression comparison"><p><em>Figure 2: SVD tries to fit the noise, resulting in a messy reconstruction. RSVD captures the underlying structure, effectively filtering out the noise.</em></p><p>To see how these methods perform in terms of runtime and memory on larger signals, check out the <a href="../../benchmarking/">Benchmarking Runs</a> page!</p><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../core_concepts/">« Core Concepts</a><a class="docs-footer-nextpage" href="../dft/">Discrete Fourier Transform »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Thursday 30 April 2026 09:02">Thursday 30 April 2026</span>. Using Julia version 1.12.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+</code></pre><p>Even though RSVD has a higher absolute error relative to the <em>noisy</em> input, a visual inspection reveals something fantastic: it effectively smoothed out the noise and retained the core physical signal!</p><img src="../../assets/signal_noisy_comparison.svg" alt="Noisy signal compression comparison"><p><em>Figure 2: SVD tries to fit the noise, resulting in a messy reconstruction. RSVD captures the underlying structure, effectively filtering out the noise.</em></p><p>To see how these methods perform in terms of runtime and memory on larger signals, check out the <a href="../../benchmarking/">Benchmarking Runs</a> page!</p><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../core_concepts/">« Core Concepts</a><a class="docs-footer-nextpage" href="../dft/">Discrete Fourier Transform »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Thursday 30 April 2026 09:10">Thursday 30 April 2026</span>. Using Julia version 1.12.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
