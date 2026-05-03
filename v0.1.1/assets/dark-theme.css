@@ -1,0 +1,564 @@
+/* ============================================================
+   QILaplace.jl – Custom Dark Theme
+   Color Palette:
+     BG (main)    : #222831
+     BG (code/alt) : #31363F
+     Accent/links : #76ABAE
+     Hover accent : #88CDCE
+     Text         : #EEEEEE
+   ============================================================ */
+
+/* ----- CSS Custom Properties -------------------------------- */
+:root {
+    --qi-bg:         #222831;
+    --qi-bg-alt:     #31363F;
+    --qi-accent:     #76ABAE;
+    --qi-accent-hover: #8ADBD7;
+    --qi-text:       #EEEEEE;
+    --qi-text-muted: #b0b8bf;
+    --qi-border:     #3a4049;
+}
+
+/* =============================================================
+   1.  GLOBAL — html, body, base text
+   ============================================================= */
+html, body {
+    background-color: var(--qi-bg) !important;
+    color: var(--qi-text) !important;
+}
+
+/* =============================================================
+   2.  LINKS
+   ============================================================= */
+a {
+    color: var(--qi-accent) !important;
+    text-decoration: none;
+    transition: color 0.15s ease-in-out;
+}
+a:hover, a:focus {
+    color: var(--qi-accent-hover) !important;
+    text-decoration: underline !important;
+}
+
+/* Heading anchors / Permalink icons */
+.docs-heading-anchor,
+.docs-heading-anchor:hover,
+.docs-heading-anchor-permalink {
+    color: var(--qi-accent) !important;
+}
+.docs-heading-anchor-permalink:hover {
+    color: var(--qi-accent-hover) !important;
+}
+
+/* =============================================================
+   3.  SIDEBAR  (nav.docs-sidebar)
+   ============================================================= */
+#documenter .docs-sidebar {
+    background-color: var(--qi-bg-alt) !important;
+    border-right: 1px solid var(--qi-border) !important;
+}
+
+/* Package name / logo */
+#documenter .docs-sidebar .docs-package-name {
+    background-color: var(--qi-bg-alt) !important;
+    color: var(--qi-text) !important;
+}
+#documenter .docs-sidebar .docs-package-name a {
+    color: var(--qi-text) !important;
+}
+#documenter .docs-sidebar .docs-logo > img {
+    /* Let the logo show on dark bg */
+}
+
+/* Sidebar menu links and nested items */
+#documenter .docs-sidebar ul.docs-menu li a,
+#documenter .docs-sidebar .docs-menu a.tocitem,
+#documenter .docs-sidebar .docs-menu .tocitem,
+#documenter .docs-sidebar .docs-menu label.tocitem,
+#documenter .docs-sidebar .docs-menu .docs-label,
+#documenter .docs-sidebar .docs-menu .tocitem * {
+    color: var(--qi-text) !important;
+    background-color: transparent !important;
+}
+
+#documenter .docs-sidebar .docs-menu a:hover,
+#documenter .docs-sidebar .docs-menu a.tocitem:hover,
+#documenter .docs-sidebar .docs-menu label.tocitem:hover,
+#documenter .docs-sidebar .docs-menu .tocitem:hover * {
+    color: var(--qi-accent-hover) !important;
+    background-color: rgba(118, 171, 174, 0.1) !important;
+}
+
+/* Active sidebar item / Current page */
+#documenter .docs-sidebar ul.docs-menu li.is-active {
+    background-color: transparent !important;
+    border-top: none !important;
+    border-bottom: none !important;
+}
+
+#documenter .docs-sidebar ul.docs-menu li.is-active > a,
+#documenter .docs-sidebar ul.docs-menu li.is-active > label,
+#documenter .docs-sidebar .docs-menu li.is-active > .tocitem,
+#documenter .docs-sidebar .docs-menu li.is-active > .tocitem *,
+#documenter .docs-sidebar .docs-menu li.is-active > a * {
+    color: var(--qi-accent) !important;
+    background-color: rgba(118, 171, 174, 0.15) !important;
+}
+
+/* Sidebar chevron colors */
+#documenter .docs-sidebar .docs-menu .docs-chevron {
+    color: var(--qi-accent) !important;
+}
+#documenter .docs-sidebar .docs-menu .docs-chevron:hover {
+    color: var(--qi-accent-hover) !important;
+}
+
+/* Sidebar heading text (non-link spans like "Tutorials") */
+#documenter .docs-sidebar .docs-menu span.tocitem {
+    color: var(--qi-text-muted) !important;
+}
+
+/* Internal / nested list (expanded headings) */
+#documenter .docs-sidebar .docs-menu ul.internal {
+    background-color: transparent !important;
+}
+#documenter .docs-sidebar .docs-menu ul.internal li {
+    background-color: transparent !important;
+}
+#documenter .docs-sidebar .docs-menu ul.internal li a,
+#documenter .docs-sidebar .docs-menu ul.internal li .tocitem,
+#documenter .docs-sidebar .docs-menu ul.internal li .tocitem * {
+    color: var(--qi-text) !important;
+}
+#documenter .docs-sidebar .docs-menu ul.internal li a:hover,
+#documenter .docs-sidebar .docs-menu ul.internal li .tocitem:hover * {
+    color: var(--qi-accent-hover) !important;
+}
+
+/* Sidebar search button */
+#documenter .docs-sidebar #documenter-search-query,
+#documenter .docs-sidebar form.docs-search > input {
+    background-color: var(--qi-bg) !important;
+    border-color: var(--qi-border) !important;
+    color: var(--qi-text) !important;
+}
+#documenter .docs-sidebar #documenter-search-query::placeholder,
+#documenter .docs-sidebar form.docs-search > input::placeholder {
+    color: var(--qi-text-muted) !important;
+}
+
+/* =============================================================
+   4.  TOP NAVBAR / HEADER
+   ============================================================= */
+header.docs-navbar,
+.docs-navbar,
+#documenter .docs-main > header {
+    background-color: var(--qi-bg) !important;
+    border-bottom: 1px solid var(--qi-border) !important;
+}
+
+.docs-navbar a,
+.docs-navbar .docs-right a,
+.docs-navbar .docs-navbar-link,
+.docs-navbar .breadcrumb li a,
+.docs-navbar .breadcrumb li.is-active a,
+.docs-sidebar-button {
+    color: var(--qi-text) !important;
+}
+.docs-navbar a:hover,
+.docs-navbar .docs-navbar-link:hover {
+    color: var(--qi-accent-hover) !important;
+}
+
+/* Breadcrumb separator */
+.breadcrumb li + li::before {
+    color: var(--qi-text-muted) !important;
+}
+
+/* =============================================================
+   5.  MAIN CONTENT AREA
+   ============================================================= */
+article.content,
+.content,
+#documenter-page,
+.docs-main {
+    background-color: var(--qi-bg) !important;
+    color: var(--qi-text) !important;
+}
+
+/* =============================================================
+   6.  HEADINGS
+   ============================================================= */
+h1, h2, h3, h4, h5, h6,
+.content h1, .content h2, .content h3,
+.content h4, .content h5, .content h6 {
+    color: var(--qi-accent) !important;
+}
+
+/* =============================================================
+   7.  CODE BLOCKS
+   ============================================================= */
+pre {
+    background-color: var(--qi-bg-alt) !important;
+    color: var(--qi-text) !important;
+    border: 1px solid var(--qi-border) !important;
+}
+pre code {
+    background-color: transparent !important;
+    color: inherit !important;
+    border: none !important;
+    padding: 0 !important;
+}
+
+/* Inline code */
+code {
+    background-color: var(--qi-bg-alt) !important;
+    color: var(--qi-text) !important;
+    border: 1px solid var(--qi-border) !important;
+}
+
+/* =============================================================
+   8.  FOOTER
+   ============================================================= */
+footer.docs-footer,
+.docs-footer,
+nav.docs-footer {
+    background-color: var(--qi-bg) !important;
+    color: var(--qi-text) !important;
+    border-top: 1px solid var(--qi-border) !important;
+}
+.docs-footer a,
+.docs-footer .docs-footer-nextpage,
+.docs-footer .docs-footer-prevpage {
+    color: var(--qi-accent) !important;
+}
+.docs-footer a:hover {
+    color: var(--qi-accent-hover) !important;
+}
+.footer-message {
+    color: var(--qi-text-muted) !important;
+}
+
+/* =============================================================
+   9.  TABLES
+   ============================================================= */
+table {
+    background-color: var(--qi-bg-alt) !important;
+    color: var(--qi-text) !important;
+}
+table td, table th {
+    border-color: var(--qi-border) !important;
+    color: var(--qi-text) !important;
+}
+table th {
+    color: var(--qi-text) !important;
+    background-color: rgba(118, 171, 174, 0.08) !important;
+}
+table thead td, table thead th {
+    color: var(--qi-text) !important;
+}
+.table.is-striped tbody tr:not(.is-selected):nth-child(even),
+table tbody tr:nth-child(even) {
+    background-color: rgba(49, 54, 63, 0.5) !important;
+}
+
+/* =============================================================
+   10. ADMONITIONS (Info, Warning, Tip, etc.)
+   ============================================================= */
+.admonition {
+    background-color: var(--qi-bg-alt) !important;
+    border-left: 5px solid var(--qi-accent) !important;
+    color: var(--qi-text) !important;
+}
+.admonition-header,
+.admonition-title {
+    color: var(--qi-accent) !important;
+    background-color: rgba(118, 171, 174, 0.1) !important;
+}
+.admonition-body {
+    color: var(--qi-text) !important;
+}
+
+/* =============================================================
+   11. DOCSTRINGS
+   ============================================================= */
+details.docstring {
+    border: 1px solid var(--qi-border) !important;
+    background-color: var(--qi-bg) !important;
+}
+details.docstring > summary {
+    background-color: var(--qi-bg-alt) !important;
+    color: var(--qi-text) !important;
+    border-bottom: 1px solid var(--qi-border) !important;
+}
+details.docstring > section {
+    background-color: var(--qi-bg) !important;
+    color: var(--qi-text) !important;
+}
+details.docstring > section > a.docs-sourcelink {
+    background-color: var(--qi-bg-alt) !important;
+    border-color: var(--qi-border) !important;
+    color: var(--qi-accent) !important;
+}
+details.docstring > section > a.docs-sourcelink:hover {
+    color: var(--qi-accent-hover) !important;
+}
+
+/* =============================================================
+   12. SEARCH MODAL
+   ============================================================= */
+#documenter-search-info,
+#documenter-search-results {
+    background-color: var(--qi-bg) !important;
+    color: var(--qi-text) !important;
+}
+
+.search-result-link {
+    background-color: var(--qi-bg-alt) !important;
+    border-color: var(--qi-border) !important;
+}
+.search-result-link:hover {
+    background-color: rgba(118, 171, 174, 0.1) !important;
+}
+.search-result-link .docs-label {
+    color: var(--qi-accent) !important;
+}
+.search-result-title {
+    color: var(--qi-text) !important;
+}
+.search-result-highlight {
+    color: var(--qi-accent) !important;
+}
+.search-divider {
+    border-color: var(--qi-border) !important;
+}
+
+/* Search input field */
+.docs-search-query,
+#documenter-search-query {
+    background-color: var(--qi-bg) !important;
+    color: var(--qi-text) !important;
+    border-color: var(--qi-border) !important;
+}
+
+/* =============================================================
+   13. SETTINGS MODAL
+   ============================================================= */
+#documenter-settings,
+.modal {
+    /* the backdrop is fine */
+}
+.modal-background {
+    background-color: rgba(10, 10, 10, 0.65) !important;
+}
+.modal-card {
+    background-color: var(--qi-bg) !important;
+}
+.modal-card-head,
+.modal-card-head {
+    background-color: var(--qi-bg-alt) !important;
+    border-bottom: 1px solid var(--qi-border) !important;
+}
+.modal-card-title {
+    color: var(--qi-text) !important;
+}
+.modal-card-body {
+    background-color: var(--qi-bg) !important;
+    color: var(--qi-text) !important;
+}
+.modal-card-foot {
+    background-color: var(--qi-bg-alt) !important;
+    border-top: 1px solid var(--qi-border) !important;
+}
+
+/* Labels inside modals */
+.label,
+.modal-card-body .label {
+    color: var(--qi-text) !important;
+}
+
+/* =============================================================
+   14. SELECT DROPDOWNS (Theme picker, Version selector)
+   ============================================================= */
+.select select,
+.select {
+    background-color: var(--qi-bg-alt) !important;
+    border-color: var(--qi-border) !important;
+    color: var(--qi-text) !important;
+}
+.select select:hover {
+    border-color: var(--qi-accent) !important;
+}
+.select:not(.is-multiple):not(.is-loading)::after {
+    border-color: var(--qi-accent) !important;
+}
+.select option {
+    background-color: var(--qi-bg-alt) !important;
+    color: var(--qi-text) !important;
+}
+
+/* Version selector at sidebar bottom */
+.docs-version-selector {
+    background-color: var(--qi-bg-alt) !important;
+}
+.docs-version-selector .control .button.is-static,
+.docs-version-selector .docs-label.button.is-static {
+    background-color: var(--qi-bg) !important;
+    border-color: var(--qi-border) !important;
+    color: var(--qi-text-muted) !important;
+}
+
+/* =============================================================
+   15. BUTTONS (general Bulma overrides)
+   ============================================================= */
+.button {
+    background-color: var(--qi-bg-alt) !important;
+    border-color: var(--qi-border) !important;
+    color: var(--qi-text) !important;
+}
+.button:hover,
+.button.is-hovered {
+    border-color: var(--qi-accent) !important;
+    color: var(--qi-accent-hover) !important;
+}
+.button.is-static {
+    background-color: var(--qi-bg) !important;
+    border-color: var(--qi-border) !important;
+    color: var(--qi-text-muted) !important;
+}
+/* Primary / docs source link button */
+.button.is-primary,
+a.button.docs-sourcelink {
+    background-color: var(--qi-accent) !important;
+    border-color: var(--qi-accent) !important;
+    color: var(--qi-bg) !important;
+}
+.button.is-primary:hover,
+a.button.docs-sourcelink:hover {
+    background-color: var(--qi-accent-hover) !important;
+    border-color: var(--qi-accent-hover) !important;
+}
+
+/* =============================================================
+   16. INPUTS / TEXTAREA
+   ============================================================= */
+.input, .textarea,
+input[type="text"], input[type="search"] {
+    background-color: var(--qi-bg-alt) !important;
+    border-color: var(--qi-border) !important;
+    color: var(--qi-text) !important;
+}
+.input:focus, .textarea:focus,
+input:focus {
+    border-color: var(--qi-accent) !important;
+    box-shadow: 0 0 0 0.125em rgba(118, 171, 174, 0.25) !important;
+}
+.input::placeholder, .textarea::placeholder,
+input::placeholder {
+    color: var(--qi-text-muted) !important;
+}
+
+/* =============================================================
+   17. TAGS / BADGES
+   ============================================================= */
+.tag:not(body) {
+    background-color: var(--qi-bg-alt) !important;
+    color: var(--qi-text) !important;
+}
+
+/* =============================================================
+   18. NOTIFICATIONS
+   ============================================================= */
+.notification {
+    background-color: var(--qi-bg-alt) !important;
+    color: var(--qi-text) !important;
+}
+
+/* =============================================================
+   19. HORIZONTAL RULES & DIVIDERS
+   ============================================================= */
+hr {
+    background-color: var(--qi-border) !important;
+}
+
+/* =============================================================
+   20. BLOCKQUOTES
+   ============================================================= */
+blockquote {
+    background-color: var(--qi-bg-alt) !important;
+    border-left: 5px solid var(--qi-accent) !important;
+    color: var(--qi-text) !important;
+}
+
+/* =============================================================
+   21. SCROLLBAR STYLING (Webkit)
+   ============================================================= */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+::-webkit-scrollbar-track {
+    background: var(--qi-bg);
+}
+::-webkit-scrollbar-thumb {
+    background: var(--qi-bg-alt);
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: var(--qi-accent);
+}
+
+/* =============================================================
+   22. SIDEBAR MOBILE TOGGLE (hamburger icon)
+   ============================================================= */
+.docs-sidebar-button.fa-bars {
+    color: var(--qi-text) !important;
+}
+
+/* =============================================================
+   23. STRONG / BOLD TEXT
+   ============================================================= */
+strong {
+    color: var(--qi-text) !important;
+}
+
+/* =============================================================
+   24. MISC BULMA ELEMENTS
+   ============================================================= */
+/* Box */
+.box {
+    background-color: var(--qi-bg-alt) !important;
+    color: var(--qi-text) !important;
+    box-shadow: none !important;
+    border: 1px solid var(--qi-border) !important;
+}
+
+/* Delete / close button in modals */
+.delete, .modal-close {
+    background-color: rgba(238, 238, 238, 0.2) !important;
+}
+.delete:hover, .modal-close:hover {
+    background-color: rgba(238, 238, 238, 0.3) !important;
+}
+
+/* Article toggle button (collapse docstrings) */
+#documenter-article-toggle-button {
+    color: var(--qi-text) !important;
+}
+#documenter-article-toggle-button:hover {
+    color: var(--qi-accent-hover) !important;
+}
+
+/* =============================================================
+   25. KaTeX (LaTeX equations)
+   ============================================================= */
+.katex .base {
+    color: var(--qi-text) !important;
+}
+
+/* =============================================================
+   26. COLOPHON / GENERATED-WITH INFO
+   ============================================================= */
+.colophon-date {
+    color: var(--qi-text-muted) !important;
+}
