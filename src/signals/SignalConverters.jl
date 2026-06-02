@@ -15,18 +15,20 @@ export signal_mps, signal_ztmps
 # Convert an input 1D array signal into ITensor MPS with the binary encoding of the indices
 function _array_to_tensor(x::AbstractVector; sites=undef)
     N = length(x)
-    n = round(Int, log2(N)) # no. of qubits that can encodes signal
+    N > 0 || throw(ArgumentError("_array_to_tensor: Input signal must be non-empty."))
+    n = ceil(Int, log2(N)) # no. of qubits that can encode signal
+    padded_length = 2^n
 
     ITensors.disable_warn_order()
     try
-        # If signal is not a power of 2, fill with 0s upto length 2^n with a warning
-        if N < 2^n
-            @warn "_array_to_tensor: Input signal length $N is not a power of 2. Filling with zeros upto length $(2^n). We recommend providing signals of length power-of-2 for best performance."
-            x_filled = zeros(2^n)
+        # If signal is not a power of 2, fill with 0s up to the next power of 2 with a warning.
+        if N != padded_length
+            @warn "_array_to_tensor: Input signal length $N is not a power of 2. Filling with zeros upto length $(padded_length). We recommend providing signals of length power-of-2 for best performance."
+            x_filled = zeros(eltype(x), padded_length)
             x_filled[1:N] .= x
             x = x_filled
         end
-        @assert length(x) == 2^n ||
+        @assert length(x) == padded_length ||
                 "_array_to_tensor: Length of signal vector must be a power of 2"
         if sites === undef
             sites = [Index(2; tags=@sprintf("site-%d", i)) for i in 1:n]
