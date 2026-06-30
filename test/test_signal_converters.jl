@@ -19,6 +19,27 @@ using QILaplace.SignalConverters:
     ψ_padded, norm_padded = _array_to_tensor(x_non_pow2)
     @test length(inds(ψ_padded)) == 2  # rounds up to 4 = 2^2
     @test isapprox(norm_padded, sqrt(1.0 + 4.0 + 9.0); rtol=1e-12)
+
+    # Test with non-power-of-2 requiring ceil(log2(N)) (5 -> 8)
+    x_non_pow2_big = [1.0, 2.0, 3.0, 4.0, 5.0]
+    ψ_padded_big, norm_padded_big = _array_to_tensor(x_non_pow2_big)
+    @test length(inds(ψ_padded_big)) == 3  # rounds up to 8 = 2^3
+    @test isapprox(norm_padded_big, sqrt(sum(abs2, x_non_pow2_big)); rtol=1e-12)
+
+    # Non-power-of-2 complex signal should pad without type errors.
+    x_non_pow2_complex = ComplexF64[1.0 + 1.0im, 2.0 - 1.0im, 3.0 + 0.5im]
+    ψ_padded_complex, norm_padded_complex = _array_to_tensor(x_non_pow2_complex)
+    @test length(inds(ψ_padded_complex)) == 2
+    @test isapprox(norm_padded_complex, sqrt(sum(abs2, x_non_pow2_complex)); rtol=1e-12)
+
+    # Through public API, padded tail coefficients should be exactly zero.
+    ψ_non_pow2 = signal_mps(x_non_pow2_big; method=:svd, cutoff=0.0, maxdim=typemax(Int))
+    for i in 0:4
+        @test isapprox(coefficient(ψ_non_pow2, i), x_non_pow2_big[i+1]; atol=1e-12)
+    end
+    for i in 5:7
+        @test isapprox(coefficient(ψ_non_pow2, i), 0.0; atol=1e-12)
+    end
 end
 
 # ==================== Test _tensor_to_mps_svd ====================

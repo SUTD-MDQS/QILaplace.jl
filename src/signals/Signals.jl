@@ -18,10 +18,12 @@ function _generate_signal(
     freq::Float64;
     phase::Float64=0.0,
     noise_level::Float64=0.0,
+    seed::Union{Nothing,Int}=nothing,
     kwargs...,
 )
     jvals = 0:(2^n-1)
-    return [sin(freq * dt * j + phase) + noise_level * randn() for j in jvals]
+    rng = isnothing(seed) ? Random.default_rng() : Xoshiro(seed)
+    return [sin(freq * dt * j + phase) + noise_level * randn(rng) for j in jvals]
 end
 
 function _generate_signal(
@@ -50,13 +52,15 @@ function _generate_signal(
     freq::Vector{Float64};
     phase::Vector{Float64}=zeros(length(freq)),
     noise_level::Float64=0.0,
+    seed::Union{Nothing,Int}=nothing,
     kwargs...,
 )
     jvals = 0:(2^n-1)
     length(freq) == length(phase) ||
         throw(ArgumentError("Frequency and phase vectors must be of the same length."))
+    rng = isnothing(seed) ? Random.default_rng() : Xoshiro(seed)
     return [
-        sum(sin(ω * dt * j + φ) for (ω, φ) in zip(freq, phase)) + noise_level * randn() for
+        sum(sin(ω * dt * j + φ) for (ω, φ) in zip(freq, phase)) + noise_level * randn(rng) for
         j in jvals
     ]
 end
@@ -162,14 +166,18 @@ Generate a length-`2^n` real signal of a specified type.
    Can be a scalar or a vector of frequencies. Defaults to `2π` if not provided.
 
 # kwargs (kind-dependent)
-- `phase::Float64`: The phase offset of the signal in radians. Applicable to `:sin` and `:cos` kinds. 
-   Defaults to `0.0`.
-- `decay_rate::Float64`: The rate of exponential decay. Only applicable to the `:decay` kind. 
-   A higher value results in faster decay. Defaults to `1.0`.
-- `noise_level::Float64`: The amplitude of random noise added to the signal. Applicable to all kinds. 
-   Defaults to `0.0` (no noise).
-- `seed::Int`: The random seed for reproducibility of noise generation. Applicable when `noise_level > 0`. 
-   Defaults to `nothing` (random seed).
+- `phase`: Phase offset in radians.
+  - For `:sin` with scalar frequency, use `phase::Float64` (default `0.0`).
+  - For `:sin` with vector frequency, use `phase::Vector{Float64}` (defaults to zeros).
+  - For `:sin_decay`, phase is optional (`Float64` or `Vector{Float64}` depending on frequency type).
+- `decay_rate`: Exponential damping rate. Required for `:sin_decay`
+  (`Float64` for scalar-frequency input, `Vector{Float64}` for vector-frequency input).
+- `noise_level::Float64`: The amplitude of Gaussian noise added to `:sin` signals. Defaults to `0.0`
+  (no noise).
+- `seed`: Random seed control:
+  - For `:sin` with `noise_level > 0`, pass `seed::Int` for reproducible noise; default `nothing`
+    (use current global RNG state).
+  - For `:random`, pass `seed::Int` (default `1234`).
 
 # Returns
 - `signal::Vector{Float64}`: A real-valued vector of length `2^n` representing the generated signal.

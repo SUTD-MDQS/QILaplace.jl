@@ -78,6 +78,28 @@ end
     r2 = generate_signal(nrand, kind=:random, seed=42)
     @test r1 == r2
 
+    # seeded noise for :sin should be reproducible
+    s_noise_1 = generate_signal(
+        n, kind=:sin, dt=dt, freq=freq, phase=phase, noise_level=0.1, seed=2026
+    )
+    s_noise_2 = generate_signal(
+        n, kind=:sin, dt=dt, freq=freq, phase=phase, noise_level=0.1, seed=2026
+    )
+    s_noise_3 = generate_signal(
+        n, kind=:sin, dt=dt, freq=freq, phase=phase, noise_level=0.1, seed=2027
+    )
+    @test s_noise_1 == s_noise_2
+    @test s_noise_1 != s_noise_3
+
+    # seeded noise for vector-frequency :sin path should also be reproducible
+    s_noise_vec_1 = generate_signal(
+        n, kind=:sin, dt=dt, freq=[1.0, 2.0], phase=[0.0, 0.5], noise_level=0.1, seed=77
+    )
+    s_noise_vec_2 = generate_signal(
+        n, kind=:sin, dt=dt, freq=[1.0, 2.0], phase=[0.0, 0.5], noise_level=0.1, seed=77
+    )
+    @test s_noise_vec_1 == s_noise_vec_2
+
     # integer freq should work like float
     sint = generate_signal(n, kind=:sin, dt=dt, freq=1)
     sfloat = generate_signal(n, kind=:sin, dt=dt, freq=1.0)
